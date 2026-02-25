@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { useState } from 'react'
 import Index from './pages/index.tsx'
 import Profile from './pages/profile.tsx'
+import SidebarLayout from "./layouts/sidebarLayout.tsx";
 import './App.css'
 
 function App() {
@@ -11,7 +12,7 @@ function App() {
     <>
       <div>
         <Routes>
-          <Route>
+          <Route element={<SidebarLayout />}>
             <Route path="/" element={<Index />}/>
             <Route path="/profile" element={<Profile />}/>
           </Route>
