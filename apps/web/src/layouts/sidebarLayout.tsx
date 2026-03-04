@@ -5,7 +5,7 @@ export default function SidebarLayout() {
     return (
         <div className="flex h-screen">
             {/* Sidebar */}
-            <aside className="w-52 bg-gray-200 p-4">
+            <aside className="sidebar">
                 <h1>Sidebar</h1>
                 <Navbar />
             </aside>
