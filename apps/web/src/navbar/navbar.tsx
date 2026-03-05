@@ -1,22 +1,19 @@
-import { Link } from "react-router-dom";
-import { useState } from "react";
-
 export default function Navbar() {
-    const [isOpen, setIsOpen] = useState(true);
-
     return (
-        <nav className="sidebar">
-            <div>
-                <button className="md:hidden text-2xl" onClick={() => setIsOpen(!isOpen)}>
-                {isOpen ? "" : "☰"}
-                </button>
+        <div className="flex items-center justify-between gap-8">
+            {/* Logo */}
+            <div className="text-white font-bold text-xl">
+                Campus Marketplace
             </div>
-            <div className={`flex-col md:flex md:flex-row gap-4 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}>
-                <ul className="list-none center">
-                    <li><Link to="/">Home</Link></li>
-                    <li><Link to="/profile">Profile</Link></li>
-                </ul>
-            </div>
-        </nav>
+
+            {/* Center Search Bar */}
+            <input
+                type="text"
+                placeholder="Search..."
+                className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-700"
+            />
+
+            <div className="text-white text-lg">cart</div>
+        </div>
     );
 }
