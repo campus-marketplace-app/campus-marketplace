@@ -1,10 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 
 const listingPlaceholders = [
-    { id: 1, imageLabel: "LISTING_IMAGES.path", title: "LISTINGS.title", price: "LISTINGS.price" },
-    { id: 2, imageLabel: "picture of product", title: "LISTINGS.title", price: "LISTINGS.price" },
-    { id: 3, imageLabel: "LISTING_IMAGES.path", title: "LISTINGS.title", price: "LISTINGS.price" },
-    { id: 4, imageLabel: "LISTING_IMAGES.path", title: "LISTINGS.title", price: "LISTINGS.price" },
+    { id: 1, imageLabel: "path", title: "title", price: "price" },
+    { id: 2, imageLabel: "path", title: "title", price: "price" },
+    { id: 3, imageLabel: "path", title: "title", price: "price" },
+    { id: 4, imageLabel: "path", title: "title", price: "price" },
 ];
 
 export default function Index() {

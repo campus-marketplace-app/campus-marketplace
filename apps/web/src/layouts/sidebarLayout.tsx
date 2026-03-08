@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../navbar/navbar';
 
 export default function SidebarLayout() {
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const location = useLocation();
 
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
@@ -41,18 +42,56 @@ export default function SidebarLayout() {
                     </button>
 
                     <div className="flex h-full flex-col items-center justify-between py-14">
-                        <ul className="space-y-6 text-center text-xl">
-                            <li>
-                                <Link to="/" className="text-black hover:text-white">
-                                    {isSidebarOpen ? 'Home' : 'H'}
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/profile" className="text-black hover:text-white">
-                                    {isSidebarOpen ? 'Profile' : 'P'}
-                                </Link>
-                            </li>
-                        </ul>
+                        {isSidebarOpen ? (
+                            <ul className="space-y-6 text-center text-xl">
+                                <li>
+                                    <NavLink
+                                        to="/"
+                                        end
+                                        className={({ isActive }) =>
+                                            `block rounded-lg px-4 py-2 font-semibold transition ${
+                                                isActive
+                                                    ? 'bg-white/25 text-white shadow-sm'
+                                                    : 'text-white hover:bg-white/15 hover:text-white'
+                                            }`
+                                        }
+                                    >
+                                        Home
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink
+                                        to="/profile"
+                                        state={{ backgroundLocation: location }}
+                                        className={({ isActive }) =>
+                                            `block rounded-lg px-4 py-2 font-semibold transition ${
+                                                isActive
+                                                    ? 'bg-white/25 text-white shadow-sm'
+                                                    : 'text-white hover:bg-white/15 hover:text-white'
+                                            }`
+                                        }
+                                    >
+                                        Profile
+                                    </NavLink>
+                                </li>
+                                <li>
+                                    <NavLink
+                                        to="/messages"
+                                        className={({ isActive }) =>
+                                            `block rounded-lg px-4 py-2 font-semibold transition ${
+                                                isActive
+                                                    ? 'bg-white/25 text-white shadow-sm'
+                                                    : 'text-white hover:bg-white/15 hover:text-white'
+                                            }`
+                                        }
+                                    >
+                                        Messages
+                                    </NavLink>
+                                </li>
+                            </ul>
+                        ) : (
+                            <div />
+                        )}
                         <div className="text-center">
                             <button
                                 type="button"
