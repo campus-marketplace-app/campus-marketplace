@@ -1,7 +1,7 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import PageHeader from '../components/PageHeader';
-import Navbar from '../navbar/navbar';
+import PageHeader from '../features/PageHeader';
+import Navbar from '../features/navbar';
 
 const getCurrentDateTimeLocal = () => {
     const now = new Date();
