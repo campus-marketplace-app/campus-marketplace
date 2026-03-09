@@ -3,6 +3,12 @@ import { Outlet, useLocation } from 'react-router-dom';
 import PageHeader from '../components/PageHeader';
 import Navbar from '../navbar/navbar';
 
+const getCurrentDateTimeLocal = () => {
+    const now = new Date();
+    const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+    return new Date(now.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
+};
+
 export default function SidebarLayout() {
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -10,7 +16,7 @@ export default function SidebarLayout() {
     const [listingPrice, setListingPrice] = useState('LISTINGS.price_unit');
     const [listingCategory, setListingCategory] = useState('LISTINGS.category');
     const [listingCondition, setListingCondition] = useState('LISTINGS.condition');
-    const [listingExtra, setListingExtra] = useState('');
+    const [listingDate, setListingDate] = useState(getCurrentDateTimeLocal);
     const [listingDescription, setListingDescription] = useState('LISTINGS.description');
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
@@ -140,14 +146,14 @@ export default function SidebarLayout() {
                                             />
                                         </div>
                                         <div>
-                                            <label htmlFor="extra" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                                Extra
+                                            <label htmlFor="date" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                                Date
                                             </label>
                                             <input
-                                                id="extra"
-                                                type="text"
-                                                value={listingExtra}
-                                                onChange={(e) => setListingExtra(e.target.value)}
+                                                id="date"
+                                                type="datetime-local"
+                                                value={listingDate}
+                                                onChange={(e) => setListingDate(e.target.value)}
                                                 className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
                                             />
                                         </div>
