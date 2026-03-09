@@ -3,7 +3,7 @@ import Index from './pages/index.tsx'
 import Listing from './pages/listing.tsx'
 import Messages from './pages/messages.tsx'
 import Profile from './pages/profile.tsx'
-import SidebarLayout from "./layouts/sidebarLayout.tsx";
+import SidebarLayout from "./layouts/sidebar-layout.tsx";
 import Login from './pages/login.tsx'
 import './App.css'
 
