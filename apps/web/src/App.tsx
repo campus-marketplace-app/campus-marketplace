@@ -1,5 +1,4 @@
-import { Route, Routes, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import Index from './pages/index.tsx'
 import Listing from './pages/listing.tsx'
 import Messages from './pages/messages.tsx'

@@ -1,11 +1,26 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useEffect, useState, type ChangeEvent } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 import Navbar from '../navbar/navbar';
 
 export default function SidebarLayout() {
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [listingTitle, setListingTitle] = useState('LISTINGS.title');
+    const [listingPrice, setListingPrice] = useState('LISTINGS.price_unit');
+    const [listingCategory, setListingCategory] = useState('LISTINGS.category');
+    const [listingCondition, setListingCondition] = useState('LISTINGS.condition');
+    const [listingExtra, setListingExtra] = useState('');
+    const [listingDescription, setListingDescription] = useState('LISTINGS.description');
+    const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
+
+    const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = event.target.files?.[0];
+        if (selectedFile) {
+            setListingImageLabel(selectedFile.name);
+        }
+    };
 
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
@@ -21,10 +36,7 @@ export default function SidebarLayout() {
 
     return (
         <div className="flex flex-col h-screen">
-            {/* Top Navbar */}
-            <nav className="bg-red-700 p-4 w-full">
-                <Navbar />
-            </nav>
+            <PageHeader />
 
             <div className="flex flex-1 overflow-hidden bg-[#ececec]">
                 <aside
@@ -32,78 +44,12 @@ export default function SidebarLayout() {
                         isSidebarOpen ? 'w-36 sm:w-40' : 'w-16'
                     }`}
                 >
-                    <button
-                        type="button"
-                        onClick={() => setIsSidebarOpen((prev) => !prev)}
-                        className="absolute right-2 top-2 rounded border border-black bg-[#f6d3d6] px-2 py-1 text-sm font-semibold text-black hover:bg-white"
-                        aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-                    >
-                        {isSidebarOpen ? '<' : '>'}
-                    </button>
-
-                    <div className="flex h-full flex-col items-center justify-between py-14">
-                        {isSidebarOpen ? (
-                            <ul className="space-y-6 text-center text-xl">
-                                <li>
-                                    <NavLink
-                                        to="/"
-                                        end
-                                        className={({ isActive }) =>
-                                            `block rounded-lg px-4 py-2 font-semibold transition ${
-                                                isActive
-                                                    ? 'bg-white/25 text-white shadow-sm'
-                                                    : 'text-white hover:bg-white/15 hover:text-white'
-                                            }`
-                                        }
-                                    >
-                                        Home
-                                    </NavLink>
-                                </li>
-                                <li>
-                                    <NavLink
-                                        to="/profile"
-                                        state={{ backgroundLocation: location }}
-                                        className={({ isActive }) =>
-                                            `block rounded-lg px-4 py-2 font-semibold transition ${
-                                                isActive
-                                                    ? 'bg-white/25 text-white shadow-sm'
-                                                    : 'text-white hover:bg-white/15 hover:text-white'
-                                            }`
-                                        }
-                                    >
-                                        Profile
-                                    </NavLink>
-                                </li>
-                                <li>
-                                    <NavLink
-                                        to="/messages"
-                                        className={({ isActive }) =>
-                                            `block rounded-lg px-4 py-2 font-semibold transition ${
-                                                isActive
-                                                    ? 'bg-white/25 text-white shadow-sm'
-                                                    : 'text-white hover:bg-white/15 hover:text-white'
-                                            }`
-                                        }
-                                    >
-                                        Messages
-                                    </NavLink>
-                                </li>
-                            </ul>
-                        ) : (
-                            <div />
-                        )}
-                        <div className="text-center">
-                            <button
-                                type="button"
-                                onClick={() => setShowForm(true)}
-                                className={`rounded-xl border-2 border-black bg-[#f6d3d6] text-xl font-semibold text-black shadow-[4px_4px_0_#000] transition hover:-translate-y-0.5 hover:bg-white ${
-                                    isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'
-                                }`}
-                            >
-                                {isSidebarOpen ? 'Post' : '+'}
-                            </button>
-                        </div>
-                    </div>
+                    <Navbar
+                        isSidebarOpen={isSidebarOpen}
+                        toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+                        openPostForm={() => setShowForm(true)}
+                        location={location}
+                    />
                 </aside>
 
                 <main className="flex-1 overflow-auto">
@@ -133,7 +79,8 @@ export default function SidebarLayout() {
                                     <input
                                         id="title"
                                         type="text"
-                                        placeholder="LISTINGS.title"
+                                        value={listingTitle}
+                                        onChange={(e) => setListingTitle(e.target.value)}
                                         className="w-full bg-transparent text-center text-3xl outline-none placeholder:text-black"
                                     />
                                 </div>
@@ -142,8 +89,12 @@ export default function SidebarLayout() {
                             <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
                                 <div>
                                     <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
-                                    <div className="flex min-h-72 items-center justify-center bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
-                                        picture of the product
+                                    <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
+                                        <span>{listingImageLabel}</span>
+                                        <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
+                                            Choose Image
+                                            <input type="file" accept="image/*" className="hidden" onChange={handleListingImageChange} />
+                                        </label>
                                     </div>
                                 </div>
 
@@ -156,7 +107,8 @@ export default function SidebarLayout() {
                                             <input
                                                 id="price"
                                                 type="text"
-                                                placeholder="LISTINGS.price_unit"
+                                                value={listingPrice}
+                                                onChange={(e) => setListingPrice(e.target.value)}
                                                 className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
                                             />
                                         </div>
@@ -167,7 +119,8 @@ export default function SidebarLayout() {
                                             <input
                                                 id="category"
                                                 type="text"
-                                                placeholder="LISTINGS.category"
+                                                value={listingCategory}
+                                                onChange={(e) => setListingCategory(e.target.value)}
                                                 className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
                                             />
                                         </div>
@@ -181,7 +134,8 @@ export default function SidebarLayout() {
                                             <input
                                                 id="condition"
                                                 type="text"
-                                                placeholder="LISTINGS.condition"
+                                                value={listingCondition}
+                                                onChange={(e) => setListingCondition(e.target.value)}
                                                 className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
                                             />
                                         </div>
@@ -192,6 +146,8 @@ export default function SidebarLayout() {
                                             <input
                                                 id="extra"
                                                 type="text"
+                                                value={listingExtra}
+                                                onChange={(e) => setListingExtra(e.target.value)}
                                                 className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
                                             />
                                         </div>
@@ -203,8 +159,9 @@ export default function SidebarLayout() {
                                         </label>
                                         <textarea
                                             id="description"
-                                            placeholder="LISTINGS.description"
                                             rows={5}
+                                            value={listingDescription}
+                                            onChange={(e) => setListingDescription(e.target.value)}
                                             className="w-full resize-none rounded-2xl bg-white px-4 py-4 text-sm outline-none placeholder:text-black"
                                         />
                                     </div>

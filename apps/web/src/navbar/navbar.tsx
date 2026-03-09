@@ -1,19 +1,92 @@
-export default function Navbar() {
+import { NavLink, type Location } from 'react-router-dom';
+
+type NavbarProps = {
+    isSidebarOpen: boolean;
+    toggleSidebar: () => void;
+    openPostForm: () => void;
+    location: Location;
+};
+
+export default function Navbar({
+    isSidebarOpen,
+    toggleSidebar,
+    openPostForm,
+    location,
+}: NavbarProps) {
     return (
-        <div className="flex items-center justify-between gap-8">
-            {/* Logo */}
-            <div className="text-white font-bold text-xl">
-                Campus Marketplace
+        <>
+            <button
+                type="button"
+                onClick={toggleSidebar}
+                className="absolute right-2 top-2 rounded border border-black bg-[#f6d3d6] px-2 py-1 text-sm font-semibold text-black hover:bg-white"
+                aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            >
+                {isSidebarOpen ? '<' : '>'}
+            </button>
+
+            <div className="flex h-full flex-col items-center justify-between py-14">
+                {isSidebarOpen ? (
+                    <ul className="space-y-6 text-center text-xl">
+                        <li>
+                            <NavLink
+                                to="/"
+                                end
+                                className={({ isActive }) =>
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${
+                                        isActive
+                                            ? 'bg-white/25 text-white shadow-sm'
+                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    }`
+                                }
+                            >
+                                Home
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink
+                                to="/profile"
+                                state={{ backgroundLocation: location }}
+                                className={({ isActive }) =>
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${
+                                        isActive
+                                            ? 'bg-white/25 text-white shadow-sm'
+                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    }`
+                                }
+                            >
+                                Profile
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink
+                                to="/messages"
+                                className={({ isActive }) =>
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${
+                                        isActive
+                                            ? 'bg-white/25 text-white shadow-sm'
+                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    }`
+                                }
+                            >
+                                Messages
+                            </NavLink>
+                        </li>
+                    </ul>
+                ) : (
+                    <div />
+                )}
+                <div className="text-center">
+                    <button
+                        type="button"
+                        onClick={openPostForm}
+                        className={`rounded-xl border-2 border-black bg-[#f6d3d6] text-xl font-semibold text-black shadow-[4px_4px_0_#000] transition hover:-translate-y-0.5 hover:bg-white ${
+                            isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'
+                        }`}
+                    >
+                        {isSidebarOpen ? 'Post' : '+'}
+                    </button>
+                </div>
             </div>
-
-            {/* Center Search Bar */}
-            <input
-                type="text"
-                placeholder="Search..."
-                className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-700"
-            />
-
-            <div className="text-white text-lg">cart</div>
-        </div>
+        </>
     );
 }
