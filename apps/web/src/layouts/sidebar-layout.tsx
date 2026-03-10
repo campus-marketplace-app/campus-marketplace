@@ -10,6 +10,7 @@ const getCurrentDateTimeLocal = () => {
 };
 
 export default function SidebarLayout() {
+    const [isRegistering, setIsRegistering] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [listingTitle, setListingTitle] = useState('LISTINGS.title');
@@ -42,10 +43,10 @@ export default function SidebarLayout() {
 
     return (
         <div className="flex flex-col h-screen">
-            <PageHeader />
+            {isRegistering ? <PageHeader /> : null}
 
             <div className="flex flex-1 overflow-hidden bg-[#ececec]">
-                <aside
+                {isRegistering ? <aside
                     className={`relative shrink-0 bg-[#8f0010] text-black transition-all duration-300 ${
                         isSidebarOpen ? 'w-36 sm:w-40' : 'w-16'
                     }`}
@@ -56,7 +57,7 @@ export default function SidebarLayout() {
                         openPostForm={() => setShowForm(true)}
                         location={location}
                     />
-                </aside>
+                </aside> : null}
 
                 <main className="flex-1 overflow-auto">
                     <Outlet />
