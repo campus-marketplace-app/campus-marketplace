@@ -5,6 +5,7 @@ import Messages from './pages/messages.tsx'
 import Profile from './pages/profile.tsx'
 import SidebarLayout from "./layouts/sidebar-layout.tsx";
 import Login from './pages/login.tsx'
+import Signup from './pages/signup.tsx'
 import './App.css'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="/messages" element={<Messages />}/>
             <Route path="/profile" element={<Profile />}/>
             <Route path="/login" element={<Login />}/>
+            <Route path="/signup" element={<Signup />}/>
           </Route>
         </Routes>
         </div>
