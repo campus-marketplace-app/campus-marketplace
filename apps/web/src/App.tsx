@@ -1,20 +1,26 @@
 import { Route, Routes } from 'react-router-dom'
-import { useState } from 'react'
 import Index from './pages/index.tsx'
+import Listing from './pages/listing.tsx'
+import Messages from './pages/messages.tsx'
 import Profile from './pages/profile.tsx'
-import SidebarLayout from "./layouts/sidebarLayout.tsx";
+import SidebarLayout from "./layouts/sidebar-layout.tsx";
+import Login from './pages/login.tsx'
+import Signup from './pages/signup.tsx'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
       <div>
-        <Routes>
+        <Routes >
           <Route element={<SidebarLayout />}>
             <Route path="/" element={<Index />}/>
+            <Route path="/listing" element={<Listing />}/>
+            <Route path="/listing/:id" element={<Listing />}/>
+            <Route path="/messages" element={<Messages />}/>
             <Route path="/profile" element={<Profile />}/>
+            <Route path="/login" element={<Login />}/>
+            <Route path="/signup" element={<Signup />}/>
           </Route>
         </Routes>
         </div>
