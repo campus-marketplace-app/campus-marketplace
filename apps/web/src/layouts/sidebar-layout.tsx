@@ -48,10 +48,12 @@ export default function SidebarLayout() {
 
   return (
     <div className="flex flex-col h-screen">
-      {isRegistering ? <PageHeader /> : null}
+      {isRegistering ? (
+        <PageHeader isLoggedIn={false} isRegistering={isRegistering} />
+      ) : null}
 
       <div className="flex flex-1 overflow-hidden bg-[var(--color-surface)]">
-          {isRegistering ? (
+        {isRegistering ? (
           <aside
             className={`relative shrink-0 bg-[var(--color-primary)] text-black transition-all duration-300 ${
               isSidebarOpen ? "w-36 sm:w-40" : "w-16"
