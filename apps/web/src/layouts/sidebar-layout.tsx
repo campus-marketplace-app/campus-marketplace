@@ -10,7 +10,7 @@ const getCurrentDateTimeLocal = () => {
 };
 
 export default function SidebarLayout() {
-    const [isRegistering, setIsRegistering] = useState(false);
+    const [isLoggedIn] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [listingTitle, setListingTitle] = useState('LISTINGS.title');
@@ -21,6 +21,7 @@ export default function SidebarLayout() {
     const [listingDescription, setListingDescription] = useState('LISTINGS.description');
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
+    const isRegistering = !['/login', '/signup'].includes(location.pathname);
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -43,7 +44,10 @@ export default function SidebarLayout() {
 
     return (
         <div className="flex flex-col h-screen">
-            {isRegistering ? <PageHeader /> : null}
+            <PageHeader 
+                isLoggedIn={isLoggedIn}
+                isRegistering={isRegistering}
+            />
 
             <div className="flex flex-1 overflow-hidden bg-[#ececec]">
                 {isRegistering ? <aside
