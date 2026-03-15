@@ -1,5 +1,25 @@
 {
+  "name": "campus-marketplace",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Multi-school campus marketplace for buying and selling items",
+  "workspaces": [
+    "apps/web",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web && npm run build --workspace=apps/backend",
+    "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/backend",
+    "typecheck": "npm run typecheck --workspaces",
+    "setup": "npm install && npm run dev",
+    "setup:windows": "powershell -ExecutionPolicy Bypass -File dev.ps1",
+    "setup:unix": "bash dev.sh"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1"
+  },
+  "devDependencies": {
+    "supabase": "^1.199.0"
   }
 }
