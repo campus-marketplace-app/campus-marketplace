@@ -52,10 +52,10 @@ export default function SidebarLayout() {
         <PageHeader isLoggedIn={false} isRegistering={isRegistering} />
       ) : null}
 
-      <div className="flex flex-1 overflow-hidden bg-[var(--color-surface)]">
+      <div className="flex flex-1 overflow-hidden bg-[#ececec]">
         {isRegistering ? (
           <aside
-            className={`relative shrink-0 bg-[var(--color-primary)] text-black transition-all duration-300 ${
+            className={`relative shrink-0 bg-[#8f0010] text-black transition-all duration-300 ${
               isSidebarOpen ? "w-36 sm:w-40" : "w-16"
             }`}
           >
@@ -80,7 +80,7 @@ export default function SidebarLayout() {
             onClick={() => setShowForm(false)}
           />
 
-          <div className="relative z-10 mx-4 w-full max-w-4xl rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
+          <div className="relative z-10 mx-4 w-full max-w-4xl rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -110,7 +110,7 @@ export default function SidebarLayout() {
                   <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">
                     Product Image
                   </p>
-                  <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[var(--color-secondary)] p-6 text-center text-sm uppercase text-black">
+                  <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
                     <span>{listingImageLabel}</span>
                     <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
                       Choose Image
@@ -212,14 +212,14 @@ export default function SidebarLayout() {
               <div className="flex items-center justify-between pt-8">
                 <button
                   type="button"
-                  className="bg-[var(--color-secondary)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                  className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
                   onClick={() => setShowForm(false)}
                 >
                   back
                 </button>
                 <button
                   type="submit"
-                  className="bg-[var(--color-secondary)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                  className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
                 >
                   upload
                 </button>
