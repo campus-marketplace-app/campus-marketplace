@@ -10,7 +10,7 @@ const getCurrentDateTimeLocal = () => {
 };
 
 export default function SidebarLayout() {
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [listingTitle, setListingTitle] = useState("LISTINGS.title");
