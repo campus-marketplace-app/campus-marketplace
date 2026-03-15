@@ -9,9 +9,7 @@ export default function Login() {
                         Welcome to Campus Marketplace!
                     </p>
                     <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
-                        Your one-stop shop for buying and selling items on campus! 
-                        Whether you're looking to declutter your dorm room or find great deals on textbooks, 
-                        our platform connects students in a safe and convenient way. 
+                        Your one-stop shop for buying and selling items on campus!  
                         Join our community today and start trading with your fellow students!
                     </p>
                     <p className="mt-12 text-xl font-normal sm:mt-16 sm:text-3xl">
