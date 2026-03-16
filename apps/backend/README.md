@@ -39,6 +39,9 @@ Supabase PostgreSQL
 - **profile.ts** — User profile queries (getProfile, updateProfile, etc.)
 - **messaging.ts** — Conversation and message queries (getConversation, sendMessage, etc.)
 - **search.ts** — Cross-listing search with filters
+- **auth.ts** — Auth wrappers (sign up, sign in, sign out, session restore, password reset)
+
+For frontend integration examples, see `AUTH_USAGE.md`.
 
 ## Key Rules
 

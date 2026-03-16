@@ -1,4 +1,4 @@
-import { supabase } from "../supabase-client";
+import { supabase } from "../supabase-client.js";
 
 // Theme service module.
 // Provides school branding values used by the frontend to set CSS variables.

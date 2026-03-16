@@ -2,7 +2,7 @@
 // Frontend calls these functions through @campus-marketplace/backend.
 // Each function should eventually query Supabase via the shared backend client.
 
-import { supabase } from "../supabase-client";
+import { supabase } from "../supabase-client.js";
 
 // These mirror enum values in the database migration.
 export type ListingType = "item" | "service";
