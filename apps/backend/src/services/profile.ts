@@ -1,4 +1,4 @@
-import { supabase } from "../supabase-client";
+import { supabase } from "../supabase-client.js";
 
 // expectted object shape for profile rows in the database
 export interface UserProfile {
@@ -99,13 +99,15 @@ export async function updateProfile(userId: string,updates: Partial<Omit<UpsertP
     throw new Error("Profile display_name cannot be empty");
   }
 
-  const payload = {
-    display_name: updates.display_name,
-    first_name: updates.first_name,
-    last_name: updates.last_name,
-    bio: updates.bio,
-    avatar_path: updates.avatar_path,
-  };
+  const payload = Object.fromEntries(
+    Object.entries({
+      display_name: updates.display_name,
+      first_name: updates.first_name,
+      last_name: updates.last_name,
+      bio: updates.bio,
+      avatar_path: updates.avatar_path,
+    }).filter(([, v]) => v !== undefined)
+  );
 
   const hasUpdates = Object.values(payload).some(
     (value) => value !== undefined,
