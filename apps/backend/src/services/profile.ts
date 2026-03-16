@@ -26,10 +26,9 @@ export interface UpsertProfileInput {
 // For partial updates we reuse `UpsertProfileInput` fields except `user_id`.
 // `updateProfile` accepts a partial object of these fields.
 
-const profileSelect =
-  "user_id,display_name,first_name,last_name,bio,avatar_path,created_at,updated_at";
+const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,created_at,updated_at";
 
-// Loads one user's profile by auth user ID.
+// GET: Loads one user's profile by auth user ID. Returns a user profile, otherwise throws an error.
 export async function getProfile(userId: string): Promise<UserProfile> {
   if (!userId.trim()) {
     throw new Error("Profile user_id is required");
@@ -53,10 +52,8 @@ export async function getProfile(userId: string): Promise<UserProfile> {
   return data;
 }
 
-// Creates or updates a profile row.
-export async function upsertProfile(
-  input: UpsertProfileInput,
-): Promise<UserProfile> {
+// UPSERT: Creates or updates a profile row. Returns: the new/updated profile data.
+export async function upsertProfile(input: UpsertProfileInput): Promise<UserProfile> {
   if (!input.user_id.trim()) {
     throw new Error("Profile user_id is required");
   }
@@ -65,6 +62,7 @@ export async function upsertProfile(
     throw new Error("Profile display_name is required");
   }
 
+  // Supabase upsert requires all fields to be present, so we set missing optional fields to null
   const payload = {
     user_id: input.user_id,
     display_name: input.display_name,
@@ -91,11 +89,8 @@ export async function upsertProfile(
   return data;
 }
 
-// Applies partial profile updates.
-export async function updateProfile(
-  userId: string,
-  updates: Partial<Omit<UpsertProfileInput, "user_id">>,
-): Promise<UserProfile> {
+// UPDATE: Applies partial profile updates.
+export async function updateProfile(userId: string,updates: Partial<Omit<UpsertProfileInput, "user_id">>,): Promise<UserProfile> {
   if (!userId.trim()) {
     throw new Error("Profile user_id is required");
   }

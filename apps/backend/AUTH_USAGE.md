@@ -1,16 +1,22 @@
-# Backend Auth Wrapper Usage
+# Auth Wrapper Quick Guide (Frontend)
 
-Use these functions from `@campus-marketplace/backend` in the frontend. Do not import Supabase directly in frontend code.
+Use auth functions from `@campus-marketplace/backend`.
+Do NOT import `@supabase/supabase-js` in frontend code.
 
-## Available functions
+## Imports
 
-- `signUpWithEmail(input)`
-- `signInWithEmail(input)`
-- `getSessionFromTokens(accessToken, refreshToken)`
-- `signOutWithTokens(accessToken, refreshToken)`
-- `sendPasswordResetEmail(email, redirectTo?)`
+```ts
+import {
+  signUpWithEmail,
+  signInWithEmail,
+  getSessionFromTokens,
+  signOutWithTokens,
+  sendPasswordResetEmail,
+  getProfile,
+} from "@campus-marketplace/backend";
+```
 
-## Types
+## Core Types
 
 ```ts
 interface SignUpInput {
@@ -27,47 +33,93 @@ interface SignInInput {
   email: string;
   password: string;
 }
+
+interface AuthResult {
+  user: User;
+  session: Session | null;
+}
 ```
 
-## Quick examples
+## Function Contracts
+
+- `signUpWithEmail(input: SignUpInput): Promise<AuthResult>`
+  - Input: signup form values
+  - Output: created `user` + `session` (or `null`)
+  - Notes: also creates/updates profile row in `profiles`
+
+- `signInWithEmail(input: SignInInput): Promise<AuthResult>`
+  - Input: email + password
+  - Output: authenticated `user` + `session` (or `null`)
+
+- `getSessionFromTokens(accessToken: string, refreshToken: string): Promise<AuthResult>`
+  - Input: stored tokens
+  - Output: restored `user` + `session`
+  - Use: app startup / refresh restore
+
+- `signOutWithTokens(accessToken: string, refreshToken: string): Promise<void>`
+  - Input: current tokens
+  - Output: nothing (throws on failure)
+  - Use: logout button
+
+- `sendPasswordResetEmail(email: string, redirectTo?: string): Promise<void>`
+  - Input: user email + optional redirect URL
+  - Output: nothing (throws on failure)
+  - Use: forgot-password flow
+
+## What Is `session`?
+
+`session` is the auth state returned by Supabase for a logged-in user.
+
+You mainly use:
+- `session.access_token`: short-lived token used for authenticated requests
+- `session.refresh_token`: token used to restore/refresh login
+- `session.expires_at` (if present): token expiry time
+
+If `session` is `null`, treat user as not fully signed in yet (or email confirmation flow is pending).
+
+## Recommended Frontend Flow
+
+1. On login/signup success:
+   - Read `result.session`
+   - If present, store `access_token` and `refresh_token` (or rely on secure cookie strategy)
+   - Load profile with `getProfile(result.user.id)`
+
+2. On app startup:
+   - Read stored tokens
+   - Call `getSessionFromTokens(access, refresh)`
+   - If restore fails, clear tokens and go to logged-out state
+
+3. On logout:
+   - Call `signOutWithTokens(access, refresh)`
+   - Clear stored tokens and local user/profile state
+
+## Minimal Usage Examples
 
 ```ts
-import {
-  signUpWithEmail,
-  signInWithEmail,
-  getSessionFromTokens,
-  signOutWithTokens,
-  sendPasswordResetEmail,
-} from "@campus-marketplace/backend";
-
-const signUpResult = await signUpWithEmail({
-  email: "student@school.edu",
-  password: "your-password",
-  display_name: "Student Name",
-});
-
-const signInResult = await signInWithEmail({
-  email: "student@school.edu",
-  password: "your-password",
-});
-
-if (signInResult.session) {
-  const restored = await getSessionFromTokens(
-    signInResult.session.access_token,
-    signInResult.session.refresh_token,
-  );
-
-  await signOutWithTokens(
-    restored.session?.access_token ?? "",
-    restored.session?.refresh_token ?? "",
-  );
+// login
+const { user, session } = await signInWithEmail({ email, password });
+if (session) {
+  localStorage.setItem("access_token", session.access_token);
+  localStorage.setItem("refresh_token", session.refresh_token);
 }
-
-await sendPasswordResetEmail("student@school.edu");
+const profile = await getProfile(user.id);
 ```
 
-## Notes
+```ts
+// restore on app init
+const access = localStorage.getItem("access_token") ?? "";
+const refresh = localStorage.getItem("refresh_token") ?? "";
+if (access && refresh) {
+  const { user } = await getSessionFromTokens(access, refresh);
+  await getProfile(user.id);
+}
+```
 
-- `signUpWithEmail` auto-creates or updates a profile in `public.profiles`.
-- Functions throw `Error` on failure. Wrap calls in `try/catch`.
-- Required backend env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
+## Error Handling Rule
+
+All functions throw `Error` on failure. Always use `try/catch` in UI handlers.
+
+## Source Files
+
+- `apps/backend/src/services/auth.ts`
+- `apps/backend/src/services/profile.ts`
