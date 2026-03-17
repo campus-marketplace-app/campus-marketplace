@@ -1,8 +1,52 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+
 export default function Signup() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [rePassword, setRePassword] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
+    const [passwordMessage, setPasswordMessage] = useState('');
+    const [rePasswordMessage, setRePasswordMessage] = useState('');
+
+    const checkEmail = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(email)) {
+            setEmailMessage('Please enter a valid email address.');
+        }
+        else {
+            setEmailMessage('');
+        }
+
+        return;
+    }
+    const checkPassword = () => {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+
+        if (!passwordRegex.test(password)) {
+            setPasswordMessage('Password must be at least 6 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.');
+        }
+        else {
+            setPasswordMessage('');
+        }
+
+        return;
+    }
+
+    const checkRePassword = () => {
+        if (password !== rePassword) {
+            setRePasswordMessage('Passwords do not match.');
+        }
+        else {
+            setRePasswordMessage('');
+        }
+    }
+
+
     return (
-        <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[#dddddd] px-4 py-8 sm:px-8">
+        <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-[#dddddd] px-4 py-8 sm:px-8">
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
                 <div className="px-1 text-black sm:px-6">
                     <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
@@ -26,12 +70,48 @@ export default function Signup() {
                             type="email"
                             placeholder="Email"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            value={email}
+                            onChange={
+                                (e) => {
+                                    setEmail(e.target.value);
+                                }
+                            }
+                            onBlur={checkEmail}
                         />
+                        {emailMessage !== '' ?
+                            (<p className="text-sm text-white">{emailMessage}</p>) : null
+                        }
+
                         <input
                             type="password"
                             placeholder="Password"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={password}
+                            onChange={
+                                (e) => {
+                                    setPassword(e.target.value);
+                                    checkPassword();
+                                }
+                            }
                         />
+                        {passwordMessage !== '' ?
+                            (<p className="text-sm text-white">{passwordMessage}</p>) : null
+                        }
+
+                        <input
+                            type="password"
+                            placeholder="Re-enter Password"
+                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={rePassword}
+                            onChange={
+                                (e) => {
+                                    setRePassword(e.target.value);
+                                    checkRePassword();
+                                }
+                            }
+                        />
+                        {rePasswordMessage !== '' ?
+                            (<p className="text-sm text-white">{rePasswordMessage}</p>) : null
+                        }
+
                         <button
                             type="submit"
                             className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b]"

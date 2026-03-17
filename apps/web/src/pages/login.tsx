@@ -1,6 +1,39 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 export default function Login() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [emailMessage, setEmailMessage] = useState('');
+    const [passwordMessage, setPasswordMessage] = useState('');
+
+    const checkEmail = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if(!emailRegex.test(email)){
+            setEmailMessage('Please enter a valid email address.');
+        }
+        else {
+            setEmailMessage('');
+        }
+
+        return;
+    }
+
+    const checkPassword = () => {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+
+        if(!passwordRegex.test(password)){
+           setPasswordMessage('');
+        }
+        else {
+            setPasswordMessage('');
+        }
+
+    return;
+
+    }
+
     return (
         <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[#dddddd] px-4 py-8 sm:px-8">
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
@@ -27,12 +60,30 @@ export default function Login() {
                             type="email"
                             placeholder="Email"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            value={email}
+                            onChange={
+                                (e) => {
+                                    setEmail(e.target.value);
+                                    checkEmail();
+                                }
+                            }
                         />
+                        {emailMessage !== '' ? 
+                            (<p className="text-sm text-white">
+                                {emailMessage}</p>) : null}
                         <input
                             type="password"
                             placeholder="Password"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            value={password}
+                            onChange={
+                                (e) => {
+                                    setPassword(e.target.value);
+                                    checkPassword();
+                                }
+                            }
                         />
+                        {passwordMessage !== '' ? (<p className="text-sm text-white">{passwordMessage}</p>) : null}
                         <button
                             type="submit"
                             className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b]"
