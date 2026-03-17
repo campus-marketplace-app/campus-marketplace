@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(find C:SchoolSpring2026Cs491campus-marketplace -name *.md -type f)",
+      "Bash(npm run:*)"
     ]
   }
 }
