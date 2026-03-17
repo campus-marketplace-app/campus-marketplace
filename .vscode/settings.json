@@ -1,0 +1,14 @@
+{
+  "kdb.connectionMap": {},
+  "kdb.targetMap": {},
+  "eslint.workingDirectories": [
+    {
+      "directory": "apps/backend",
+      "changeProcessCWD": true
+    },
+    {
+      "directory": "apps/web",
+      "changeProcessCWD": true
+    }
+  ]
+}
