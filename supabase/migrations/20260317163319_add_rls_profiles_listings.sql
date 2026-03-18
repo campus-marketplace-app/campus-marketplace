@@ -1,7 +1,7 @@
 -- CM-US-014 RLS for profiles and listings
 
 
--- Enable RLS
+-- Enable RLS on profiles and listings tables
 alter table public.profiles enable row level security;
 alter table public.listings enable row level security;
 
