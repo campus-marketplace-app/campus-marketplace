@@ -3,7 +3,23 @@
     "allow": [
       "Bash(cd:*)",
       "Bash(find C:SchoolSpring2026Cs491campus-marketplace -name *.md -type f)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(ls -la /c/School/Spring2026/Cs491/campus-marketplace/apps/backend/.env*)",
+      "Bash(ls:*)",
+      "Bash(xargs grep:*)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__search_docs",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__get_publishable_keys",
+      "mcp__claude_ai_Supabase__get_project_url",
+      "Bash(curl:*)",
+      "Bash(ANON_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdGdyaW9waWFvcHlrZHlxanNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjY2NTcsImV4cCI6MjA4NzcwMjY1N30.PTVqhxc4WmcWTWrGmicvsUILqsLc4Dz9i5uq8Antbiw\" BASE=\"https://vltgriopiaopykdyqjsf.supabase.co/auth/v1/signup\" __NEW_LINE_9b37f12867d67594__ echo \"=== Test 1: gmail.com \\(should be blocked\\) ===\" curl -s -X POST \"$BASE\" -H \"apikey: $ANON_KEY\" -H \"Content-Type: application/json\" --data-raw '{\"\"\"\"email\"\"\"\":\"\"\"\"hooktest_block@gmail.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"TestPass123\"\"\"\"}')",
+      "Bash(ANON_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdGdyaW9waWFvcHlrZHlxanNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMjY2NTcsImV4cCI6MjA4NzcwMjY1N30.PTVqhxc4WmcWTWrGmicvsUILqsLc4Dz9i5uq8Antbiw\")",
+      "Bash(BASE=\"https://vltgriopiaopykdyqjsf.supabase.co/auth/v1/signup\")",
+      "Bash(__NEW_LINE_f65ece14c6da7849__ echo:*)"
     ]
   }
 }
