@@ -39,6 +39,11 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     throw new Error("Display name is required");
   }
 
+  const domain = input.email.split('@')[1]?.toLowerCase() ?? '';
+  if (!domain.endsWith('.edu')) {
+    throw new Error('Only .edu email addresses are allowed to sign up.');
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
