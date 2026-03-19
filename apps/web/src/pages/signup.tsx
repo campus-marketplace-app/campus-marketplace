@@ -75,8 +75,21 @@ export default function Signup() {
         setLoading(true);
         setServerError('');
         try {
-            await signUpWithEmail({ email, password, display_name: displayName });
-            navigate('/login', { replace: true });
+            const { user, session } = await signUpWithEmail({
+                email,
+                password,
+                display_name: displayName,
+            });
+
+            if (session) {
+                localStorage.setItem("access_token", session.access_token);
+                localStorage.setItem("refresh_token", session.refresh_token);
+                navigate("/", { replace: true });
+            } else {
+                // usually email-confirmation flow
+                setServerError("Account created. Please check your email to confirm your account.");
+                navigate("/login", { replace: true });
+            }
         } catch (err) {
             setServerError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
         } finally {
@@ -119,12 +132,10 @@ export default function Signup() {
                             placeholder="Email"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
                             value={email}
-                            onChange={
-                                (e) => {
-                                    setEmail(e.target.value);
-                                    checkEmail(e.target.value);
-                                }
-                            }
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                checkEmail(e.target.value);
+                            }}
                             onBlur={() => checkEmail(email)}
                         />
                         {submitted && emailMessage !== '' ?
@@ -135,13 +146,11 @@ export default function Signup() {
                             type="password"
                             placeholder="Password"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={password}
-                            onChange={
-                                (e) => {
-                                    setPassword(e.target.value);
-                                    checkPassword(e.target.value);
-                                    checkRePassword(e.target.value, rePassword);
-                                }
-                            }
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                checkPassword(e.target.value);
+                                checkRePassword(e.target.value, rePassword);
+                            }}
                         />
                         {submitted && passwordMessage !== '' ?
                             (<p className="text-sm text-white">{passwordMessage}</p>) : null
@@ -151,13 +160,11 @@ export default function Signup() {
                             type="password"
                             placeholder="Re-enter Password"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={rePassword}
-                            onChange={
-                                (e) => {
-                                    const nextRePassword = e.target.value;
-                                    setRePassword(nextRePassword);
-                                    checkRePassword(password, nextRePassword);
-                                }
-                            }
+                            onChange={(e) => {
+                                const nextRePassword = e.target.value;
+                                setRePassword(nextRePassword);
+                                checkRePassword(password, nextRePassword);
+                            }}
                         />
                         {submitted && rePasswordMessage !== '' ?
                             (<p className="text-sm text-white">{rePasswordMessage}</p>) : null

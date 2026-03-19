@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, type ComponentProps } from 'react';
+import { signInWithEmail } from "@campus-marketplace/backend";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -12,8 +13,8 @@ export default function Login() {
     const checkEmail = (value: string) => {
         const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
 
-        if(!emailRegex.test(value)){
-            setEmailMessage('Please enter a valid email address.');
+        if (!emailRegex.test(value)) {
+            setEmailMessage('Please enter a valid NJIT email address ending in @njit.edu.');
             return false;
         }
 
@@ -24,9 +25,9 @@ export default function Login() {
     const checkPassword = (value: string) => {
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
 
-        if(!passwordRegex.test(value)){
-           setPasswordMessage('password incorrect');
-           return false;
+        if (!passwordRegex.test(value)) {
+            setPasswordMessage('password incorrect');
+            return false;
         }
 
         setPasswordMessage('');
@@ -34,15 +35,26 @@ export default function Login() {
     }
 
     const handleSubmit: ComponentProps<'form'>['onSubmit'] = async (e) => {
-        if (!e) return;
         e.preventDefault();
+
         setSubmitted(true);
         const isEmailValid = checkEmail(email);
         const isPasswordValid = checkPassword(password);
 
         if (isEmailValid && isPasswordValid && email !== '' && password !== '') {
-            alert('Login successful!');
-            navigate('/', { replace: true });
+            try {
+                const { session } = await signInWithEmail({ email, password });
+                if (!session) {
+                    alert("Please confirm your email first.");
+                    return;
+                }
+
+                localStorage.setItem("access_token", session.access_token);
+                localStorage.setItem("refresh_token", session.refresh_token);
+                navigate("/", { replace: true });
+            } catch (error) {
+                console.error("Error signing in:", error);
+            }
         }
         if (!isEmailValid || !isPasswordValid) {
             alert('Please fix the errors before submitting.');
@@ -57,7 +69,7 @@ export default function Login() {
                         Welcome to Campus Marketplace!
                     </p>
                     <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
-                        Your one-stop shop for buying and selling items on campus!  
+                        Your one-stop shop for buying and selling items on campus!
                         Join our community today and start trading with your fellow students!
                     </p>
                     <p className="mt-12 text-xl font-normal sm:mt-16 sm:text-3xl">
@@ -82,7 +94,7 @@ export default function Login() {
                                 }
                             }
                         />
-                        {submitted && emailMessage !== '' ? 
+                        {submitted && emailMessage !== '' ?
                             (<p className="text-sm text-white">
                                 {emailMessage}</p>) : null}
                         <input
