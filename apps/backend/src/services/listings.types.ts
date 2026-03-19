@@ -110,7 +110,7 @@ export interface ListingWithDetails extends Listing {
 
 /**
  * Options for searchListings.
- * Empty object returns all by newst listings.
+ * Empty object returns all by newest listings.
  * All filters are optional and can be combined as needed.
  */
 export interface SearchListingsOptions {
