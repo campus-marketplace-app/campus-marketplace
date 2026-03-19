@@ -7,14 +7,19 @@ const viteEnv = (
   import.meta as ImportMeta & { env?: Record<string, string | undefined> }
 ).env;
 
-// Direct-import support:
+// Access process via globalThis so Vite doesn't see a bare `process` reference
+// when bundling for the browser (where process is undefined).
+const nodeProcess = (globalThis as Record<string, unknown>)[
+  "process"
+] as { env: Record<string, string | undefined> } | undefined;
+
 // Browser bundle reads Vite public vars; Node runtime reads backend vars.
 const supabaseUrl = isBrowser
   ? viteEnv?.VITE_SUPABASE_URL
-  : process.env.SUPABASE_URL;
+  : nodeProcess?.env?.SUPABASE_URL;
 const supabaseKey = isBrowser
   ? viteEnv?.VITE_SUPABASE_ANON_KEY
-  : process.env.SUPABASE_SERVICE_KEY;
+  : nodeProcess?.env?.SUPABASE_SERVICE_KEY;
 
 // Fail fast during startup if credentials are missing.
 // This prevents unclear runtime errors later when service functions query Supabase.

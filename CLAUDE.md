@@ -94,6 +94,8 @@ SUPABASE_SERVICE_KEY=
 Frontend (`apps/web/.env.local`):
 ```
 VITE_SCHOOL_CODE=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 ```
 
 ## Auth Pattern

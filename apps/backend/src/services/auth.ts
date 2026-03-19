@@ -1,6 +1,5 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../supabase-client.js";
-import { upsertProfile, type UpsertProfileInput } from "./profile.js";
 
 // Input shape for signing up with email/password. We require display_name for profile creation but other profile fields are optional.
 export interface SignUpInput {
@@ -39,9 +38,19 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     throw new Error("Display name is required");
   }
 
+  // Pass profile fields as user metadata so the database trigger
+  // (handle_new_user) can create the profile row immediately on user creation,
+  // bypassing RLS without needing an active session.
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
+    options: {
+      data: {
+        display_name: input.display_name,
+        first_name: input.first_name ?? null,
+        last_name: input.last_name ?? null,
+      },
+    },
   });
 
   if (error) {
@@ -51,17 +60,6 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
   if (!data.user) {
     throw new Error("Sign up did not return a user");
   }
-
-  const profilePayload: UpsertProfileInput = {
-    user_id: data.user.id,
-    display_name: input.display_name,
-    first_name: input.first_name ?? null,
-    last_name: input.last_name ?? null,
-    bio: input.bio ?? null,
-    avatar_path: input.avatar_path ?? null,
-  };
-
-  await upsertProfile(profilePayload);
 
   return {
     user: data.user,
