@@ -69,7 +69,7 @@ const detailsSelect = `
   categories(name)
 `;
 
-//Verifies that a listing exists, is not soft-deleted, and belongs to the given user.
+// Verifies that a listing exists, is not soft-deleted, and belongs to the given user.
 async function verifyListingOwnership(listingId: string, userId: string): Promise<void> {
   const { data, error } = await supabase
     .from("listings")
@@ -79,7 +79,13 @@ async function verifyListingOwnership(listingId: string, userId: string): Promis
     .is("deleted_at", null)
     .single();
 
-  if (error || !data) {
+  if (error) {
+    if (error.code === "PGRST116") {
+      throw new Error("Listing not found or you do not have permission to modify it");
+    }
+    throw new Error(`Database error while verifying listing ownership: ${error.message}`);
+  }
+  if (!data) {
     throw new Error("Listing not found or you do not have permission to modify it");
   }
 }
@@ -135,6 +141,10 @@ export async function createListing(listing: CreateListingInput): Promise<Listin
     throw new Error("Listing title is required");
   }
 
+  if (listing.price !== undefined && listing.price !== null && listing.price < 0) {
+    throw new Error("Listing price cannot be negative");
+  }
+
   const payload = {
     user_id: listing.user_id,
     type: listing.type ?? "item",
@@ -173,7 +183,7 @@ export async function createListing(listing: CreateListingInput): Promise<Listin
  * returns The updated Listing record.
  * throws If id/userId are empty, no fields are provided, or the listing is not found/owned.
  */
-export async function updateListing(id: string,userId: string,updates: UpdateListingInput): Promise<Listing> {
+export async function updateListing(id: string, userId: string, updates: UpdateListingInput): Promise<Listing> {
   if (!id.trim()) {
     throw new Error("Listing ID is required");
   }
@@ -182,6 +192,10 @@ export async function updateListing(id: string,userId: string,updates: UpdateLis
   }
   if (updates.title !== undefined && !updates.title.trim()) {
     throw new Error("Listing title cannot be empty");
+  }
+
+  if (updates.price !== undefined && updates.price !== null && updates.price < 0) {
+    throw new Error("Listing price cannot be negative");
   }
 
   // Build a partial update payload with only the fields that were provided, keeping the DB values unchanged for omitted fields.
@@ -236,7 +250,7 @@ export async function deleteListing(id: string, userId: string): Promise<void> {
     throw new Error("User ID is required");
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("listings")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id)
@@ -250,6 +264,10 @@ export async function deleteListing(id: string, userId: string): Promise<void> {
       throw new Error("Listing not found or you do not have permission to delete it");
     }
     throw new Error(`Failed to delete listing: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Listing not found or you do not have permission to delete it");
   }
 }
 
@@ -358,7 +376,7 @@ export async function getListingWithDetails(id: string): Promise<ListingWithDeta
  * returns The upserted ItemDetails record.
  * throws If required fields are missing, ownership fails, or the DB upsert fails.
  */
-export async function upsertItemDetails(listingId: string,userId: string, details: ItemDetails): Promise<ItemDetails> {
+export async function upsertItemDetails(listingId: string, userId: string, details: ItemDetails): Promise<ItemDetails> {
   if (!listingId.trim()) {
     throw new Error("Listing ID is required");
   }
@@ -391,6 +409,10 @@ export async function upsertItemDetails(listingId: string,userId: string, detail
 
   if (error) {
     throw new Error(`Failed to upsert item details: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Item details upsert did not return data");
   }
 
   return data as ItemDetails;
@@ -432,6 +454,10 @@ export async function upsertServiceDetails(listingId: string, userId: string, de
 
   if (error) {
     throw new Error(`Failed to upsert service details: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Service details upsert did not return data");
   }
 
   return data as ServiceDetails;

@@ -5,7 +5,7 @@
 Campus Marketplace is a React 19 + Vite + TypeScript web app backed by Supabase PostgreSQL.
 This is a **frontend app** (`apps/web/`) with a **service layer** (`apps/backend/`) that provides domain-oriented TypeScript functions.
 
-Current stage: early prototyping. Database schema is migrated; frontend UI is placeholder-heavy; backend service layer exists with scaffolded/stub functions that still need full Supabase query implementation.
+Current stage: early prototyping. Database schema is migrated; frontend UI is placeholder-heavy; backend service layer is fully implemented for auth, profile, theme, and listings; messaging and search remain stubs.
 
 ## Architecture Pattern: Frontend → Service Functions (TypeScript) → Supabase
 
@@ -34,7 +34,7 @@ Supabase PostgreSQL + Auth + Storage + school_themes table
 - **Linting:** ESLint 9.39.1 + @typescript-eslint, react-hooks plugin
 - **Backend/Database:** Supabase (PostgreSQL + Auth + Storage + Edge Functions)
 - **State:** React useState (no Redux/Context/Zustand)
-- **Testing:** None configured
+- **Testing:** Vitest (backend integration tests against real Supabase; see `apps/backend/vitest.config.ts`)
 - **Deployment:** Unknown
 
 ## Git Workflow (from GIT_WORKFLOW.md)
@@ -114,13 +114,15 @@ Backend services are TypeScript functions exported from `apps/backend/src/servic
 apps/backend/
 ├── src/
 │   ├── services/
-│   │   ├── theme.ts      (getThemeBySchoolCode, etc.)
-│   │   ├── listings.ts   (getListingById, createListing, etc.)
-│   │   ├── profile.ts    (getProfile, updateProfile, etc.)
-│   │   ├── messaging.ts  (getConversation, sendMessage, etc.)
-│   │   └── search.ts     (searchListings, etc.)
-│   ├── supabase-client.ts (Supabase SDK initialization)
-│   └── index.ts          (exports all services)
+│   │   ├── auth.ts           (signUpWithEmail, signInWithEmail, getSessionFromTokens, etc.)
+│   │   ├── theme.ts          (getThemeBySchoolCode)
+│   │   ├── listings.ts       (getListingById, createListing, updateListing, searchListings, etc.)
+│   │   ├── listings.types.ts (shared types for listings service)
+│   │   ├── profile.ts        (getProfile, upsertProfile, updateProfile)
+│   │   ├── messaging.ts      (stub — getConversation, sendMessage not yet implemented)
+│   │   └── search.ts         (stub — advancedSearch not yet implemented)
+│   ├── supabase-client.ts    (Supabase SDK initialization — only file that imports supabase-js)
+│   └── index.ts              (re-exports all services)
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -152,7 +154,7 @@ const { data } = await supabase.from("listings").select("*"); // Don't query dir
 ## Environment Variables
 
 - **Frontend (`apps/web/.env.local`):**
-  - `VITE_SCHOOL_CODE=njit` — School identifier for theme loading
+  - `VITE_SCHOOL_CODE=<integer IPEDS OPE ID>` — School identifier for theme loading
   - Optional: other frontend-specific vars
 - **Backend (`apps/backend/.env.local`):**
   - `SUPABASE_URL` — Supabase project URL
@@ -168,16 +170,15 @@ const { data } = await supabase.from("listings").select("*"); // Don't query dir
 - **Only backend services query this directly.** Frontend does not.
 - Tables use UUIDs, `created_at`/`updated_at` timestamps (auto-managed by triggers)
 - Enums: `listing_type`, `listing_status`, `item_condition`, `report_status`
-- No RLS policies visible yet (backend team responsibility)
+- RLS policies implemented (see supabase/migrations/)
 - No seed data committed yet
 
 ## Critical Incomplete Features
 
-1. **Backend Service Layer:** Created as stubs; real Supabase-backed implementations still needed for data operations
-2. **Theme Service:** Backend must fetch from `school_themes` table; frontend applies via CSS variables
-3. **Authentication:** Forms exist but handlers missing
-4. **RLS Policies:** Database lacking row-level security rules
-5. **Seed Data:** Initial categories/tags not populated
+1. **messaging.ts** — `getConversation` and `sendMessage` are stubs, not yet implemented
+2. **search.ts** — `advancedSearch` is a stub, not yet implemented
+3. **Seed data** — initial categories/tags not yet populated
+4. **Messaging UI** — frontend `/messages` route is a placeholder
 
 ## What NOT to Do
 

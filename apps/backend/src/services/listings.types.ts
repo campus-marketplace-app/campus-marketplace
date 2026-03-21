@@ -38,13 +38,13 @@ export interface Listing {
  */
 export interface CreateListingInput {
   user_id: string;
-  type?: ListingType; //Defaults to "item" if not provided.
+  type?: ListingType; // Defaults to "item" if not provided.
   title: string;
-  description?: string;   //Defaults to ""
+  description?: string;   // Defaults to ""
   price?: number | null;
   price_unit?: string | null;
   category_id?: string | null;
-  status?: ListingStatus; //Defaults to "draft" if not provided.
+  status?: ListingStatus; // Defaults to "draft" if not provided.
   location?: string | null;
 }
 
@@ -77,7 +77,9 @@ export interface ItemDetails {
 export interface ServiceDetails {
   duration_minutes: number; // Duration of the service in minutes.
   price_unit: string | null;
+  /** Time of day in `HH:MM:SS` format (matches DB `time without time zone`). */
   available_from: string | null;
+  /** Time of day in `HH:MM:SS` format (matches DB `time without time zone`). */
   available_to: string | null;
 }
 
