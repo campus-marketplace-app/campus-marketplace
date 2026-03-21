@@ -1,5 +1,6 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../supabase-client.js";
+import { upsertProfile, type UpsertProfileInput } from "./profile.js";
 
 // Input shape for signing up with email/password. We require display_name for profile creation but other profile fields are optional.
 export interface SignUpInput {
