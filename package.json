@@ -9,17 +9,19 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
-    "build": "npm run build --workspace=apps/web && npm run build --workspace=apps/backend",
+    "build": "npm run build --workspace=apps/backend && npm run build --workspace=apps/web",
     "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/backend",
     "typecheck": "npm run typecheck --workspaces",
-    "setup": "npm install && npm run dev",
+    "test": "npm run test --workspace=apps/backend",
+    "setup": "npm install && npm run build --workspace=apps/backend && npm run dev",
     "setup:windows": "powershell -ExecutionPolicy Bypass -File dev.ps1",
     "setup:unix": "bash dev.sh"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.99.1"
-  },
   "devDependencies": {
     "supabase": "^1.199.0"
+  },
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
   }
 }

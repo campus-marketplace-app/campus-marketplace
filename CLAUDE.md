@@ -5,6 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
+# First-time setup (requires nvm)
+nvm use                # switches to the pinned Node version from .nvmrc
+
 # Install dependencies and start dev server
 npm run setup          # cross-platform (or setup:windows / setup:unix)
 
@@ -19,7 +22,10 @@ npm run dev --workspace=apps/web
 npm run build --workspace=apps/backend
 ```
 
-No test framework is configured yet.
+```bash
+npm run test               # run backend end-to-end tests against real Supabase (requires .env.local — do not run against production)
+npm run test --workspace=apps/backend  # scoped to backend only
+```
 
 ## Architecture
 
@@ -51,7 +57,7 @@ Services live in `apps/backend/src/services/`:
 - `auth.ts` — sign-up, sign-in, session restore, sign-out, password reset (fully implemented)
 - `profile.ts` — get/upsert/update profiles (fully implemented)
 - `theme.ts` — fetch school branding by school code (fully implemented)
-- `listings.ts` — CRUD + search for listings (fully implemented)
+- `listings.ts` — CRUD + search for listings (fully implemented); types in `listings.types.ts`
 - `messaging.ts` — stub, not yet implemented
 - `search.ts` — stub, not yet implemented
 
@@ -79,7 +85,7 @@ Schema: `supabase/migrations/20260315120000_core_tables.sql` — 16 tables.
 
 Key tables: `profiles`, `listings`, `item_details`, `service_details`, `listing_images`, `listing_tags`, `categories`, `tags`, `conversations`, `conversation_participants`, `messages`, `notifications`, `favorites`, `reports`, `blocks`, `school_themes`.
 
-All tables use UUIDs, soft deletes (`deleted_at`), and auto-managed `updated_at` via trigger.
+All tables use UUIDs and auto-managed `updated_at` via trigger. Soft deletes (`deleted_at`) are present on `listings`, `item_details`, `service_details`, `listing_images`, `conversations`, `messages`, `categories`, and `tags` — but not on all tables.
 
 **Migration rule:** Never edit existing migration files. Create new timestamped files for schema changes.
 
@@ -107,6 +113,7 @@ Session tokens are stored in `localStorage` and restored on app init via `getSes
 - `docs/GIT_WORKFLOW.md` — branch naming, PR process
 - `docs/MIGRATIONS.md` — migration management
 - `apps/backend/AUTH_USAGE.md` — auth integration examples
+- `apps/backend/LISTINGS_USAGE.md` — listings service integration examples
 - `.github/copilot-instructions.md` — detailed architecture rules
 - `.github/instructions/frontend.instructions.md` — frontend-specific rules
 - `AGENTS.md` — pre/post-edit verification checklist

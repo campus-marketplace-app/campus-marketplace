@@ -8,8 +8,16 @@ echo "Campus Marketplace - Development Setup"
 echo "==============================================="
 echo ""
 
+# Check Node version
+NODE_VERSION=$(node --version)
+NODE_MAJOR=$(echo "$NODE_VERSION" | sed 's/v//' | cut -d'.' -f1)
+if [ "$NODE_MAJOR" != "22" ]; then
+    echo "Error: Node 22 required (found $NODE_VERSION). Run: nvm use 22"
+    exit 1
+fi
+
 # Step 1: Install dependencies
-echo "[1/3] Installing dependencies..."
+echo "[1/4] Installing dependencies..."
 npm install
 if [ $? -ne 0 ]; then
     echo "Error: npm install failed"
@@ -18,15 +26,25 @@ fi
 echo "✓ Dependencies installed"
 echo ""
 
-# Step 2: Start dev server in background
-echo "[2/3] Starting development server..."
+# Step 2: Build backend
+echo "[2/4] Building backend..."
+npm run build --workspace=apps/backend
+if [ $? -ne 0 ]; then
+    echo "Error: backend build failed"
+    exit 1
+fi
+echo "✓ Backend built"
+echo ""
+
+# Step 3: Start dev server in background
+echo "[3/4] Starting development server..."
 npm run dev &
 DEV_PID=$!
 echo "✓ Dev server started (http://localhost:5173)"
 echo ""
 
-# Step 3: Wait for server to start and open browser
-echo "[3/3] Opening application in browser..."
+# Step 4: Wait for server to start and open browser
+echo "[4/4] Opening application in browser..."
 sleep 3
 
 # Detect OS and open browser accordingly

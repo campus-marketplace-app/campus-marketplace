@@ -34,13 +34,19 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     throw new Error("Password is required");
   }
 
+  if (input.password.length < 6) {
+    throw new Error("Password must be at least 6 characters");
+  }
+
   if (!input.display_name.trim()) {
     throw new Error("Display name is required");
   }
 
-  // Pass profile fields as user metadata so the database trigger
-  // (handle_new_user) can create the profile row immediately on user creation,
-  // bypassing RLS without needing an active session.
+  const domain = input.email.split("@")[1]?.toLowerCase() ?? "";
+  if (!domain.endsWith(".edu")) {
+    throw new Error("Only .edu email addresses are allowed to sign up.");
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
@@ -59,6 +65,26 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
 
   if (!data.user) {
     throw new Error("Sign up did not return a user");
+  }
+
+  const profilePayload: UpsertProfileInput = {
+    user_id: data.user.id,
+    display_name: input.display_name,
+    first_name: input.first_name ?? null,
+    last_name: input.last_name ?? null,
+    bio: input.bio ?? null,
+    avatar_path: input.avatar_path ?? null,
+  };
+
+  try {
+    await upsertProfile(profilePayload);
+  } catch (profileError) {
+    // Profile creation failed — roll back the auth user to avoid orphaned state.
+    await supabase.auth.admin.deleteUser(data.user.id).catch(() => {
+      // Rollback failed; log and continue so the original error still propagates.
+      console.error("Failed to roll back auth user after profile creation failure", profileError);
+    });
+    throw profileError;
   }
 
   return {
@@ -97,7 +123,7 @@ export async function signInWithEmail(input: SignInInput): Promise<AuthResult> {
 }
 
 // Builds a session from existing access/refresh tokens.
-export async function getSessionFromTokens(accessToken: string,refreshToken: string,): Promise<AuthResult> {
+export async function getSessionFromTokens(accessToken: string, refreshToken: string): Promise<AuthResult> {
   if (!accessToken.trim()) {
     throw new Error("Access token is required");
   }
@@ -126,7 +152,7 @@ export async function getSessionFromTokens(accessToken: string,refreshToken: str
 }
 
 // Signs out a session identified by access/refresh tokens.
-export async function signOutWithTokens(accessToken: string,refreshToken: string): Promise<void> {
+export async function signOutWithTokens(accessToken: string, refreshToken: string): Promise<void> {
   if (!accessToken.trim()) {
     throw new Error("Access token is required");
   }
@@ -176,7 +202,7 @@ export async function refreshSession(refreshToken: string): Promise<AuthResult> 
 }
 
 // Changes the password for an authenticated user.
-export async function updatePassword(accessToken: string, refreshToken: string,newPassword: string): Promise<void> {
+export async function updatePassword(accessToken: string, refreshToken: string, newPassword: string): Promise<void> {
   if (!accessToken.trim()) throw new Error("Access token is required");
   if (!refreshToken.trim()) throw new Error("Refresh token is required");
   if (!newPassword.trim()) throw new Error("New password is required");
@@ -198,7 +224,7 @@ export async function updatePassword(accessToken: string, refreshToken: string,n
 }
 
 // Sends Supabase password reset email.
-export async function sendPasswordResetEmail(email: string,redirectTo?: string): Promise<void> {
+export async function sendPasswordResetEmail(email: string, redirectTo?: string): Promise<void> {
   if (!email.trim()) {
     throw new Error("Email is required");
   }

@@ -1,49 +1,31 @@
-// Listings service module.
-// Frontend calls these functions through @campus-marketplace/backend.
-// Each function should eventually query Supabase via the shared backend client.
-
 import { supabase } from "../supabase-client.js";
+export * from "./listings.types.js";
+import type {
+  Listing,
+  ListingStatus,
+  ListingWithDetails,
+  ItemDetails,
+  ServiceDetails,
+  ListingImage,
+  ListingTag,
+  CreateListingInput,
+  UpdateListingInput,
+  SearchListingsOptions,
+} from "./listings.types.js";
 
-// These mirror enum values in the database migration.
-export type ListingType = "item" | "service";
-export type ListingStatus = "draft" | "active" | "closed" | "sold" | "archived";
+// ---------------------------------------------------------------------------
+// Internal helpers — not exported
+// ---------------------------------------------------------------------------
 
-// Aligned with public.listings + related joined fields.
-export interface Listing {
-  id: string;
-  user_id: string;
-  type: ListingType;
-  title: string;
-  description: string;
-  price: number | null;
-  price_unit: string | null;
-  category_id: string | null;
-  status: ListingStatus;
-  location: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-// Input accepted by createListing.
-// Most fields are optional because defaults are applied server-side here.
-export interface CreateListingInput {
-  user_id: string;
-  type?: ListingType;
-  title: string;
-  description?: string;
-  price?: number | null;
-  price_unit?: string | null;
-  category_id?: string | null;
-  status?: ListingStatus;
-  location?: string | null;
-}
-
-// Raw row shape returned from Supabase.
-// price may come back as string depending on numeric handling, so we normalize it.
+/**
+ * Raw row shape returned from Supabase for the base `listings` table.
+ * `price` may come back as a string depending on numeric handling, so we normalize it
+ * in mapListingRow before returning to callers.
+ */
 type ListingRow = {
   id: string;
   user_id: string;
-  type: ListingType;
+  type: "item" | "service";
   title: string;
   description: string;
   price: number | string | null;
@@ -55,7 +37,7 @@ type ListingRow = {
   updated_at: string;
 };
 
-// Converts DB row values to app-facing Listing shape.
+/** Converts a raw DB row to the app-facing Listing shape, normalizing the numeric price. */
 function mapListingRow(row: ListingRow): Listing {
   return {
     id: row.id,
@@ -63,12 +45,7 @@ function mapListingRow(row: ListingRow): Listing {
     type: row.type,
     title: row.title,
     description: row.description,
-    price:
-      row.price === null
-        ? null
-        : typeof row.price === "number"
-          ? row.price
-          : Number(row.price),
+    price: row.price === null ? null : Number(row.price),
     price_unit: row.price_unit,
     category_id: row.category_id,
     status: row.status,
@@ -78,15 +55,54 @@ function mapListingRow(row: ListingRow): Listing {
   };
 }
 
-// Centralized select list so all queries return a consistent Listing shape.
+// Centralized column list so every query returns a consistent Listing shape.
 const listingSelect =
   "id,user_id,type,title,description,price,price_unit,category_id,status,location,created_at,updated_at";
 
-// Reads a single listing by ID.
-// Planned query flow: select from public.listings where id = _id.
-export async function getListingById(_id: string): Promise<Listing> {
-  // Guard clause to avoid unnecessary DB call and clearer caller errors.
-  if (!_id.trim()) {
+// Select string for getListingWithDetails — fetches all related data in one round-trip.
+const detailsSelect = `
+  ${listingSelect},
+  item_details(condition, quantity, expires_at),
+  service_details(duration_minutes, price_unit, available_from, available_to),
+  listing_images(id, path, alt_text, order_no),
+  listing_tags(tags(id, name)),
+  categories(name)
+`;
+
+// Verifies that a listing exists, is not soft-deleted, and belongs to the given user.
+async function verifyListingOwnership(listingId: string, userId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("listings")
+    .select("id")
+    .eq("id", listingId)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      throw new Error("Listing not found or you do not have permission to modify it");
+    }
+    throw new Error(`Database error while verifying listing ownership: ${error.message}`);
+  }
+  if (!data) {
+    throw new Error("Listing not found or you do not have permission to modify it");
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Exported service functions
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads a single listing by ID.
+ *
+ * id - UUID of the listing to fetch.(Not user_id)
+ * returns The matching Listing record.
+ * throws If the ID is empty, the listing does not exist, or it has been soft-deleted.
+ */
+export async function getListingById(id: string): Promise<Listing> {
+  if (!id.trim()) {
     throw new Error("Listing ID is required");
   }
 
@@ -94,51 +110,53 @@ export async function getListingById(_id: string): Promise<Listing> {
   const { data, error } = await supabase
     .from("listings")
     .select(listingSelect)
-    .eq("id", _id)
+    .eq("id", id)
     .is("deleted_at", null)
     .single<ListingRow>();
 
   if (error) {
-    // Re-throw with service-level context for easier debugging.
     throw new Error(`Failed to fetch listing: ${error.message}`);
   }
 
   if (!data) {
-    throw new Error(`Listing not found for ID: ${_id}`);
+    throw new Error(`Listing not found for ID: ${id}`);
   }
 
   return mapListingRow(data);
 }
 
-// Creates a new listing.
-// Planned query flow: insert into public.listings and return created row.
-export async function createListing(
-  _listing: CreateListingInput,
-): Promise<Listing> {
-  // Required by schema: listings.user_id is not null.
-  if (!_listing.user_id.trim()) {
+/**
+ * Creates a new listing.
+ *
+ * param listing - Input fields. user_id and title are required.
+ * returns The created Listing record with DB-generated id, created_at, and updated_at.
+ * throws If user_id or title is empty, or if the DB insert fails.
+ */
+export async function createListing(listing: CreateListingInput): Promise<Listing> {
+  if (!listing.user_id.trim()) {
     throw new Error("Listing user_id is required");
   }
 
-  // Required by schema: listings.title is not null.
-  if (!_listing.title.trim()) {
+  if (!listing.title.trim()) {
     throw new Error("Listing title is required");
   }
 
-  // Applies predictable defaults so frontend can send minimal payloads.
+  if (listing.price !== undefined && listing.price !== null && listing.price < 0) {
+    throw new Error("Listing price cannot be negative");
+  }
+
   const payload = {
-    user_id: _listing.user_id,
-    type: _listing.type ?? "item",
-    title: _listing.title,
-    description: _listing.description ?? "",
-    price: _listing.price ?? null,
-    price_unit: _listing.price_unit ?? null,
-    category_id: _listing.category_id ?? null,
-    status: _listing.status ?? "draft",
-    location: _listing.location ?? null,
+    user_id: listing.user_id,
+    type: listing.type ?? "item",
+    title: listing.title,
+    description: listing.description ?? "",
+    price: listing.price ?? null,
+    price_unit: listing.price_unit ?? null,
+    category_id: listing.category_id ?? null,
+    status: listing.status ?? "draft",
+    location: listing.location ?? null,
   };
 
-  // Insert and immediately select the created row in one round-trip.
   const { data, error } = await supabase
     .from("listings")
     .insert(payload)
@@ -156,27 +174,347 @@ export async function createListing(
   return mapListingRow(data);
 }
 
-// Simple listing search by text query.
-// Planned query flow: filter title/description or use tsvector search.
-export async function searchListings(_query: string): Promise<Listing[]> {
-  // Trimming avoids accidental "space-only" searches.
-  const normalizedQuery = _query.trim();
+/**
+ * Updates an existing listing. Only the listing's owner may update it.
+ *
+ * param id - UUID of the listing to update.
+ * param userId - UUID of the authenticated user performing the update.
+ * param updates - Partial set of fields to change. Omitted fields are left unchanged.
+ * returns The updated Listing record.
+ * throws If id/userId are empty, no fields are provided, or the listing is not found/owned.
+ */
+export async function updateListing(id: string, userId: string, updates: UpdateListingInput): Promise<Listing> {
+  if (!id.trim()) {
+    throw new Error("Listing ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+  if (updates.title !== undefined && !updates.title.trim()) {
+    throw new Error("Listing title cannot be empty");
+  }
 
-  // Base query: active (not soft-deleted) listings, newest first.
+  if (updates.price !== undefined && updates.price !== null && updates.price < 0) {
+    throw new Error("Listing price cannot be negative");
+  }
+
+  // Build a partial update payload with only the fields that were provided, keeping the DB values unchanged for omitted fields.
+  const payload: Record<string, unknown> = {};
+  if (updates.title !== undefined) payload.title = updates.title;
+  if (updates.description !== undefined) payload.description = updates.description;
+  if (updates.price !== undefined) payload.price = updates.price;
+  if (updates.price_unit !== undefined) payload.price_unit = updates.price_unit;
+  if (updates.category_id !== undefined) payload.category_id = updates.category_id;
+  if (updates.status !== undefined) payload.status = updates.status;
+  if (updates.location !== undefined) payload.location = updates.location;
+
+  if (Object.keys(payload).length === 0) {
+    throw new Error("No fields provided to update");
+  }
+
+  const { data, error } = await supabase
+    .from("listings")
+    .update(payload)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .select(listingSelect)
+    .single<ListingRow>();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      throw new Error("Listing not found or you do not have permission to update it");
+    }
+    throw new Error(`Failed to update listing: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Listing not found or you do not have permission to update it");
+  }
+
+  return mapListingRow(data);
+}
+
+/**
+ * Soft-deletes a listing by setting `deleted_at`. Only the listing's owner may delete it.
+ *
+ * param id - UUID of the listing to delete.
+ * param userId - UUID of the authenticated user performing the delete.
+ * throws If id/userId are empty, or the listing is not found/owned.
+ */
+export async function deleteListing(id: string, userId: string): Promise<void> {
+  if (!id.trim()) {
+    throw new Error("Listing ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  const { data, error } = await supabase
+    .from("listings")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .select("id")
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      throw new Error("Listing not found or you do not have permission to delete it");
+    }
+    throw new Error(`Failed to delete listing: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Listing not found or you do not have permission to delete it");
+  }
+}
+
+/**
+ * Returns all listings for a given user, sorted newest-first.
+ *
+ * param userId - UUID of the user whose listings to fetch.
+ * param status - Optional status filter. Omit to return all statuses.
+ * returns Array of Listing records (may be empty).
+ * throws If userId is empty or the DB query fails.
+ */
+export async function getListingsByUser(userId: string, status?: ListingStatus): Promise<Listing[]> {
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  let query = supabase
+    .from("listings")
+    .select(listingSelect)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  const { data, error } = await query.returns<ListingRow[]>();
+
+  if (error) {
+    throw new Error(`Failed to fetch listings for user: ${error.message}`);
+  }
+
+  const rows = data ?? [];
+  return rows.map(mapListingRow);
+}
+
+/**
+ * Fetches a single listing with all related data (item/service details, images, tags).
+ * Use this for detail pages; use getListingById for list views.
+ *
+ * param id - UUID of the listing to fetch.
+ * returns ListingWithDetails including joined item_details, service_details, images, and tags.
+ * throws If the listing is not found or the DB query fails.
+ */
+export async function getListingWithDetails(id: string): Promise<ListingWithDetails> {
+  if (!id.trim()) {
+    throw new Error("Listing ID is required");
+  }
+
+  const { data, error } = await supabase
+    .from("listings")
+    .select(detailsSelect)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      throw new Error(`Listing not found for ID: ${id}`);
+    }
+    throw new Error(`Failed to fetch listing details: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error(`Listing not found for ID: ${id}`);
+  }
+
+  // listing_tags is a junction table, so Supabase returns it as:
+  //   [{ tags: { id, name } }, { tags: { id, name } }, ...]
+  // We flatten that into a simple array of tag objects.
+  // Why the Array.isArray guard: the shape of `lt.tags` can vary across Supabase client versions.
+  const rawTags = (data.listing_tags ?? []) as Array<{ tags: unknown }>;
+  const tags: ListingTag[] = rawTags.flatMap((lt) => {
+    if (!lt.tags) return [];
+    const items = Array.isArray(lt.tags) ? (lt.tags as ListingTag[]) : [lt.tags as ListingTag];
+    return items.filter((t) => t && t.id && t.name);
+  });
+
+  // Supabase returns images in DB insertion order — sort by order_no so the display order is correct.
+  const images: ListingImage[] = [...(data.listing_images ?? [])].sort(
+    (a: ListingImage, b: ListingImage) => a.order_no - b.order_no,
+  );
+
+  // Supabase returns the joined category as { name: "Books" }.
+  // We pull out just the name string (or null if no category is set).
+  const categoryRow = data.categories as unknown as { name: string } | null;
+  const category_name = categoryRow?.name ?? null;
+
+  return {
+    ...mapListingRow(data as unknown as ListingRow),
+    item_details: (data.item_details as unknown as ItemDetails) ?? null,
+    service_details: (data.service_details as unknown as ServiceDetails) ?? null,
+    images,
+    tags,
+    category_name,
+  };
+}
+
+/**
+ * Upserts item details for a listing. Only the listing's owner may call this.
+ *
+ * param listingId - UUID of the listing.
+ * param userId - UUID of the authenticated user (must own the listing).
+ * param details - Item condition, quantity, and optional expiry timestamp.
+ * returns The upserted ItemDetails record.
+ * throws If required fields are missing, ownership fails, or the DB upsert fails.
+ */
+export async function upsertItemDetails(listingId: string, userId: string, details: ItemDetails): Promise<ItemDetails> {
+  if (!listingId.trim()) {
+    throw new Error("Listing ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+  if (!details.condition) {
+    throw new Error("Item condition is required");
+  }
+  if (details.quantity < 1) {
+    throw new Error("Item quantity must be at least 1");
+  }
+
+  // Verify that the listing exists and belongs to the user before upserting details.
+  await verifyListingOwnership(listingId, userId);
+
+  const { data, error } = await supabase
+    .from("item_details")
+    .upsert(
+      {
+        listing_id: listingId,
+        condition: details.condition,
+        quantity: details.quantity,
+        expires_at: details.expires_at ?? null,
+      },
+      { onConflict: "listing_id" },
+    )
+    .select("condition,quantity,expires_at")
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to upsert item details: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Item details upsert did not return data");
+  }
+
+  return data as ItemDetails;
+}
+
+/**
+ * Upserts service details for a listing. Only the listing's owner may call this.
+ *
+ * param listingId - UUID of the listing.
+ * param userId - UUID of the authenticated user (must own the listing).
+ * param details - Service duration, price unit, and availability window.
+ * returns The upserted ServiceDetails record.
+ * throws If required fields are missing, ownership fails, or the DB upsert fails.
+ */
+export async function upsertServiceDetails(listingId: string, userId: string, details: ServiceDetails): Promise<ServiceDetails> {
+  if (!listingId.trim()) {
+    throw new Error("Listing ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  await verifyListingOwnership(listingId, userId);
+
+  const { data, error } = await supabase
+    .from("service_details")
+    .upsert(
+      {
+        listing_id: listingId,
+        duration_minutes: details.duration_minutes,
+        price_unit: details.price_unit,
+        available_from: details.available_from,
+        available_to: details.available_to,
+      },
+      { onConflict: "listing_id" },
+    )
+    .select("duration_minutes,price_unit,available_from,available_to")
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to upsert service details: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Service details upsert did not return data");
+  }
+
+  return data as ServiceDetails;
+}
+
+/**
+ * Filterable listing search with full-text support and pagination.
+ *
+ * param options - Optional filters, pagination, and search term.
+ * returns Array of Listing records matching the filters (may be empty).
+ * throws If the DB query fails.
+ */
+export async function searchListings(options: SearchListingsOptions = {}): Promise<Listing[]> {
+  const {
+    query,
+    type,
+    status,
+    category_id,
+    min_price,
+    max_price,
+    user_id,
+    limit = 50,
+    offset = 0,
+  } = options;
+
   let queryBuilder = supabase
     .from("listings")
     .select(listingSelect)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
-  // Add case-insensitive text search only when a query is provided.
-  if (normalizedQuery) {
-    queryBuilder = queryBuilder.or(
-      `title.ilike.%${normalizedQuery}%,description.ilike.%${normalizedQuery}%`,
-    );
+  // Full-text search via GIN-indexed tsvector column.
+  if (query?.trim()) {
+    queryBuilder = queryBuilder.textSearch("tsv", query.trim(), {
+      type: "websearch",
+    });
   }
 
-  // returns<ListingRow[]>() keeps result typing explicit for TS.
+  // Optional filters.
+  if (type) queryBuilder = queryBuilder.eq("type", type);
+  if (category_id) queryBuilder = queryBuilder.eq("category_id", category_id);
+  if (min_price !== undefined) queryBuilder = queryBuilder.gte("price", min_price);
+  if (max_price !== undefined) queryBuilder = queryBuilder.lte("price", max_price);
+  if (user_id) queryBuilder = queryBuilder.eq("user_id", user_id);
+
+  // Why we default to status="active" only when no user_id is given:
+  // public browsing should only surface available listings, but a seller's own dashboard
+  // needs to see all of their listings regardless of status.
+  if (status) {
+    queryBuilder = queryBuilder.eq("status", status);
+  } else if (!user_id) {
+    queryBuilder = queryBuilder.eq("status", "active");
+  }
+
+  // Pagination.
+  queryBuilder = queryBuilder.range(offset, offset + limit - 1);
+
   const { data, error } = await queryBuilder.returns<ListingRow[]>();
 
   if (error) {
