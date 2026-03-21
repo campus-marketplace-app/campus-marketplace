@@ -1,6 +1,6 @@
 import { supabase } from "../supabase-client.js";
 
-// expectted object shape for profile rows in the database
+// Expected object shape for profile rows in the database
 export interface UserProfile {
   user_id: string;
   display_name: string;
@@ -22,10 +22,6 @@ export interface UpsertProfileInput {
   avatar_path?: string | null;
 }
 
-//Separate input type for updates since user_id is not needed and display_name is optional
-// For partial updates we reuse `UpsertProfileInput` fields except `user_id`.
-// `updateProfile` accepts a partial object of these fields.
-
 const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,created_at,updated_at";
 
 // GET: Loads one user's profile by auth user ID. Returns a user profile, otherwise throws an error.
@@ -34,7 +30,6 @@ export async function getProfile(userId: string): Promise<UserProfile> {
     throw new Error("Profile user_id is required");
   }
 
-  //Expect a single row for single user
   const { data, error } = await supabase
     .from("profiles")
     .select(profileSelect)
@@ -90,7 +85,7 @@ export async function upsertProfile(input: UpsertProfileInput): Promise<UserProf
 }
 
 // UPDATE: Applies partial profile updates.
-export async function updateProfile(userId: string,updates: Partial<Omit<UpsertProfileInput, "user_id">>,): Promise<UserProfile> {
+export async function updateProfile(userId: string, updates: Partial<Omit<UpsertProfileInput, "user_id">>): Promise<UserProfile> {
   if (!userId.trim()) {
     throw new Error("Profile user_id is required");
   }
@@ -109,11 +104,7 @@ export async function updateProfile(userId: string,updates: Partial<Omit<UpsertP
     }).filter(([, v]) => v !== undefined)
   );
 
-  const hasUpdates = Object.values(payload).some(
-    (value) => value !== undefined,
-  );
-
-  if (!hasUpdates) {
+  if (Object.keys(payload).length === 0) {
     throw new Error("No profile updates provided");
   }
 
