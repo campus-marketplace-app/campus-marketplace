@@ -84,7 +84,7 @@ export default function Signup() {
             if (session) {
                 localStorage.setItem("access_token", session.access_token);
                 localStorage.setItem("refresh_token", session.refresh_token);
-                navigate("/", { replace: true });
+                navigate("/login", { replace: true });
             } else {
                 // usually email-confirmation flow
                 setServerError("Account created. Please check your email to confirm your account.");

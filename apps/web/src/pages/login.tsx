@@ -43,7 +43,7 @@ export default function Login() {
 
         if (isEmailValid && isPasswordValid && email !== '' && password !== '') {
             try {
-                const { session } = await signInWithEmail({ email, password });
+                const {user, session } = await signInWithEmail({ email, password });
                 if (!session) {
                     alert("Please confirm your email first.");
                     return;
@@ -51,8 +51,9 @@ export default function Login() {
 
                 localStorage.setItem("access_token", session.access_token);
                 localStorage.setItem("refresh_token", session.refresh_token);
-                navigate("/", { replace: true });
+                navigate("/", {replace: true});
             } catch (error) {
+                //Needs to be hidden from users, but for now we will log it to the console for debugging purposes.
                 console.error("Error signing in:", error);
             }
         }
