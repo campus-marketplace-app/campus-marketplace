@@ -11,7 +11,7 @@ const getCurrentDateTimeLocal = () => {
 };
 
 export default function SidebarLayout() {
-    const [isLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [listingTitle, setListingTitle] = useState('LISTINGS.title');
@@ -23,7 +23,11 @@ export default function SidebarLayout() {
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
     const isRegistering = !['/login', '/signup'].includes(location.pathname);
-    const [user, setUser] = useState<object | null>(null);
+
+    const clearStoredTokens = () => {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+    };
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -46,24 +50,27 @@ export default function SidebarLayout() {
 
     useEffect(() => {
         const checkUserSession = async () => {
+            const accessToken = localStorage.getItem("access_token");
+            const refreshToken = localStorage.getItem("refresh_token");
+
+            if (!accessToken || !refreshToken) {
+                setIsLoggedIn(false);
+                return;
+            }
+
             try {
-                let accessToken = localStorage.getItem("access_token");
-                let refreshToken = localStorage.getItem("refresh_token");
-                if (!accessToken || !refreshToken) {
-                    console.log("User is not logged in.");
+                const { user, session } = await getSessionFromTokens(accessToken, refreshToken);
+
+                if (!session) {
+                    clearStoredTokens();
+                    setIsLoggedIn(false);
                     return;
                 }
 
-                const {user, session} = await getSessionFromTokens(accessToken, refreshToken);
-                if (session) {
-                    setUser(user);
-                } else {
-                    console.log("User is not logged in.");
-                }
-
-
+                setIsLoggedIn(true);
             } catch {
-                console.log("User is not logged in.");
+                clearStoredTokens();
+                setIsLoggedIn(false);
             }
         };
 
