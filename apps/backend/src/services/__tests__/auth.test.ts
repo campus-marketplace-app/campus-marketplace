@@ -96,7 +96,11 @@ describe("getSessionFromTokens", () => {
     const email = testEmail();
     const result = await signUpTestUser(email, "TokenTest123!", "Token User");
 
-    if (!result.session) skip(); // Email confirmation required in this environment
+    const session = result.session;
+    if (!session) {
+      skip(); // Email confirmation required in this environment
+      return;
+    }
 
     const restored = await getSessionFromTokens(
       result.session!.access_token,
@@ -111,7 +115,11 @@ describe("refreshSession", () => {
   it("returns new session from valid refresh token", async ({ skip }: TaskContext) => {
     const result = await signUpTestUser(testEmail(), "Refresh123!", "Refresh User");
 
-    if (!result.session) skip();
+    const session = result.session;
+    if (!session) {
+      skip();
+      return;
+    }
 
     const refreshed = await refreshSession(result.session!.refresh_token);
     expect(refreshed.user).toBeDefined();
@@ -123,7 +131,11 @@ describe("signOutWithTokens", () => {
   it("resolves without error for valid session", async ({ skip }: TaskContext) => {
     const result = await signUpTestUser(testEmail(), "Signout123!", "Signout User");
 
-    if (!result.session) skip();
+    const session = result.session;
+    if (!session) {
+      skip();
+      return;
+    }
 
     await expect(
       signOutWithTokens(result.session!.access_token, result.session!.refresh_token),
@@ -137,7 +149,11 @@ describe("updatePassword", () => {
     const oldPassword = "OldPassword123!";
     const result = await signUpTestUser(email, oldPassword, "PW Update User");
 
-    if (!result.session) skip();
+    const session = result.session;
+    if (!session) {
+      skip();
+      return;
+    }
 
     await updatePassword(result.session!.access_token, result.session!.refresh_token, "NewPassword456!");
 

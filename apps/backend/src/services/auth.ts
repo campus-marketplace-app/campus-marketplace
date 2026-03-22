@@ -51,6 +51,13 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
+    options: {
+      data: {
+        display_name: input.display_name,
+        first_name: input.first_name ?? null,
+        last_name: input.last_name ?? null,
+      },
+    },
   });
 
   if (error) {
