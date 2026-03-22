@@ -99,8 +99,8 @@ describe("getSessionFromTokens", () => {
     if (!result.session) skip(); // Email confirmation required in this environment
 
     const restored = await getSessionFromTokens(
-      result.session.access_token,
-      result.session.refresh_token,
+      result.session!.access_token,
+      result.session!.refresh_token,
     );
     expect(restored.user).toBeDefined();
     expect(restored.user.id).toBe(result.user.id);
@@ -113,7 +113,7 @@ describe("refreshSession", () => {
 
     if (!result.session) skip();
 
-    const refreshed = await refreshSession(result.session.refresh_token);
+    const refreshed = await refreshSession(result.session!.refresh_token);
     expect(refreshed.user).toBeDefined();
     expect(refreshed.session).toBeDefined();
   });
@@ -126,7 +126,7 @@ describe("signOutWithTokens", () => {
     if (!result.session) skip();
 
     await expect(
-      signOutWithTokens(result.session.access_token, result.session.refresh_token),
+      signOutWithTokens(result.session!.access_token, result.session!.refresh_token),
     ).resolves.toBeUndefined();
   });
 });
@@ -139,7 +139,7 @@ describe("updatePassword", () => {
 
     if (!result.session) skip();
 
-    await updatePassword(result.session.access_token, result.session.refresh_token, "NewPassword456!");
+    await updatePassword(result.session!.access_token, result.session!.refresh_token, "NewPassword456!");
 
     await expect(signInWithEmail({ email, password: oldPassword })).rejects.toThrow();
   });
