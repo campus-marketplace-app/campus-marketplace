@@ -17,7 +17,7 @@ if (-not $nodeVersion.StartsWith("v22")) {
 
 # Step 1: Install dependencies
 Write-Host "[1/4] Installing dependencies..." -ForegroundColor Yellow
-npm install
+npm ci
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Error: npm install failed" -ForegroundColor Red
     exit 1
