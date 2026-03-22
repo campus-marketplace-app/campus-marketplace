@@ -103,8 +103,8 @@ describe("getSessionFromTokens", () => {
     }
 
     const restored = await getSessionFromTokens(
-      session.access_token,
-      session.refresh_token,
+      result.session!.access_token,
+      result.session!.refresh_token,
     );
     expect(restored.user).toBeDefined();
     expect(restored.user.id).toBe(result.user.id);
@@ -121,7 +121,7 @@ describe("refreshSession", () => {
       return;
     }
 
-    const refreshed = await refreshSession(session.refresh_token);
+    const refreshed = await refreshSession(result.session!.refresh_token);
     expect(refreshed.user).toBeDefined();
     expect(refreshed.session).toBeDefined();
   });
@@ -138,7 +138,7 @@ describe("signOutWithTokens", () => {
     }
 
     await expect(
-      signOutWithTokens(session.access_token, session.refresh_token),
+      signOutWithTokens(result.session!.access_token, result.session!.refresh_token),
     ).resolves.toBeUndefined();
   });
 });
@@ -155,7 +155,7 @@ describe("updatePassword", () => {
       return;
     }
 
-    await updatePassword(session.access_token, session.refresh_token, "NewPassword456!");
+    await updatePassword(result.session!.access_token, result.session!.refresh_token, "NewPassword456!");
 
     await expect(signInWithEmail({ email, password: oldPassword })).rejects.toThrow();
   });
