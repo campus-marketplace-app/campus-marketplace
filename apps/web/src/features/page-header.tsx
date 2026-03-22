@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 type HeaderProps = {
     isLoggedIn: boolean;
     isRegistering: boolean;
+    user?: unknown | null;
 };
 
 export default function PageHeader({
     isLoggedIn,
     isRegistering,
+    user,
 }: HeaderProps) {
     return (
         <nav className="bg-red-700 p-4 w-full">

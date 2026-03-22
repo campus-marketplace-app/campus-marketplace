@@ -4,6 +4,8 @@ import PageHeader from '../features/page-header';
 import Navbar from '../features/navbar';
 import { getSessionFromTokens } from "@campus-marketplace/backend";
 
+type SessionUser = Awaited<ReturnType<typeof getSessionFromTokens>>["user"];
+
 const getCurrentDateTimeLocal = () => {
     const now = new Date();
     const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
@@ -23,6 +25,7 @@ export default function SidebarLayout() {
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
     const isRegistering = !['/login', '/signup'].includes(location.pathname);
+    const [user, setUser] = useState<SessionUser | null>(null);
 
     const clearStoredTokens = () => {
         localStorage.removeItem("access_token");
@@ -67,6 +70,7 @@ export default function SidebarLayout() {
                     return;
                 }
 
+                setUser(user);
                 setIsLoggedIn(true);
             } catch {
                 clearStoredTokens();
@@ -82,6 +86,7 @@ export default function SidebarLayout() {
             <PageHeader
                 isLoggedIn={isLoggedIn}
                 isRegistering={isRegistering}
+                user={user}
             />
 
             <div className="flex flex-1 overflow-hidden bg-[#ececec]">
@@ -94,11 +99,14 @@ export default function SidebarLayout() {
                         toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
                         openPostForm={() => setShowForm(true)}
                         location={location}
+                        user={user}
                     />
                 </aside> : null}
 
                 <main className="flex-1 overflow-auto">
-                    <Outlet />
+                    <Outlet 
+                    context={{ user }}
+                    />
                 </main>
             </div>
 
