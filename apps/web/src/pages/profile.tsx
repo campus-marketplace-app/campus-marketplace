@@ -7,6 +7,8 @@ type OutletContext = {
     user: SessionUser | null;
 };
 
+const xssRegex = /<[^>]*>|javascript\s*:|vbscript\s*:|data\s*:\s*text\/html|on[a-z]+\s*=/i;
+
 export default function Profile() {
     const { user } = useOutletContext<OutletContext>();
     const navigate = useNavigate();
@@ -16,13 +18,58 @@ export default function Profile() {
     const [email, setEmail] = useState("student@university.edu");
     const [bio, setBio] = useState("Buyer and seller on campus marketplace.");
     const [avatar, setAvatar] = useState("profile picture");
+    const [nameError, setNameError] = useState("");
+    const [bioError, setBioError] = useState("");
+    const [avatarError, setAvatarError] = useState("");
 
     const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
         if (selectedFile) {
             setAvatar(selectedFile.name);
+            validateAvatar(selectedFile.name);
         }
     };
+
+    const validateName = (value: string) => {
+        if (value.trim() === "") {
+            setNameError("Name cannot be empty");
+            return false;
+        }
+
+        if (xssRegex.test(value)) {
+            setNameError("Name contains potentially unsafe content");
+            return false;
+        }
+
+        setNameError("");
+        return true;
+    };
+
+    const validateBio = (value: string) => {
+        if (xssRegex.test(value)) {
+            setBioError("Bio contains potentially unsafe content");
+            return false;
+        }
+
+        setBioError("");
+        return true;
+    };
+
+    const validateAvatar = (value: string) => {
+        if (value.trim() === "") {
+            setAvatarError("Avatar cannot be empty");
+            return false;
+        }
+
+        if (xssRegex.test(value)) {
+            setAvatarError("Avatar contains potentially unsafe content");
+            return false;
+        }
+
+        setAvatarError("");
+        return true;
+    };
+
 
     const loadProfile = async (userId: string) => {
         try {
@@ -49,6 +96,14 @@ export default function Profile() {
             setIsEditing(true);
         }
         else {
+            const isNameValid = validateName(name);
+            const isBioValid = validateBio(bio);
+            const isAvatarValid = validateAvatar(avatar);
+
+            if (!isNameValid || !isBioValid || !isAvatarValid) {
+                return;
+            }
+
             try {
                 await updateProfile(user.id, {
                     display_name: name,
@@ -117,9 +172,13 @@ export default function Profile() {
                                         type="text"
                                         value={name}
                                         readOnly={!isEditing}
-                                        onChange={(e) => setName(e.target.value)}
+                                        onChange={(e) => {
+                                            setName(e.target.value);
+                                            validateName(e.target.value);
+                                        }}
                                         className="w-full rounded-xl bg-white px-4 py-3 text-sm text-black outline-none"
                                     />
+                                    {nameError ? <p className="mt-2 text-xs text-white">{nameError}</p> : null}
                                 </div>
 
                                 <div>
@@ -141,12 +200,18 @@ export default function Profile() {
                                         rows={4}
                                         value={bio}
                                         readOnly={!isEditing}
-                                        onChange={(e) => setBio(e.target.value)}
+                                        onChange={(e) => {
+                                            setBio(e.target.value);
+                                            validateBio(e.target.value);
+                                        }}
                                         className="min-h-28 w-full resize-none rounded-2xl bg-white px-4 py-4 text-sm text-black outline-none"
                                     />
+                                    {bioError ? <p className="mt-2 text-xs text-white">{bioError}</p> : null}
                                 </div>
                             </div>
                         </div>
+
+                        {avatarError ? <p className="text-sm text-white">{avatarError}</p> : null}
 
                         <div className="flex items-center justify-between pt-4">
                             <button
@@ -159,6 +224,7 @@ export default function Profile() {
                             <button
                                 type="button"
                                 onClick={() => saveProfile()}
+                                disabled={Boolean(nameError || bioError || avatarError)}
                                 className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
                             >
                                 {isEditing ? "save" : "edit"}
