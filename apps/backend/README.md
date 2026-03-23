@@ -41,7 +41,7 @@ Supabase PostgreSQL
 - **search.ts** — Cross-listing search with filters
 - **auth.ts** — Auth wrappers (sign up, sign in, sign out, session restore, password reset)
 
-For frontend integration examples, see `AUTH_USAGE.md`.
+For frontend integration examples, see `docs/AUTH_USAGE.md`, `docs/LISTINGS_USAGE.md`, and `docs/PROFILE_USAGE.md`.
 
 ## Key Rules
 
