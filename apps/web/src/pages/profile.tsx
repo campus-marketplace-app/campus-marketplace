@@ -4,7 +4,7 @@ import { getProfile, updateProfile } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 
 type OutletContext = {
-  user: SessionUser | null;
+    user: SessionUser | null;
 };
 
 export default function Profile() {
@@ -39,6 +39,29 @@ export default function Profile() {
             console.error("Failed to load profile:", error);
         }
     };
+
+    const saveProfile = async () => {
+        if (!user) {
+            return;
+        }
+
+        if (isEditing === false) {
+            setIsEditing(true);
+        }
+        else {
+            try {
+                await updateProfile(user.id, {
+                    display_name: name,
+                    bio: bio,
+                    avatar_path: avatar,
+                });
+            } catch (error) {
+                console.error("Failed to save profile:", error);
+            }
+            setIsEditing(false);
+        }
+    };
+
 
     useEffect(() => {
         if (!user?.id) {
@@ -135,7 +158,7 @@ export default function Profile() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setIsEditing((prev) => !prev)}
+                                onClick={() => saveProfile()}
                                 className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
                             >
                                 {isEditing ? "save" : "edit"}
