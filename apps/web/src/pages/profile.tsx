@@ -130,6 +130,9 @@ export default function Profile() {
         void loadProfile(user.id);
     }, [user]);
 
+    const hasValidationErrors = Boolean(nameError || bioError || avatarError);
+    const isSaveDisabled = isEditing && hasValidationErrors;
+
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -224,8 +227,12 @@ export default function Profile() {
                             <button
                                 type="button"
                                 onClick={() => saveProfile()}
-                                disabled={Boolean(nameError || bioError || avatarError)}
-                                className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                disabled={isSaveDisabled}
+                                className={`px-8 py-2 text-2xl text-black transition ${
+                                    isSaveDisabled
+                                        ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
+                                        : "bg-[#f1b7be] hover:bg-white"
+                                }`}
                             >
                                 {isEditing ? "save" : "edit"}
                             </button>
