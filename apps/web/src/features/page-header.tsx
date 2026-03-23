@@ -31,7 +31,7 @@ export default function PageHeader({
                 {isRegistering ? (
                     isLoggedIn ? (
                         <Link to="/profile" className="text-white hover:text-gray-200">
-                            Profile 
+                            Profile
                         </Link> //placeholder for profile img
                     ) : (
                         <Link to="/login" className="text-white hover:text-gray-200">

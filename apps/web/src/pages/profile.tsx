@@ -24,9 +24,9 @@ export default function Profile() {
         }
     };
 
-    const loadProfile = async () => {
+    const loadProfile = async (userId: string) => {
         try {
-            const profile = await getProfile(user?.id || "");
+            const profile = await getProfile(userId);
 
             setName(profile.display_name);
             if (profile.bio !== null) {
@@ -41,8 +41,16 @@ export default function Profile() {
     };
 
     useEffect(() => {
-        loadProfile();
-    }, []);
+        if (!user?.id) {
+            return;
+        }
+
+        if (user.email) {
+            setEmail(user.email);
+        }
+
+        void loadProfile(user.id);
+    }, [user]);
 
 
     return (
@@ -50,11 +58,12 @@ export default function Profile() {
             <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
 
             <section className="relative z-10 w-full p-6 sm:p-8">
-                <div className="mx-auto w-full max-w-3xl rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
+                <div className="overflow-y-auto mx-auto w-full max-w-3xl rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
                     <div className="space-y-8">
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Profile</p>
                             <input
+                                id="accountTitle"
                                 type="text"
                                 value={accountTitle}
                                 readOnly={!isEditing}
@@ -81,6 +90,7 @@ export default function Profile() {
                                 <div>
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Name</p>
                                     <input
+                                        id="name"
                                         type="text"
                                         value={name}
                                         readOnly={!isEditing}
@@ -92,6 +102,7 @@ export default function Profile() {
                                 <div>
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Email</p>
                                     <input
+                                        id="email"
                                         type="email"
                                         value={email}
                                         readOnly={!isEditing}
@@ -103,6 +114,7 @@ export default function Profile() {
                                 <div>
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Bio</p>
                                     <textarea
+                                        id="bio"
                                         rows={4}
                                         value={bio}
                                         readOnly={!isEditing}
