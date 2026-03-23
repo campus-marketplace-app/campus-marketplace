@@ -84,6 +84,36 @@ export async function upsertProfile(input: UpsertProfileInput): Promise<UserProf
   return data;
 }
 
+// UPLOAD AVATAR: Uploads a file to Supabase Storage under avatars/<userId>/avatar.<ext>,
+// then persists the storage path to the profile row. Returns the updated profile.
+export async function uploadAvatar(userId: string,file: File | Blob | ArrayBuffer,contentType: string): Promise<UserProfile> {
+  if (!userId.trim()) {
+    throw new Error("Profile user_id is required");
+  }
+
+  const ext = contentType.split("/")[1] ?? "jpg"; // Default to jpg if content type is missing
+  const storagePath = `${userId}/avatar.${ext}`; //creates storage path like "12345/avatar.jpg"
+
+  // Supabase Storage upsert: if the file already exists, it will be overwritten with the new one
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(storagePath, file, { contentType, upsert: true });
+
+  // If upload fails throw an error
+  if (uploadError) {
+    throw new Error(`Failed to upload avatar: ${uploadError.message}`);
+  }
+
+  //auto-updates the profile's avatar_path with the new storage path, then returns the updated profile data
+  return updateProfile(userId, { avatar_path: storagePath });
+}
+
+// GET AVATAR URL: Returns the public URL for a stored avatar path.
+export function getAvatarUrl(avatarPath: string): string {
+  const { data } = supabase.storage.from("avatars").getPublicUrl(avatarPath);
+  return data.publicUrl;
+}
+
 // UPDATE: Applies partial profile updates.
 export async function updateProfile(userId: string, updates: Partial<Omit<UpsertProfileInput, "user_id">>): Promise<UserProfile> {
   if (!userId.trim()) {
