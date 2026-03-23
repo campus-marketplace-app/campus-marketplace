@@ -1,21 +1,49 @@
-import { useState, type ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, type ChangeEvent } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import { getProfile, updateProfile } from "@campus-marketplace/backend";
+import type { SessionUser } from "../features/types";
+
+type OutletContext = {
+  user: SessionUser | null;
+};
 
 export default function Profile() {
+    const { user } = useOutletContext<OutletContext>();
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
     const [accountTitle, setAccountTitle] = useState("Student Account");
     const [name, setName] = useState("Campus User");
     const [email, setEmail] = useState("student@university.edu");
     const [bio, setBio] = useState("Buyer and seller on campus marketplace.");
-    const [avatarLabel, setAvatarLabel] = useState("profile picture");
+    const [avatar, setAvatar] = useState("profile picture");
 
     const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
         if (selectedFile) {
-            setAvatarLabel(selectedFile.name);
+            setAvatar(selectedFile.name);
         }
     };
+
+    const loadProfile = async () => {
+        try {
+            const profile = await getProfile(user?.id || "");
+
+            setName(profile.display_name);
+            if (profile.bio !== null) {
+                setBio(profile.bio);
+            }
+            if (profile.avatar_path !== null) {
+                setAvatar(profile.avatar_path);
+            }
+        } catch (error) {
+            console.error("Failed to load profile:", error);
+        }
+    };
+
+    useEffect(() => {
+        loadProfile();
+    }, []);
+
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -39,7 +67,7 @@ export default function Profile() {
                             <div>
                                 <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Avatar</p>
                                 <div className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-xl bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
-                                    <span>{avatarLabel}</span>
+                                    <span>{avatar}</span>
                                     {isEditing && (
                                         <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
                                             Choose Image

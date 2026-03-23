@@ -3,8 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import PageHeader from '../features/page-header';
 import Navbar from '../features/navbar';
 import { getSessionFromTokens } from "@campus-marketplace/backend";
-
-type SessionUser = Awaited<ReturnType<typeof getSessionFromTokens>>["user"];
+import type { SessionUser } from "../features/types";
 
 const getCurrentDateTimeLocal = () => {
     const now = new Date();
