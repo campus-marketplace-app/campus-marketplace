@@ -1,6 +1,6 @@
 import { useState, type ComponentProps } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-
+import { signUpWithEmail } from "@campus-marketplace/backend";
 
 export default function Signup() {
     const navigate = useNavigate();
@@ -10,7 +10,11 @@ export default function Signup() {
     const [emailMessage, setEmailMessage] = useState('');
     const [passwordMessage, setPasswordMessage] = useState('');
     const [rePasswordMessage, setRePasswordMessage] = useState('');
+    const [displayName, setDisplayName] = useState('');
+    const [displayNameMessage, setDisplayNameMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [serverError, setServerError] = useState('');
 
     const checkEmail = (value: string) => {
         const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
@@ -46,20 +50,50 @@ export default function Signup() {
         return true;
     }
 
+    const checkDisplayName = (value: string) => {
+        if (!value.trim()) {
+            setDisplayNameMessage('Username is required.');
+            return false;
+        }
+        setDisplayNameMessage('');
+        return true;
+    }
+
     const handleSubmit: ComponentProps<'form'>['onSubmit'] = async (e) => {
-        if (!e) return;
         e.preventDefault();
+
         setSubmitted(true);
         const isEmailValid = checkEmail(email);
         const isPasswordValid = checkPassword(password);
         const isRePasswordValid = checkRePassword(password, rePassword);
+        const isDisplayNameValid = checkDisplayName(displayName);
 
-        if (isEmailValid && isPasswordValid && isRePasswordValid && email !== '' && password !== '') {
-            alert('Login successful!');
-            navigate('/login', { replace: true });
+        if (!isEmailValid || !isPasswordValid || !isRePasswordValid || !isDisplayNameValid) {
+            return;
         }
-        if (!isEmailValid || !isPasswordValid || !isRePasswordValid) {
-            alert('Please fix the errors before submitting.');
+
+        setLoading(true);
+        setServerError('');
+        try {
+            const { user, session } = await signUpWithEmail({
+                email,
+                password,
+                display_name: displayName,
+            });
+
+            if (session) {
+                localStorage.setItem("access_token", session.access_token);
+                localStorage.setItem("refresh_token", session.refresh_token);
+                navigate("/login", { replace: true });
+            } else {
+                // usually email-confirmation flow
+                setServerError("Account created. Please check your email to confirm your account.");
+                navigate("/login", { replace: true });
+            }
+        } catch (err) {
+            setServerError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -84,18 +118,24 @@ export default function Signup() {
                             type="text"
                             placeholder="Username"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            value={displayName}
+                            onChange={(e) => {
+                                setDisplayName(e.target.value);
+                                checkDisplayName(e.target.value);
+                            }}
                         />
+                        {submitted && displayNameMessage !== '' ?
+                            (<p className="text-sm text-white">{displayNameMessage}</p>) : null
+                        }
                         <input
                             type="email"
                             placeholder="Email"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
                             value={email}
-                            onChange={
-                                (e) => {
-                                    setEmail(e.target.value);
-                                    checkEmail(e.target.value);
-                                }
-                            }
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                checkEmail(e.target.value);
+                            }}
                             onBlur={() => checkEmail(email)}
                         />
                         {submitted && emailMessage !== '' ?
@@ -106,13 +146,11 @@ export default function Signup() {
                             type="password"
                             placeholder="Password"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={password}
-                            onChange={
-                                (e) => {
-                                    setPassword(e.target.value);
-                                    checkPassword(e.target.value);
-                                    checkRePassword(e.target.value, rePassword);
-                                }
-                            }
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                checkPassword(e.target.value);
+                                checkRePassword(e.target.value, rePassword);
+                            }}
                         />
                         {submitted && passwordMessage !== '' ?
                             (<p className="text-sm text-white">{passwordMessage}</p>) : null
@@ -122,23 +160,24 @@ export default function Signup() {
                             type="password"
                             placeholder="Re-enter Password"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={rePassword}
-                            onChange={
-                                (e) => {
-                                    const nextRePassword = e.target.value;
-                                    setRePassword(nextRePassword);
-                                    checkRePassword(password, nextRePassword);
-                                }
-                            }
+                            onChange={(e) => {
+                                const nextRePassword = e.target.value;
+                                setRePassword(nextRePassword);
+                                checkRePassword(password, nextRePassword);
+                            }}
                         />
                         {submitted && rePasswordMessage !== '' ?
                             (<p className="text-sm text-white">{rePasswordMessage}</p>) : null
                         }
 
+                        {serverError && <p className="text-sm text-white">{serverError}</p>}
+
                         <button
                             type="submit"
-                            className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b]"
+                            disabled={loading}
+                            className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b] disabled:opacity-60"
                         >
-                            Submit
+                            {loading ? 'Signing up...' : 'Submit'}
                         </button>
                     </form>
 
@@ -146,7 +185,7 @@ export default function Signup() {
                         to="/login"
                         className="mx-auto mt-4 block w-fit bg-[#8c0010] px-8 py-2 text-center text-sm text-black transition hover:bg-[#9f0a1b]"
                     >
-                        back to login
+                        Back to login
                     </Link>
                 </div>
             </div>

@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 type HeaderProps = {
     isLoggedIn: boolean;
     isRegistering: boolean;
+    user?: unknown | null;
 };
 
 export default function PageHeader({
     isLoggedIn,
     isRegistering,
+    user,
 }: HeaderProps) {
     return (
         <nav className="bg-red-700 p-4 w-full">
@@ -18,6 +20,8 @@ export default function PageHeader({
 
                 {isRegistering ? (
                     <input
+                        id='search'
+                        name='search'
                         type="text"
                         placeholder="Search..."
                         className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-700"

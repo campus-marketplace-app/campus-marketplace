@@ -100,18 +100,21 @@ SUPABASE_SERVICE_KEY=
 Frontend (`apps/web/.env.local`):
 ```
 VITE_SCHOOL_CODE=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 ```
 
 ## Auth Pattern
 
-Session tokens are stored in `localStorage` and restored on app init via `getSessionFromTokens`. See `apps/backend/AUTH_USAGE.md` for the full integration example.
+Session tokens are stored in `localStorage` and restored on app init via `getSessionFromTokens`. See `docs/AUTH_USAGE.md` for the full integration example.
 
 ## Key Docs
 
 - `docs/GIT_WORKFLOW.md` — branch naming, PR process
 - `docs/MIGRATIONS.md` — migration management
-- `apps/backend/AUTH_USAGE.md` — auth integration examples
-- `apps/backend/LISTINGS_USAGE.md` — listings service integration examples
+- `docs/AUTH_USAGE.md` — auth integration examples
+- `docs/LISTINGS_USAGE.md` — listings service integration examples
+- `docs/PROFILE_USAGE.md` — profile + avatar upload integration examples
 - `.github/copilot-instructions.md` — detailed architecture rules
 - `.github/instructions/frontend.instructions.md` — frontend-specific rules
 - `AGENTS.md` — pre/post-edit verification checklist

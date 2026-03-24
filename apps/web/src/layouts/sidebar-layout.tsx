@@ -2,6 +2,9 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import PageHeader from '../features/page-header';
 import Navbar from '../features/navbar';
+import { getSessionFromTokens } from "@campus-marketplace/backend";
+
+type SessionUser = Awaited<ReturnType<typeof getSessionFromTokens>>["user"];
 
 const getCurrentDateTimeLocal = () => {
     const now = new Date();
@@ -10,7 +13,7 @@ const getCurrentDateTimeLocal = () => {
 };
 
 export default function SidebarLayout() {
-    const [isLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [listingTitle, setListingTitle] = useState('LISTINGS.title');
@@ -22,6 +25,12 @@ export default function SidebarLayout() {
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
     const isRegistering = !['/login', '/signup'].includes(location.pathname);
+    const [user, setUser] = useState<SessionUser | null>(null);
+
+    const clearStoredTokens = () => {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+    };
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -42,29 +51,62 @@ export default function SidebarLayout() {
         };
     }, [showForm]);
 
+    useEffect(() => {
+        const checkUserSession = async () => {
+            const accessToken = localStorage.getItem("access_token");
+            const refreshToken = localStorage.getItem("refresh_token");
+
+            if (!accessToken || !refreshToken) {
+                setIsLoggedIn(false);
+                return;
+            }
+
+            try {
+                const { user, session } = await getSessionFromTokens(accessToken, refreshToken);
+
+                if (!session) {
+                    clearStoredTokens();
+                    setIsLoggedIn(false);
+                    return;
+                }
+
+                setUser(user);
+                setIsLoggedIn(true);
+            } catch {
+                clearStoredTokens();
+                setIsLoggedIn(false);
+            }
+        };
+
+        void checkUserSession();
+    }, []);
+
     return (
         <div className="flex flex-col h-screen">
-            <PageHeader 
+            <PageHeader
                 isLoggedIn={isLoggedIn}
                 isRegistering={isRegistering}
+                user={user}
             />
 
             <div className="flex flex-1 overflow-hidden bg-[#ececec]">
                 {isRegistering ? <aside
-                    className={`relative shrink-0 bg-[#8f0010] text-black transition-all duration-300 ${
-                        isSidebarOpen ? 'w-36 sm:w-40' : 'w-16'
-                    }`}
+                    className={`relative shrink-0 bg-[#8f0010] text-black transition-all duration-300 ${isSidebarOpen ? 'w-36 sm:w-40' : 'w-16'
+                        }`}
                 >
                     <Navbar
                         isSidebarOpen={isSidebarOpen}
                         toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
                         openPostForm={() => setShowForm(true)}
                         location={location}
+                        user={user}
                     />
                 </aside> : null}
 
                 <main className="flex-1 overflow-auto">
-                    <Outlet />
+                    <Outlet 
+                    context={{ user }}
+                    />
                 </main>
             </div>
 

@@ -5,6 +5,7 @@ type NavbarProps = {
     toggleSidebar: () => void;
     openPostForm: () => void;
     location: Location;
+    user?: unknown | null;
 };
 
 export default function Navbar({
