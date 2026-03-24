@@ -112,7 +112,6 @@ export default function SidebarLayout() {
                         isloggedIn={isLoggedIn}
                         toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
                         openPostForm={() => setShowForm(true)}
-                        setdate={(date: string) => setListingDate(date)}
                         location={location}
                         user={user}
                         logout={logout}

@@ -43,7 +43,7 @@ export default function Login() {
 
         if (isEmailValid && isPasswordValid && email !== '' && password !== '') {
             try {
-                const {user, session } = await signInWithEmail({ email, password });
+                const { session } = await signInWithEmail({ email, password });
                 if (!session) {
                     alert("Please confirm your email first.");
                     return;

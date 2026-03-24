@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { getProfile, updateProfile } from "@campus-marketplace/backend";
+import { getProfile, updateProfile, uploadAvatar, getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 
 type OutletContext = {
@@ -17,7 +17,8 @@ export default function Profile() {
     const [name, setName] = useState("Campus User");
     const [email, setEmail] = useState("student@university.edu");
     const [bio, setBio] = useState("Buyer and seller on campus marketplace.");
-    const [avatar, setAvatar] = useState("profile picture");
+    const [avatar, setAvatar] = useState<File | null>(null);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [nameError, setNameError] = useState("");
     const [bioError, setBioError] = useState("");
     const [avatarError, setAvatarError] = useState("");
@@ -25,8 +26,8 @@ export default function Profile() {
     const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
         if (selectedFile) {
-            setAvatar(selectedFile.name);
-            validateAvatar(selectedFile.name);
+            setAvatar(selectedFile);
+            setAvatarUrl(selectedFile ? URL.createObjectURL(selectedFile) : null);
         }
     };
 
@@ -55,14 +56,32 @@ export default function Profile() {
         return true;
     };
 
-    const validateAvatar = (value: string) => {
-        if (value.trim() === "") {
-            setAvatarError("Avatar cannot be empty");
+    const validateAvatar = (value: File | null) => {
+        const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+        const minSizeInBytes = 10 * 1024; // 10KB
+
+        if (!value) {
+            setAvatarError("");
+            return true;
+        }
+
+        if (value && xssRegex.test(value.name)) {
+            setAvatarError("Avatar contains potentially unsafe content");
             return false;
         }
 
-        if (xssRegex.test(value)) {
-            setAvatarError("Avatar contains potentially unsafe content");
+        if (value.type.endsWith(".png") || value.type.endsWith(".jpg") || value.type.endsWith(".jpeg") || value.type.endsWith(".webp")) {
+            setAvatarError("Avatar must be a PNG, JPG, JPEG, or WEBP file");
+            return false;
+        }
+
+        if (value.size > maxSizeInBytes) {
+            setAvatarError("Avatar file size must be less than 5MB");
+            return false;
+        }
+
+        if (value.size < minSizeInBytes) {
+            setAvatarError("Avatar file size must be greater than 10KB");
             return false;
         }
 
@@ -80,7 +99,7 @@ export default function Profile() {
                 setBio(profile.bio);
             }
             if (profile.avatar_path !== null) {
-                setAvatar(profile.avatar_path);
+                setAvatarUrl(profile.avatar_path);
             }
         } catch (error) {
             console.error("Failed to load profile:", error);
@@ -105,10 +124,12 @@ export default function Profile() {
             }
 
             try {
+                await uploadAvatar(user.id, avatar ?? new Blob(), avatar?.type ?? "image/png");
+                const avatarPath = avatar ? getAvatarUrl(user.id) : null;
                 await updateProfile(user.id, {
                     display_name: name,
                     bio: bio,
-                    avatar_path: avatar,
+                    avatar_path: avatarPath,
                 });
             } catch (error) {
                 console.error("Failed to save profile:", error);
@@ -156,13 +177,15 @@ export default function Profile() {
                         <div className="grid gap-8 md:grid-cols-[1fr_1.3fr]">
                             <div>
                                 <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Avatar</p>
-                                <div className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-xl bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
-                                    <span>{avatar}</span>
+                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f1b7be] text-center text-sm uppercase text-black">
+                                    <img src={avatarUrl || undefined} alt="Avatar" className="h-full w-full object-cover" />
                                     {isEditing && (
-                                        <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
-                                            Choose Image
-                                            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                                        </label>
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+                                            <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
+                                                Choose Image
+                                                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                                            </label>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -228,11 +251,10 @@ export default function Profile() {
                                 type="button"
                                 onClick={() => saveProfile()}
                                 disabled={isSaveDisabled}
-                                className={`px-8 py-2 text-2xl text-black transition ${
-                                    isSaveDisabled
+                                className={`px-8 py-2 text-2xl text-black transition ${isSaveDisabled
                                         ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
                                         : "bg-[#f1b7be] hover:bg-white"
-                                }`}
+                                    }`}
                             >
                                 {isEditing ? "save" : "edit"}
                             </button>
