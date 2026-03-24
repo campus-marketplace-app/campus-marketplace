@@ -1,34 +1,66 @@
-import { useState, type ComponentProps } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
-import { sendPasswordResetEmail } from "@campus-marketplace/backend";
+import { updatePassword } from "@campus-marketplace/backend";
 
 export default function ResetPassword() {
-    const [email, setEmail] = useState('');
-    const [emailMessage, setEmailMessage] = useState('');
+    const [accessToken, setAccessToken] = useState('');
+    const [refreshToken, setRefreshToken] = useState('');
+    const [password, setPassword] = useState('');
+    const [rePassword, setRePassword] = useState('');
+    const [passwordMessage, setPasswordMessage] = useState('');
+    const [rePasswordMessage, setRePasswordMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [serverError, setServerError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
 
-    const checkEmail = (value: string) => {
-        const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
+    useEffect(() => {
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const [nextAccessToken, nextRefreshToken] = 
 
-        if (!emailRegex.test(value)) {
-            setEmailMessage('Please enter a valid NJIT email address ending in @njit.edu.');
+        setAccessToken(nextAccessToken);
+        setRefreshToken(nextRefreshToken);
+
+        if (!nextAccessToken || !nextRefreshToken) {
+            setServerError('Reset link is invalid or expired. Please request a new password reset email.');
+        }
+    }, []);
+
+    const checkPassword = (value: string) => {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+
+        if (!passwordRegex.test(value)) {
+            setPasswordMessage('Password must be at least 6 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.');
             return false;
         }
 
-        setEmailMessage('');
+        setPasswordMessage('');
         return true;
-    }
+    };
+
+    const checkRePassword = (currentPassword: string, currentRePassword: string) => {
+        if (currentPassword !== currentRePassword) {
+            setRePasswordMessage('Passwords do not match.');
+            return false;
+        }
+
+        setRePasswordMessage('');
+        return true;
+    };
 
     const handleSubmit: ComponentProps<'form'>['onSubmit'] = async (e) => {
         e.preventDefault();
 
         setSubmitted(true);
-        const isEmailValid = checkEmail(email);
+        const isPasswordValid = checkPassword(password);
+        const isRePasswordValid = checkRePassword(password, rePassword);
 
-        if (!isEmailValid) {
+        if (!isPasswordValid || !isRePasswordValid) {
+            return;
+        }
+
+        if (!accessToken || !refreshToken) {
+            setServerError('Reset link is invalid or expired. Please request a new password reset email.');
             return;
         }
 
@@ -36,14 +68,14 @@ export default function ResetPassword() {
         setServerError('');
         setSuccessMessage('');
         try {
-            await sendPasswordResetEmail(email);
-            setSuccessMessage('If an account exists for this email, a password reset link has been sent.');
+            await updatePassword(accessToken, refreshToken, password);
+            setSuccessMessage('Your password has been reset successfully. You can now sign in with your new password.');
         } catch (err) {
-            setServerError(err instanceof Error ? err.message : 'Failed to send reset email. Please try again.');
+            setServerError(err instanceof Error ? err.message : 'Failed to reset password. Please try again.');
         } finally {
             setLoading(false);
         }
-    }
+    };
 
 
     return (
@@ -54,27 +86,38 @@ export default function ResetPassword() {
                 </h1>
 
                 <p className="mt-4 text-center text-base text-black sm:text-lg">
-                    Enter your NJIT email and we will send a password reset link.
+                    Set your new password below and confirm it.
                 </p>
 
                 <form className="mt-8 flex flex-col gap-4" onSubmit={handleSubmit}>
-                    <label htmlFor="reset-email" className="text-xs font-semibold uppercase tracking-wide text-black">
-                        Email
-                    </label>
                     <input
-                        id="reset-email"
-                        type="email"
-                        placeholder="you@njit.edu"
+                        id="reset-password"
+                        type="password"
+                        placeholder="Password"
                         className="w-full rounded-md border-b border-black bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/70"
-                        value={email}
+                        value={password}
                         onChange={(e) => {
-                            setEmail(e.target.value);
-                            checkEmail(e.target.value);
+                            setPassword(e.target.value);
+                            checkPassword(e.target.value);
+                            checkRePassword(e.target.value, rePassword);
                         }}
-                        onBlur={() => checkEmail(email)}
                     />
+                    {submitted && passwordMessage !== '' ? <p className="text-sm text-white">{passwordMessage}</p> : null}
 
-                    {submitted && emailMessage !== '' ? <p className="text-sm text-white">{emailMessage}</p> : null}
+                    <input
+                        id="reset-password-confirmation"
+                        type="password"
+                        placeholder="Re-enter Password"
+                        className="w-full rounded-md border-b border-black bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/70"
+                        value={rePassword}
+                        onChange={(e) => {
+                            const nextRePassword = e.target.value;
+                            setRePassword(nextRePassword);
+                            checkRePassword(password, nextRePassword);
+                        }}
+                    />
+                    {submitted && rePasswordMessage !== '' ? <p className="text-sm text-white">{rePasswordMessage}</p> : null}
+
                     {serverError ? <p className="text-sm text-white">{serverError}</p> : null}
                     {successMessage ? <p className="text-sm text-white">{successMessage}</p> : null}
 
@@ -83,7 +126,7 @@ export default function ResetPassword() {
                         disabled={loading}
                         className="mt-2 bg-[#8c0010] py-3 text-base font-semibold text-black transition hover:bg-[#9f0a1b] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {loading ? 'Sending...' : 'Send Reset Link'}
+                        {loading ? 'Updating...' : 'Reset Password'}
                     </button>
                 </form>
 
