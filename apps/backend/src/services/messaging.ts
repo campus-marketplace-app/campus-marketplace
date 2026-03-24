@@ -1,6 +1,4 @@
-// Messaging service module.
-// Coordinates reads/writes across public.conversations, public.conversation_participants,
-// and public.messages.
+// Coordinates reads/writes across public.conversations, public.conversation_participants, and public.messages.
 
 import { supabase } from "../supabase-client.js";
 export * from "./messaging.types.js";
