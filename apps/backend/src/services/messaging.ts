@@ -9,6 +9,7 @@ import type {
   ConversationSummary,
   ConversationParticipant,
   CreateConversationInput,
+  GetMessagesOptions,
 } from "./messaging.types.js";
 
 // ---------------------------------------------------------------------------
@@ -333,15 +334,20 @@ export async function getConversations(userId: string): Promise<ConversationSumm
 }
 
 /**
- * Returns all messages in a conversation, oldest-first.
+ * Returns messages in a conversation, oldest-first, with optional cursor-based pagination.
  * The requesting user must be an active participant.
  *
  * param conversationId - UUID of the conversation.
  * param userId - UUID of the authenticated user (must be a participant).
+ * param options - Optional pagination: limit (default 50) and before (ISO timestamp cursor).
  * returns Array of Message records (may be empty for a new conversation).
  * throws If parameters are missing, user is not a participant, or the DB query fails.
  */
-export async function getMessages(conversationId: string, userId: string): Promise<Message[]> {
+export async function getMessages(
+  conversationId: string,
+  userId: string,
+  options: GetMessagesOptions = {},
+): Promise<Message[]> {
   if (!conversationId.trim()) {
     throw new Error("Conversation ID is required");
   }
@@ -349,15 +355,23 @@ export async function getMessages(conversationId: string, userId: string): Promi
     throw new Error("User ID is required");
   }
 
+  const { limit = 50, before } = options;
+
   await verifyParticipant(conversationId, userId);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("messages")
     .select(messageSelect)
     .eq("conversation_id", conversationId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true })
-    .returns<Message[]>();
+    .limit(limit);
+
+  if (before) {
+    query = query.lt("created_at", before);
+  }
+
+  const { data, error } = await query.returns<Message[]>();
 
   if (error) {
     throw new Error(`Failed to fetch messages: ${error.message}`);
@@ -455,6 +469,56 @@ export async function markConversationAsRead(
   if (error) {
     throw new Error(`Failed to mark messages as read: ${error.message}`);
   }
+}
+
+/**
+ * Subscribes to conversation list changes for a user via Supabase Realtime.
+ * Fires the callback whenever a conversation the user participates in is updated
+ * (e.g. a new message is sent, updating updated_at).
+ *
+ * param userId - UUID of the authenticated user whose conversations to watch.
+ * param onUpdate - Callback invoked with the updated conversation's ID.
+ * returns A cleanup function — call it on component unmount to stop the subscription.
+ * throws If userId is missing.
+ */
+export async function subscribeToConversations(
+  userId: string,
+  onUpdate: (conversationId: string) => void,
+): Promise<() => void> {
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  const channel = supabase
+    .channel(`conversations:${userId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "conversations",
+      },
+      async (payload) => {
+        const conversationId = (payload.new as { id: string }).id;
+        // Only fire for conversations this user participates in.
+        const { data } = await supabase
+          .from("conversation_participants")
+          .select("conversation_id")
+          .eq("conversation_id", conversationId)
+          .eq("user_id", userId)
+          .is("left_at", null)
+          .single();
+
+        if (data) {
+          onUpdate(conversationId);
+        }
+      },
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 /**
