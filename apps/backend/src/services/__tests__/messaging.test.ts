@@ -144,6 +144,9 @@ describe("getMessages pagination", () => {
 
 describe("markConversationAsRead", () => {
   it("marks messages from the other participant as read", async () => {
+    // Send a fresh message to guarantee there is something unread to mark
+    await sendMessage(conversationId, seller.user.id, "Fresh unread message");
+
     // Before: buyer has unread messages from seller
     const before = await getMessages(conversationId, buyer.user.id);
     const unreadBefore = before.filter((m) => m.sender_id === seller.user.id && !m.is_read);

@@ -355,21 +355,25 @@ export async function getMessages(
     throw new Error("User ID is required");
   }
 
-  const { limit = 50, before } = options;
-
   await verifyParticipant(conversationId, userId);
+
+  const { limit = 50, before } = options;
 
   let query = supabase
     .from("messages")
     .select(messageSelect)
     .eq("conversation_id", conversationId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: true })
-    .limit(limit);
+    .is("deleted_at", null);
 
   if (before) {
-    query = query.lt("created_at", before);
+    // Load messages before the cursor newest-first, then reverse so the
+    // caller always receives messages in oldest-first (chronological) order.
+    query = query.lt("created_at", before).order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: true });
   }
+
+  query = query.limit(limit);
 
   const { data, error } = await query.returns<Message[]>();
 
@@ -377,7 +381,8 @@ export async function getMessages(
     throw new Error(`Failed to fetch messages: ${error.message}`);
   }
 
-  return data ?? [];
+  const messages = data ?? [];
+  return before ? [...messages].reverse() : messages;
 }
 
 /**
@@ -492,6 +497,11 @@ export function subscribeToConversations(
 
   const channel = supabase
     .channel(`inbox:${userId}`)
+    // Note: Supabase Realtime does not support filtering by dynamic membership
+    // (e.g. "only messages in this user's conversations"). The subscription
+    // receives all message INSERTs globally; getConversationById then verifies
+    // participation and silently discards events for unrelated conversations.
+    // This is an accepted trade-off for this project's scale.
     .on(
       "postgres_changes",
       {
