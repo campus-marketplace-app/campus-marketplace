@@ -7,6 +7,7 @@ import {
   markConversationAsRead,
 } from "../messaging.js";
 import { createTestUser, createTestListing } from "./helpers.js";
+import { supabase } from "../../supabase-client.js";
 import type { TestUser } from "./helpers.js";
 
 let buyer: TestUser;
@@ -60,6 +61,10 @@ describe("getConversationById", () => {
       ).rejects.toThrow("not a participant");
     } finally {
       await outsider.cleanup();
+      // createTestUser changes the shared client's auth state to the new user.
+      // Restore seller's session so subsequent tests can call service functions
+      // (e.g. sendMessage) with the correct auth context.
+      await supabase.auth.setSession(seller.session);
     }
   });
 
@@ -107,6 +112,13 @@ describe("getMessages pagination", () => {
     await new Promise((r) => setTimeout(r, 20));
     await sendMessage(paginationConvoId, paginationBuyer.user.id, "Page msg 3");
     await new Promise((r) => setTimeout(r, 20));
+  });
+
+  // Restore seller's session after this suite so subsequent describe blocks
+  // that call sendMessage(conversationId, seller.user.id, ...) have the
+  // correct auth context (pagination users changed auth state in beforeAll).
+  afterAll(async () => {
+    if (seller?.session) await supabase.auth.setSession(seller.session);
   });
 
   it("returns all messages when no options provided", async () => {
@@ -169,6 +181,7 @@ describe("markConversationAsRead", () => {
       ).rejects.toThrow("not a participant");
     } finally {
       await outsider.cleanup();
+      await supabase.auth.setSession(seller.session);
     }
   });
 

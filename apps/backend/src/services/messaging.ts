@@ -44,18 +44,16 @@ const conversationSelect = `
  * Throws if not found or on DB error.
  */
 async function verifyParticipant(conversationId: string, userId: string): Promise<void> {
-  const { data, error } = await supabase
-    .from("conversation_participants")
-    .select("conversation_id")
-    .eq("conversation_id", conversationId)
-    .eq("user_id", userId)
-    .is("left_at", null)
-    .single();
+  // Use a SECURITY DEFINER RPC so the check is independent of the current
+  // auth.uid() context — the shared client may be authenticated as a different
+  // user (e.g. in tests), and an RLS-gated table query would then return no
+  // rows even when userId IS a valid participant.
+  const { data, error } = await supabase.rpc("is_user_participant", {
+    conv_id: conversationId,
+    target_user_id: userId,
+  });
 
   if (error) {
-    if (error.code === "PGRST116") {
-      throw new Error("You are not a participant in this conversation");
-    }
     throw new Error(`Database error while verifying conversation participant: ${error.message}`);
   }
   if (!data) {
@@ -237,33 +235,39 @@ export async function createOrGetConversation(
 
   // Step 3: Create a new conversation if no existing one was found.
   if (!conversationId) {
-    const { data: newConv, error: createError } = await supabase
+    // Pre-generate the UUID so we can INSERT without a RETURNING clause.
+    // Relying on .select("id") after INSERT would fail under authenticated RLS
+    // because the SELECT policy (participant check) rejects the row before
+    // participants have been inserted.
+    const newId = crypto.randomUUID();
+
+    const { error: createError } = await supabase
       .from("conversations")
-      .insert({ listing_id: input.listing_id })
-      .select("id")
-      .single();
+      .insert({ id: newId, listing_id: input.listing_id });
 
     if (createError) {
       throw new Error(`Failed to create conversation: ${createError.message}`);
     }
-    if (!newConv) {
-      throw new Error("Conversation creation did not return data");
-    }
 
-    conversationId = newConv.id;
+    conversationId = newId;
 
-    const { error: participantsError } = await supabase
-      .from("conversation_participants")
-      .upsert(
-        [
-          { conversation_id: conversationId, user_id: input.buyer_id },
-          { conversation_id: conversationId, user_id: input.seller_id },
-        ],
-        { onConflict: "conversation_id,user_id" },
+    // Use two separate inserts instead of upsert: upsert evaluates the UPDATE
+    // policy on every row (even for pure inserts), which fails when the
+    // authenticated user is the seller but the buyer row has user_id = buyer_id.
+    // Plain INSERT only evaluates the INSERT policy (auth.uid() is not null).
+    const [{ error: buyerError2 }, { error: sellerError }] = await Promise.all([
+      supabase
+        .from("conversation_participants")
+        .insert({ conversation_id: conversationId, user_id: input.buyer_id }),
+      supabase
+        .from("conversation_participants")
+        .insert({ conversation_id: conversationId, user_id: input.seller_id }),
+    ]);
+
+    if (buyerError2 ?? sellerError) {
+      throw new Error(
+        `Failed to add conversation participants: ${(buyerError2 ?? sellerError)!.message}`,
       );
-
-    if (participantsError) {
-      throw new Error(`Failed to add conversation participants: ${participantsError.message}`);
     }
   }
 
