@@ -70,7 +70,7 @@ export default function Profile() {
             return false;
         }
 
-        if (value.type.endsWith(".png") || value.type.endsWith(".jpg") || value.type.endsWith(".jpeg") || value.type.endsWith(".webp")) {
+        if (!["image/png", "image/jpeg", "image/webp"].includes(value.type)) {
             setAvatarError("Avatar must be a PNG, JPG, JPEG, or WEBP file");
             return false;
         }
@@ -99,7 +99,7 @@ export default function Profile() {
                 setBio(profile.bio);
             }
             if (profile.avatar_path !== null) {
-                setAvatarUrl(profile.avatar_path);
+                setAvatarUrl(getAvatarUrl(profile.avatar_path));
             }
         } catch (error) {
             console.error("Failed to load profile:", error);
@@ -124,12 +124,21 @@ export default function Profile() {
             }
 
             try {
-                await uploadAvatar(user.id, avatar ?? new Blob(), avatar?.type ?? "image/png");
-                const avatarPath = avatar ? getAvatarUrl(user.id) : null;
+                let avatarPath: string | undefined;
+
+                if (avatar) {
+                    const updatedProfile = await uploadAvatar(user.id, avatar, avatar.type);
+                    avatarPath = updatedProfile.avatar_path ?? undefined;
+
+                    if (updatedProfile.avatar_path) {
+                        setAvatarUrl(getAvatarUrl(updatedProfile.avatar_path));
+                    }
+                }
+
                 await updateProfile(user.id, {
                     display_name: name,
                     bio: bio,
-                    avatar_path: avatarPath,
+                    ...(avatarPath ? { avatar_path: avatarPath } : {}),
                 });
             } catch (error) {
                 console.error("Failed to save profile:", error);
