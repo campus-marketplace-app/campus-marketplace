@@ -22,7 +22,7 @@ type ConversationRow = {
   updated_at: string;
   listings: { id: string; title: string; status: string } | null;
   conversation_participants: Array<{ user_id: string }>;
-  messages: Array<{ id: string; sender_id: string; content: string; created_at: string }>;
+  messages: Array<{ id: string; sender_id: string; content: string; is_read: boolean; created_at: string }>;
 };
 
 // ---------------------------------------------------------------------------
@@ -30,14 +30,14 @@ type ConversationRow = {
 // ---------------------------------------------------------------------------
 
 // Centralized column list so every message query returns a consistent shape.
-const messageSelect = "id,conversation_id,sender_id,content,created_at";
+const messageSelect = "id,conversation_id,sender_id,content,is_read,read_at,created_at";
 
 // Select string for full conversation data with all related data in one round-trip.
 const conversationSelect = `
   id,listing_id,created_at,updated_at,
   listings(id,title,status),
   conversation_participants(user_id),
-  messages(id,sender_id,content,created_at)
+  messages(id,sender_id,content,is_read,created_at)
 `;
 
 /**
@@ -81,10 +81,15 @@ async function fetchProfileMap(userIds: string[]): Promise<Map<string, Conversat
 
   const map = new Map<string, ConversationParticipant>();
   for (const row of data ?? []) {
+    const avatar_path = row.avatar_path ?? null;
+    const avatar_url = avatar_path
+      ? supabase.storage.from("avatars").getPublicUrl(avatar_path).data.publicUrl
+      : null;
     map.set(row.user_id, {
       user_id: row.user_id,
       display_name: row.display_name,
-      avatar_path: row.avatar_path ?? null,
+      avatar_path,
+      avatar_url,
     });
   }
   return map;
@@ -106,6 +111,7 @@ function mapConversationRow(
     user_id: otherParticipantId,
     display_name: "Unknown User",
     avatar_path: null,
+    avatar_url: null,
   };
 
   // Messages are fetched in insertion order — sort descending to find the latest.
@@ -114,11 +120,16 @@ function mapConversationRow(
   );
   const latest = sortedMessages[0] ?? null;
 
+  const unread_count = (row.messages ?? []).filter(
+    (m) => m.sender_id !== requestingUserId && !m.is_read,
+  ).length;
+
   return {
     id: row.id,
     listing_id: row.listing_id,
     listing: row.listings ?? null,
     other_participant: otherParticipant,
+    unread_count,
     last_message: latest
       ? { id: latest.id, sender_id: latest.sender_id, content: latest.content, created_at: latest.created_at }
       : null,
@@ -131,10 +142,17 @@ function mapConversationRow(
  * Fetches a fully enriched ConversationSummary for a single conversation ID.
  * Used internally by createOrGetConversation after finding or creating a conversation.
  */
-async function buildConversationSummary(
+export async function getConversationById(
   conversationId: string,
   requestingUserId: string,
 ): Promise<ConversationSummary> {
+  if (!conversationId.trim()) {
+    throw new Error("Conversation ID is required");
+  }
+  if (!requestingUserId.trim()) {
+    throw new Error("User ID is required");
+  }
+  await verifyParticipant(conversationId, requestingUserId);
   const { data, error } = await supabase
     .from("conversations")
     .select(conversationSelect)
@@ -254,7 +272,7 @@ export async function createOrGetConversation(
     throw new Error("Failed to find or create conversation");
   }
 
-  return buildConversationSummary(conversationId, input.buyer_id);
+  return getConversationById(conversationId, input.buyer_id);
 }
 
 /**
