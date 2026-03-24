@@ -53,6 +53,7 @@ export default function SidebarLayout() {
 
         if (showForm) {
             document.body.style.overflow = 'hidden';
+            setListingDate(getCurrentDateTimeLocal());
         }
 
         return () => {
@@ -111,6 +112,7 @@ export default function SidebarLayout() {
                         isloggedIn={isLoggedIn}
                         toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
                         openPostForm={() => setShowForm(true)}
+                        setdate={(date: string) => setListingDate(date)}
                         location={location}
                         user={user}
                         logout={logout}
@@ -213,8 +215,8 @@ export default function SidebarLayout() {
                                             <input
                                                 id="date"
                                                 type="datetime-local"
+                                                readOnly={true}
                                                 value={listingDate}
-                                                onChange={(e) => setListingDate(e.target.value)}
                                                 className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
                                             />
                                         </div>
