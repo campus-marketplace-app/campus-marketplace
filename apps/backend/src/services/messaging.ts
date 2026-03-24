@@ -425,6 +425,39 @@ export async function sendMessage(
 }
 
 /**
+ * Marks all unread messages from the other participant as read.
+ * The requesting user must be an active participant.
+ *
+ * param conversationId - UUID of the conversation.
+ * param userId - UUID of the authenticated user marking messages as read.
+ * throws If parameters are missing, user is not a participant, or the DB update fails.
+ */
+export async function markConversationAsRead(
+  conversationId: string,
+  userId: string,
+): Promise<void> {
+  if (!conversationId.trim()) {
+    throw new Error("Conversation ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  await verifyParticipant(conversationId, userId);
+
+  const { error } = await supabase
+    .from("messages")
+    .update({ is_read: true, read_at: new Date().toISOString() })
+    .eq("conversation_id", conversationId)
+    .neq("sender_id", userId)
+    .eq("is_read", false);
+
+  if (error) {
+    throw new Error(`Failed to mark messages as read: ${error.message}`);
+  }
+}
+
+/**
  * Subscribes to new messages in a conversation via Supabase Realtime.
  * The requesting user must be an active participant.
  *
