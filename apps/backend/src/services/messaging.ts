@@ -472,45 +472,45 @@ export async function markConversationAsRead(
 }
 
 /**
- * Subscribes to conversation list changes for a user via Supabase Realtime.
- * Fires the callback whenever a conversation the user participates in is updated
- * (e.g. a new message is sent, updating updated_at).
+ * Subscribes to realtime updates across all of a user's conversations.
+ * Fires onUpdate whenever a new message arrives in any conversation the user
+ * participates in — useful for keeping the inbox sidebar live.
+ * Skips messages sent by the user themselves.
  *
- * param userId - UUID of the authenticated user whose conversations to watch.
- * param onUpdate - Callback invoked with the updated conversation's ID.
+ * param userId - UUID of the authenticated user.
+ * param onUpdate - Callback invoked with the updated ConversationSummary when a new message arrives.
  * returns A cleanup function — call it on component unmount to stop the subscription.
- * throws If userId is missing.
+ * throws If userId is empty.
  */
-export async function subscribeToConversations(
+export function subscribeToConversations(
   userId: string,
-  onUpdate: (conversationId: string) => void,
-): Promise<() => void> {
+  onUpdate: (conversation: ConversationSummary) => void,
+): () => void {
   if (!userId.trim()) {
     throw new Error("User ID is required");
   }
 
   const channel = supabase
-    .channel(`conversations:${userId}`)
+    .channel(`inbox:${userId}`)
     .on(
       "postgres_changes",
       {
-        event: "UPDATE",
+        event: "INSERT",
         schema: "public",
-        table: "conversations",
+        table: "messages",
       },
       async (payload) => {
-        const conversationId = (payload.new as { id: string }).id;
-        // Only fire for conversations this user participates in.
-        const { data } = await supabase
-          .from("conversation_participants")
-          .select("conversation_id")
-          .eq("conversation_id", conversationId)
-          .eq("user_id", userId)
-          .is("left_at", null)
-          .single();
-
-        if (data) {
-          onUpdate(conversationId);
+        const { conversation_id, sender_id } = payload.new as {
+          conversation_id: string;
+          sender_id: string;
+        };
+        // Skip messages the user sent themselves — the UI already handles those locally.
+        if (sender_id === userId) return;
+        try {
+          const summary = await getConversationById(conversation_id, userId);
+          onUpdate(summary);
+        } catch {
+          // User is not a participant in this conversation — ignore silently.
         }
       },
     )

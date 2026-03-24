@@ -47,17 +47,9 @@ describe("getConversationById", () => {
     expect(summary.last_message).not.toBeNull();
   });
 
-  it("reflects unread_count correctly before and after markConversationAsRead", async () => {
-    // Ensure there is at least one unread message from seller
-    await sendMessage(conversationId, seller.user.id, "Unread message for count test");
-
-    const before = await getConversationById(conversationId, buyer.user.id);
-    expect(before.unread_count).toBeGreaterThan(0);
-
-    await markConversationAsRead(conversationId, buyer.user.id);
-
-    const after = await getConversationById(conversationId, buyer.user.id);
-    expect(after.unread_count).toBe(0);
+  it("includes resolved avatar_url field on other_participant", async () => {
+    const summary = await getConversationById(conversationId, buyer.user.id);
+    expect("avatar_url" in summary.other_participant).toBe(true);
   });
 
   it("throws when user is not a participant", async () => {
@@ -76,24 +68,65 @@ describe("getConversationById", () => {
   });
 });
 
-describe("getMessages pagination", () => {
-  it("respects limit option", async () => {
-    // Send extra messages so we have more than 1
-    await sendMessage(conversationId, buyer.user.id, "Page msg 1");
-    await sendMessage(conversationId, seller.user.id, "Page msg 2");
-    await sendMessage(conversationId, buyer.user.id, "Page msg 3");
+describe("getConversations unread_count", () => {
+  it("returns unread_count > 0 before marking as read", async () => {
+    // Ensure there is at least one unread message from seller
+    await sendMessage(conversationId, seller.user.id, "Unread message for count test");
 
-    const limited = await getMessages(conversationId, buyer.user.id, { limit: 1 });
+    const before = await getConversationById(conversationId, buyer.user.id);
+    expect(before.unread_count).toBeGreaterThan(0);
+  });
+
+  it("returns unread_count 0 after marking as read", async () => {
+    await markConversationAsRead(conversationId, buyer.user.id);
+
+    const after = await getConversationById(conversationId, buyer.user.id);
+    expect(after.unread_count).toBe(0);
+  });
+});
+
+describe("getMessages pagination", () => {
+  let paginationConvoId: string;
+  let paginationBuyerId: string;
+
+  beforeAll(async () => {
+    const paginationBuyer = await createTestUser("PaginationBuyer");
+    const paginationSeller = await createTestUser("PaginationSeller");
+    const paginationListing = await createTestListing(paginationSeller.user.id);
+    const paginationConvo = await createOrGetConversation({
+      listing_id: paginationListing.id,
+      buyer_id: paginationBuyer.user.id,
+      seller_id: paginationSeller.user.id,
+    });
+    paginationConvoId = paginationConvo.id;
+    paginationBuyerId = paginationBuyer.user.id;
+
+    await sendMessage(paginationConvoId, paginationBuyer.user.id, "Page msg 1");
+    await new Promise((r) => setTimeout(r, 20));
+    await sendMessage(paginationConvoId, paginationSeller.user.id, "Page msg 2");
+    await new Promise((r) => setTimeout(r, 20));
+    await sendMessage(paginationConvoId, paginationBuyer.user.id, "Page msg 3");
+    await new Promise((r) => setTimeout(r, 20));
+  });
+
+  it("returns all messages when no options provided", async () => {
+    const messages = await getMessages(paginationConvoId, paginationBuyerId);
+    expect(messages.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("respects limit option", async () => {
+    const limited = await getMessages(paginationConvoId, paginationBuyerId, { limit: 1 });
     expect(limited.length).toBe(1);
   });
 
   it("respects before cursor — returns only messages before the timestamp", async () => {
-    const all = await getMessages(conversationId, buyer.user.id);
+    const all = await getMessages(paginationConvoId, paginationBuyerId);
     expect(all.length).toBeGreaterThan(1);
 
     // Use the created_at of the last message as the cursor
     const cursor = all[all.length - 1].created_at;
-    const paged = await getMessages(conversationId, buyer.user.id, { before: cursor });
+    const paged = await getMessages(paginationConvoId, paginationBuyerId, { before: cursor });
+    expect(paged.length).toBeGreaterThan(0);
 
     // All returned messages must be strictly before the cursor
     for (const m of paged) {
@@ -102,7 +135,7 @@ describe("getMessages pagination", () => {
   });
 
   it("returns empty array when before cursor is earlier than all messages", async () => {
-    const result = await getMessages(conversationId, buyer.user.id, {
+    const result = await getMessages(paginationConvoId, paginationBuyerId, {
       before: "2000-01-01T00:00:00.000Z",
     });
     expect(result).toHaveLength(0);
