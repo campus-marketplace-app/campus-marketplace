@@ -172,6 +172,12 @@ export default function Signup() {
 
                         {serverError && <p className="text-sm text-white">{serverError}</p>}
 
+                        <Link to="/reset-password">
+                            <p className="text-sm text-center text-white underline">
+                                Forgot password?
+                            </p>
+                        </Link>
+
                         <button
                             type="submit"
                             disabled={loading}

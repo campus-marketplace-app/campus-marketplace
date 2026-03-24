@@ -10,9 +10,11 @@ export default function PageHeader({
     isLoggedIn,
     isRegistering,
 }: HeaderProps) {
+    const shouldCenterTitle = !isLoggedIn && !isRegistering;
+
     return (
         <nav className="bg-red-700 p-4 w-full">
-            <div className="flex items-center justify-between gap-8">
+            <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
                 <Link to="/" className="text-white font-bold text-xl">
                     Campus Marketplace
                 </Link>

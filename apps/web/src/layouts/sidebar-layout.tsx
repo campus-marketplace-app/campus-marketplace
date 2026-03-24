@@ -25,7 +25,7 @@ export default function SidebarLayout() {
     const [listingDescription, setListingDescription] = useState('LISTINGS.description');
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
-    const isRegistering = !['/login', '/signup'].includes(location.pathname);
+    const isRegistering = !['/login', '/signup', '/reset-password'].includes(location.pathname);
     const [user, setUser] = useState<SessionUser | null>(null);
     const navigate = useNavigate();
 
