@@ -58,7 +58,7 @@ Services live in `apps/backend/src/services/`:
 - `profile.ts` — get/upsert/update profiles (fully implemented)
 - `theme.ts` — fetch school branding by school code (fully implemented)
 - `listings.ts` — CRUD + search for listings (fully implemented); types in `listings.types.ts`
-- `messaging.ts` — conversations, messages, read receipts, realtime subscriptions (fully implemented)
+- `messaging.ts` — stub, not yet implemented
 - `search.ts` — stub, not yet implemented
 
 All services are re-exported from `apps/backend/src/index.ts`.
@@ -115,7 +115,6 @@ Session tokens are stored in `localStorage` and restored on app init via `getSes
 - `docs/AUTH_USAGE.md` — auth integration examples
 - `docs/LISTINGS_USAGE.md` — listings service integration examples
 - `docs/PROFILE_USAGE.md` — profile + avatar upload integration examples
-- `docs/MESSAGING_USAGE.md` — messaging service integration examples
 - `.github/copilot-instructions.md` — detailed architecture rules
 - `.github/instructions/frontend.instructions.md` — frontend-specific rules
 - `AGENTS.md` — pre/post-edit verification checklist
