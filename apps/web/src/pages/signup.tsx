@@ -1,5 +1,6 @@
-import { useState, type ComponentProps } from 'react';
+import { useState, useEffect, type ComponentProps } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getThemeBySchoolCode } from '@campus-marketplace/backend';
 
 
 export default function Signup() {
@@ -11,6 +12,25 @@ export default function Signup() {
     const [passwordMessage, setPasswordMessage] = useState('');
     const [rePasswordMessage, setRePasswordMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [theme, setTheme] = useState<any>(null);
+
+    useEffect(() => {
+        const loadTheme = async () => {
+            try {
+                // Get school code from environment variable and convert to number
+                const schoolCode = parseInt(import.meta.env.VITE_SCHOOL_CODE || '0');
+                // Call backend function to fetch theme colors from database
+                const fetchedTheme = await getThemeBySchoolCode(schoolCode);
+                // Store the fetched theme in state so components can use it
+                setTheme(fetchedTheme);
+            } catch (error) {
+                // Log error if theme fetch fails
+                console.error('Failed to load theme:', error);
+            }
+        };
+        // Run this effect when page first loads
+        loadTheme();
+    }, []);
 
     const checkEmail = (value: string) => {
         const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
@@ -65,8 +85,19 @@ export default function Signup() {
 
 
     return (
-        <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-[#dddddd] px-4 py-8 sm:px-8">
-            <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
+        <section className="relative min-h-[calc(100vh-64px)]">
+            <div
+                style={{
+                    backgroundImage: 'url(/signin_page.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 0
+                }}
+            />
+
+            <div style={{ position: 'relative', zIndex: 10 }} className="flex h-full w-full items-start overflow-y-auto px-4 py-8 sm:px-8">            <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
                 <div className="px-1 text-black sm:px-6">
                     <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
                         Create your account to start buying and selling with other students on campus.
@@ -74,8 +105,18 @@ export default function Signup() {
                     </p>
                 </div>
 
-                <div className="mx-auto w-full max-w-[380px] border border-[#7d5558] bg-[#c86d72] px-5 pb-6 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:px-7">
-                    <h1 className="mb-8 bg-[#8c0010] py-2 text-center text-3xl uppercase tracking-wide text-black">
+                <div
+                    className="mx-auto w-full max-w-[380px] px-5 pb-6 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:px-7"
+                    style={{
+                        borderColor: theme?.accent_color,
+                        backgroundColor: theme?.secondary_color,
+                        border: `1px solid ${theme?.accent_color}`
+                    }}
+                >
+                    <h1
+                        className="mb-8 py-2 text-center text-3xl uppercase tracking-wide text-black"
+                        style={{ backgroundColor: theme?.primary_color }}
+                    >
                         Signup
                     </h1>
 
@@ -136,19 +177,22 @@ export default function Signup() {
 
                         <button
                             type="submit"
-                            className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b]"
+                            style={{ backgroundColor: theme?.button_style }}
+                            className="py-2 text-lg text-black transition"
                         >
                             Submit
                         </button>
                     </form>
 
                     <Link
-                        to="/login"
-                        className="mx-auto mt-4 block w-fit bg-[#8c0010] px-8 py-2 text-center text-sm text-black transition hover:bg-[#9f0a1b]"
+                        to="/signup"
+                        style={{ backgroundColor: theme?.button_style }}
+                        className="mx-auto mt-4 block w-fit px-8 py-2 text-center text-sm text-black transition"
                     >
                         back to login
                     </Link>
                 </div>
+            </div>
             </div>
         </section>
     );

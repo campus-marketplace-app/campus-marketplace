@@ -24,6 +24,7 @@ export interface SchoolTheme {
   primary_color_dark?: string;
   /** Dark-mode variant of secondary_color. Null if not configured. */
   secondary_color_dark?: string;
+  
   /** Dark-mode variant of accent_color. Null if not configured. */
   accent_color_dark?: string;
   /** Light-mode background image URL. Null if not configured. */
