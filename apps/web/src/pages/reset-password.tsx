@@ -1,10 +1,8 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
-import { updatePassword } from "@campus-marketplace/backend";
+import { completePasswordReset } from "@campus-marketplace/backend";
 
 export default function ResetPassword() {
-    const [accessToken, setAccessToken] = useState('');
-    const [refreshToken, setRefreshToken] = useState('');
     const [password, setPassword] = useState('');
     const [rePassword, setRePassword] = useState('');
     const [passwordMessage, setPasswordMessage] = useState('');
@@ -13,18 +11,7 @@ export default function ResetPassword() {
     const [loading, setLoading] = useState(false);
     const [serverError, setServerError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
-
-    useEffect(() => {
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-        const [nextAccessToken, nextRefreshToken] = 
-
-        setAccessToken(nextAccessToken);
-        setRefreshToken(nextRefreshToken);
-
-        if (!nextAccessToken || !nextRefreshToken) {
-            setServerError('Reset link is invalid or expired. Please request a new password reset email.');
-        }
-    }, []);
+    const [code, setCode] = useState('');
 
     const checkPassword = (value: string) => {
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
@@ -59,16 +46,11 @@ export default function ResetPassword() {
             return;
         }
 
-        if (!accessToken || !refreshToken) {
-            setServerError('Reset link is invalid or expired. Please request a new password reset email.');
-            return;
-        }
-
         setLoading(true);
         setServerError('');
         setSuccessMessage('');
         try {
-            await updatePassword(accessToken, refreshToken, password);
+            await completePasswordReset(code, password);
             setSuccessMessage('Your password has been reset successfully. You can now sign in with your new password.');
         } catch (err) {
             setServerError(err instanceof Error ? err.message : 'Failed to reset password. Please try again.');
@@ -77,6 +59,15 @@ export default function ResetPassword() {
         }
     };
 
+    useEffect(() => {
+        const code = new URLSearchParams(window.location.search).get("code") ?? "";
+        if (!code) {
+            setServerError('Reset link is invalid or expired. Please request a new password reset email.');
+        } else {
+            setCode(code);
+            setServerError('');
+        }
+    }, []);
 
     return (
         <section className="flex min-h-[calc(100vh-64px)] w-full items-center justify-center bg-[#dddddd] px-4 py-10 sm:px-8">

@@ -36,7 +36,7 @@ export default function ResetPassword() {
         setServerError('');
         setSuccessMessage('');
         try {
-            const resetUrl = `${window.location.origin}/reset-password?email=${encodeURIComponent(email)}`;
+            const resetUrl = `${window.location.origin}/reset-password`;
             await sendPasswordResetEmail(email, resetUrl);
             setSuccessMessage('If an account exists for this email, a password reset link has been sent.');
         } catch (err) {
