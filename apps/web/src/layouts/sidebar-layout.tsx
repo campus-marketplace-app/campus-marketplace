@@ -2,8 +2,8 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import PageHeader from '../features/page-header';
 import Navbar from '../features/navbar';
-import { getSessionFromTokens } from "@campus-marketplace/backend";
-import type { SessionUser } from "../features/types";
+import { getSessionFromTokens, getProfile } from "@campus-marketplace/backend";
+import type { SessionUser, UserProfile } from "../features/types";
 import { useNavigate } from 'react-router-dom';
 
 
@@ -27,6 +27,7 @@ export default function SidebarLayout() {
     const location = useLocation();
     const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
     const [user, setUser] = useState<SessionUser | null>(null);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
     const navigate = useNavigate();
 
     const clearStoredTokens = () => {
@@ -83,6 +84,8 @@ export default function SidebarLayout() {
                 }
 
                 setUser(user);
+                const userProfile = await getProfile(user.id);
+                setProfile(userProfile);
                 setIsLoggedIn(true);
             } catch {
                 clearStoredTokens();
@@ -99,7 +102,7 @@ export default function SidebarLayout() {
             <PageHeader
                 isLoggedIn={isLoggedIn}
                 isRegistering={isRegistering}
-                user={user}
+                profile={profile}
             />
 
             <div className="flex flex-1 overflow-hidden bg-[#ececec]">

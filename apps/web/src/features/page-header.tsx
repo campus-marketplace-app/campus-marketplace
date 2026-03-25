@@ -1,16 +1,20 @@
 import { Link } from 'react-router-dom';
+import { getAvatarUrl } from '@campus-marketplace/backend';
+import type { UserProfile } from "./types";
 
 type HeaderProps = {
     isLoggedIn: boolean;
     isRegistering: boolean;
-    user?: unknown | null;
+    profile?: UserProfile | null;
 };
 
 export default function PageHeader({
     isLoggedIn,
     isRegistering,
+    profile,
 }: HeaderProps) {
     const shouldCenterTitle = !isLoggedIn && !isRegistering;
+    const profileAvatarSrc = profile?.avatar_path ? getAvatarUrl(profile.avatar_path) : '/default-avatar.png';
 
     return (
         <nav className="bg-red-700 p-4 w-full">
@@ -31,8 +35,9 @@ export default function PageHeader({
 
                 {isRegistering ? (
                     isLoggedIn ? (
-                        <Link to="/profile" className="text-white hover:text-gray-200">
-                            Profile
+                        <Link to="/profile" className="flex items-center gap-2 text-white hover:text-gray-200">
+                            <img src={profileAvatarSrc} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
+                            <p className="text-white">{profile?.display_name || 'Profile'}</p>
                         </Link> //placeholder for profile img
                     ) : (
                         <Link to="/login" className="text-white hover:text-gray-200">
