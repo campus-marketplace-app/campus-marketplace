@@ -1,4 +1,4 @@
-// Coordinates reads/writes across public.conversations, public.conversation_participants, and public.messages.
+// Messaging service: conversations, messages, read receipts, and realtime subscriptions.
 
 import { supabase } from "../supabase-client.js";
 export * from "./messaging.types.js";
@@ -11,7 +11,7 @@ import type {
 } from "./messaging.types.js";
 
 // ---------------------------------------------------------------------------
-// Internal types — raw DB row shapes
+// Internal types
 // ---------------------------------------------------------------------------
 
 type ConversationRow = {
@@ -21,17 +21,18 @@ type ConversationRow = {
   updated_at: string;
   listings: { id: string; title: string; status: string } | null;
   conversation_participants: Array<{ user_id: string }>;
+  // NOTE: PostgREST nested selects can't filter or aggregate, so ALL messages are fetched
+  // (including soft-deleted ones). unread_count and last_message are derived from this array.
   messages: Array<{ id: string; sender_id: string; content: string; is_read: boolean; created_at: string }>;
 };
 
 // ---------------------------------------------------------------------------
-// Internal helpers — not exported
+// Internal helpers
 // ---------------------------------------------------------------------------
 
-// Centralized column list so every message query returns a consistent shape.
+// Centralized select strings so every query returns a consistent shape.
 const messageSelect = "id,conversation_id,sender_id,content,is_read,read_at,created_at";
 
-// Select string for full conversation data with all related data in one round-trip.
 const conversationSelect = `
   id,listing_id,created_at,updated_at,
   listings(id,title,status),
@@ -39,31 +40,20 @@ const conversationSelect = `
   messages(id,sender_id,content,is_read,created_at)
 `;
 
-/**
- * Verifies that a user is an active participant in a conversation.
- * Throws if not found or on DB error.
- */
+// Uses a SECURITY DEFINER RPC to bypass RLS for the participant check.
+// The shared supabase client may be authenticated as a different user than userId
+// (e.g. in tests), so an RLS-gated query would incorrectly return no rows.
 async function verifyParticipant(conversationId: string, userId: string): Promise<void> {
-  // Use a SECURITY DEFINER RPC so the check is independent of the current
-  // auth.uid() context — the shared client may be authenticated as a different
-  // user (e.g. in tests), and an RLS-gated table query would then return no
-  // rows even when userId IS a valid participant.
   const { data, error } = await supabase.rpc("is_user_participant", {
     conv_id: conversationId,
     target_user_id: userId,
   });
 
-  if (error) {
-    throw new Error(`Database error while verifying conversation participant: ${error.message}`);
-  }
-  if (!data) {
-    throw new Error("You are not a participant in this conversation");
-  }
+  if (error) throw new Error(`Database error while verifying conversation participant: ${error.message}`);
+  if (!data) throw new Error("You are not a participant in this conversation");
 }
 
-/**
- * Fetches a profile for each user ID in the array, returned as a Map keyed by user_id.
- */
+// Fetches profiles for the given user IDs and returns them as a Map keyed by user_id.
 async function fetchProfileMap(userIds: string[]): Promise<Map<string, ConversationParticipant>> {
   if (userIds.length === 0) return new Map();
 
@@ -72,9 +62,7 @@ async function fetchProfileMap(userIds: string[]): Promise<Map<string, Conversat
     .select("user_id,display_name,avatar_path")
     .in("user_id", userIds);
 
-  if (error) {
-    throw new Error(`Failed to fetch participant profiles: ${error.message}`);
-  }
+  if (error) throw new Error(`Failed to fetch participant profiles: ${error.message}`);
 
   const map = new Map<string, ConversationParticipant>();
   for (const row of data ?? []) {
@@ -82,20 +70,13 @@ async function fetchProfileMap(userIds: string[]): Promise<Map<string, Conversat
     const avatar_url = avatar_path
       ? supabase.storage.from("avatars").getPublicUrl(avatar_path).data.publicUrl
       : null;
-    map.set(row.user_id, {
-      user_id: row.user_id,
-      display_name: row.display_name,
-      avatar_path,
-      avatar_url,
-    });
+    map.set(row.user_id, { user_id: row.user_id, display_name: row.display_name, avatar_path, avatar_url });
   }
   return map;
 }
 
-/**
- * Maps a raw conversation DB row and profile map to a ConversationSummary.
- * The "other participant" is resolved by filtering out the requestingUserId.
- */
+// Shapes a raw conversation DB row into a ConversationSummary for the requesting user.
+// "other_participant" is whoever isn't requestingUserId.
 function mapConversationRow(
   row: ConversationRow,
   requestingUserId: string,
@@ -111,7 +92,7 @@ function mapConversationRow(
     avatar_url: null,
   };
 
-  // Messages are fetched in insertion order — sort descending to find the latest.
+  // Messages arrive in insertion order from the DB — sort descending to find the latest.
   const sortedMessages = [...(row.messages ?? [])].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
@@ -135,21 +116,21 @@ function mapConversationRow(
   };
 }
 
-/**
- * Fetches a fully enriched ConversationSummary for a single conversation ID.
- * Used internally by createOrGetConversation after finding or creating a conversation.
- */
+// ---------------------------------------------------------------------------
+// Exported service functions
+// ---------------------------------------------------------------------------
+
+// Returns a fully-enriched ConversationSummary for a single conversation.
+// Also used internally after finding or creating a conversation.
 export async function getConversationById(
   conversationId: string,
   requestingUserId: string,
 ): Promise<ConversationSummary> {
-  if (!conversationId.trim()) {
-    throw new Error("Conversation ID is required");
-  }
-  if (!requestingUserId.trim()) {
-    throw new Error("User ID is required");
-  }
+  if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!requestingUserId.trim()) throw new Error("User ID is required");
+
   await verifyParticipant(conversationId, requestingUserId);
+
   const { data, error } = await supabase
     .from("conversations")
     .select(conversationSelect)
@@ -157,12 +138,8 @@ export async function getConversationById(
     .is("deleted_at", null)
     .single<ConversationRow>();
 
-  if (error) {
-    throw new Error(`Failed to load conversation: ${error.message}`);
-  }
-  if (!data) {
-    throw new Error(`Conversation not found: ${conversationId}`);
-  }
+  if (error) throw new Error(`Failed to load conversation: ${error.message}`);
+  if (!data) throw new Error(`Conversation not found: ${conversationId}`);
 
   const otherUserId = data.conversation_participants.find(
     (p) => p.user_id !== requestingUserId,
@@ -172,49 +149,32 @@ export async function getConversationById(
   return mapConversationRow(data, requestingUserId, profileMap);
 }
 
-// ---------------------------------------------------------------------------
-// Exported service functions
-// ---------------------------------------------------------------------------
-
-/**
- * Finds an existing conversation for a listing between buyer and seller,
- * or creates one if none exists. Prevents a user from messaging themselves.
- *
- * param input - listing_id, buyer_id, and seller_id.
- * returns The existing or newly created ConversationSummary.
- * throws If input is invalid or the DB operation fails.
- */
+// Finds an existing conversation for a listing between buyer and seller,
+// or creates one if none exists. A user cannot start a conversation with themselves.
+// Returns the conversation from the buyer's perspective (other_participant = seller).
 export async function createOrGetConversation(
   input: CreateConversationInput,
 ): Promise<ConversationSummary> {
-  if (!input.listing_id?.trim()) {
-    throw new Error("Listing ID is required");
-  }
-  if (!input.buyer_id?.trim()) {
-    throw new Error("Buyer ID is required");
-  }
-  if (!input.seller_id?.trim()) {
-    throw new Error("Seller ID is required");
-  }
+  if (!input.listing_id?.trim()) throw new Error("Listing ID is required");
+  if (!input.buyer_id?.trim()) throw new Error("Buyer ID is required");
+  if (!input.seller_id?.trim()) throw new Error("Seller ID is required");
   if (input.buyer_id === input.seller_id) {
     throw new Error("A user cannot start a conversation with themselves");
   }
 
-  // Step 1: Find all conversation_ids the buyer participates in.
+  // Step 1: Find all conversations the buyer is currently part of.
   const { data: buyerParticipations, error: buyerError } = await supabase
     .from("conversation_participants")
     .select("conversation_id")
     .eq("user_id", input.buyer_id)
     .is("left_at", null);
 
-  if (buyerError) {
-    throw new Error(`Failed to check existing conversations: ${buyerError.message}`);
-  }
+  if (buyerError) throw new Error(`Failed to check existing conversations: ${buyerError.message}`);
 
   const buyerConvIds = (buyerParticipations ?? []).map((r) => r.conversation_id);
   let conversationId: string | null = null;
 
-  // Step 2: Find a conversation shared with the seller for this specific listing.
+  // Step 2: Among those, find one where the seller also participates on the same listing.
   if (buyerConvIds.length > 0) {
     const { data: matches, error: matchError } = await supabase
       .from("conversation_participants")
@@ -226,35 +186,29 @@ export async function createOrGetConversation(
       .is("conversations.deleted_at", null)
       .limit(1);
 
-    if (matchError) {
-      throw new Error(`Failed to check existing conversations: ${matchError.message}`);
-    }
+    if (matchError) throw new Error(`Failed to check existing conversations: ${matchError.message}`);
 
     conversationId = matches?.[0]?.conversation_id ?? null;
   }
 
   // Step 3: Create a new conversation if no existing one was found.
   if (!conversationId) {
-    // Pre-generate the UUID so we can INSERT without a RETURNING clause.
-    // Relying on .select("id") after INSERT would fail under authenticated RLS
-    // because the SELECT policy (participant check) rejects the row before
-    // participants have been inserted.
+    // Pre-generate the UUID so we don't need a post-insert SELECT.
+    // A post-insert SELECT would fail under RLS: the conversations SELECT policy
+    // requires the user to already be a participant, which isn't true yet.
     const newId = crypto.randomUUID();
 
     const { error: createError } = await supabase
       .from("conversations")
       .insert({ id: newId, listing_id: input.listing_id });
 
-    if (createError) {
-      throw new Error(`Failed to create conversation: ${createError.message}`);
-    }
+    if (createError) throw new Error(`Failed to create conversation: ${createError.message}`);
 
     conversationId = newId;
 
-    // Use two separate inserts instead of upsert: upsert evaluates the UPDATE
-    // policy on every row (even for pure inserts), which fails when the
-    // authenticated user is the seller but the buyer row has user_id = buyer_id.
-    // Plain INSERT only evaluates the INSERT policy (auth.uid() is not null).
+    // Two separate inserts instead of upsert: upsert evaluates the UPDATE policy on every
+    // row (even for pure inserts), which fails when auth.uid() doesn't match the row's user_id.
+    // Plain INSERT only checks the INSERT policy.
     const [{ error: buyerError2 }, { error: sellerError }] = await Promise.all([
       supabase
         .from("conversation_participants")
@@ -271,40 +225,28 @@ export async function createOrGetConversation(
     }
   }
 
-  if (!conversationId) {
-    throw new Error("Failed to find or create conversation");
-  }
+  if (!conversationId) throw new Error("Failed to find or create conversation");
 
   return getConversationById(conversationId, input.buyer_id);
 }
 
-/**
- * Returns all active conversations for a user, sorted by most recent activity.
- *
- * param userId - UUID of the authenticated user.
- * returns Array of ConversationSummary records (may be empty).
- * throws If userId is empty or the DB query fails.
- */
+// Returns all active conversations for a user, sorted by most recent activity.
 export async function getConversations(userId: string): Promise<ConversationSummary[]> {
-  if (!userId.trim()) {
-    throw new Error("User ID is required");
-  }
+  if (!userId.trim()) throw new Error("User ID is required");
 
-  // Step 1: Get all conversation_ids the user participates in.
+  // Step 1: Get conversation IDs the user is currently part of.
   const { data: participations, error: partError } = await supabase
     .from("conversation_participants")
     .select("conversation_id")
     .eq("user_id", userId)
     .is("left_at", null);
 
-  if (partError) {
-    throw new Error(`Failed to fetch conversations: ${partError.message}`);
-  }
+  if (partError) throw new Error(`Failed to fetch conversations: ${partError.message}`);
 
   const convIds = (participations ?? []).map((r) => r.conversation_id);
   if (convIds.length === 0) return [];
 
-  // Step 2: Fetch full conversation data for those IDs in one query.
+  // Step 2: Fetch full conversation data for those IDs.
   const { data: convRows, error: convError } = await supabase
     .from("conversations")
     .select(conversationSelect)
@@ -313,14 +255,12 @@ export async function getConversations(userId: string): Promise<ConversationSumm
     .order("updated_at", { ascending: false })
     .returns<ConversationRow[]>();
 
-  if (convError) {
-    throw new Error(`Failed to fetch conversations: ${convError.message}`);
-  }
+  if (convError) throw new Error(`Failed to fetch conversations: ${convError.message}`);
 
   const rows = convRows ?? [];
   if (rows.length === 0) return [];
 
-  // Step 3: Fetch profiles for all "other" participants in one query (avoids N+1).
+  // Step 3: Batch-fetch profiles for all other participants (avoids N+1 queries).
   const otherUserIds = [
     ...new Set(
       rows.flatMap((row) =>
@@ -335,27 +275,16 @@ export async function getConversations(userId: string): Promise<ConversationSumm
   return rows.map((row) => mapConversationRow(row, userId, profileMap));
 }
 
-/**
- * Returns messages in a conversation, oldest-first, with optional cursor-based pagination.
- * The requesting user must be an active participant.
- *
- * param conversationId - UUID of the conversation.
- * param userId - UUID of the authenticated user (must be a participant).
- * param options - Optional pagination: limit (default 50) and before (ISO timestamp cursor).
- * returns Array of Message records (may be empty for a new conversation).
- * throws If parameters are missing, user is not a participant, or the DB query fails.
- */
+// Returns messages in a conversation in chronological order.
+// Supports cursor-based pagination: pass `before` (ISO timestamp) to load older messages.
+// Defaults to the 50 most recent messages when no cursor is given.
 export async function getMessages(
   conversationId: string,
   userId: string,
   options: GetMessagesOptions = {},
 ): Promise<Message[]> {
-  if (!conversationId.trim()) {
-    throw new Error("Conversation ID is required");
-  }
-  if (!userId.trim()) {
-    throw new Error("User ID is required");
-  }
+  if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!userId.trim()) throw new Error("User ID is required");
 
   await verifyParticipant(conversationId, userId);
 
@@ -368,52 +297,31 @@ export async function getMessages(
     .is("deleted_at", null);
 
   if (before) {
-    // Load messages before the cursor newest-first, then reverse so the
-    // caller always receives messages in oldest-first (chronological) order.
+    // Fetch newest-first so the DB LIMIT cuts off the oldest, then reverse to restore
+    // chronological order for the caller.
     query = query.lt("created_at", before).order("created_at", { ascending: false });
   } else {
     query = query.order("created_at", { ascending: true });
   }
 
-  query = query.limit(limit);
+  const { data, error } = await query.limit(limit).returns<Message[]>();
 
-  const { data, error } = await query.returns<Message[]>();
-
-  if (error) {
-    throw new Error(`Failed to fetch messages: ${error.message}`);
-  }
+  if (error) throw new Error(`Failed to fetch messages: ${error.message}`);
 
   const messages = data ?? [];
   return before ? [...messages].reverse() : messages;
 }
 
-/**
- * Sends a message to an existing conversation.
- * The sender must be an active participant in the conversation.
- *
- * param conversationId - UUID of the conversation.
- * param senderId - UUID of the authenticated user sending the message.
- * param content - Message text (1–2000 characters).
- * returns The newly created Message record.
- * throws If parameters are invalid, sender is not a participant, or the DB insert fails.
- */
+// Sends a message to a conversation. Sender must be an active participant.
 export async function sendMessage(
   conversationId: string,
   senderId: string,
   content: string,
 ): Promise<Message> {
-  if (!conversationId.trim()) {
-    throw new Error("Conversation ID is required");
-  }
-  if (!senderId.trim()) {
-    throw new Error("Sender ID is required");
-  }
-  if (!content.trim()) {
-    throw new Error("Message content cannot be empty");
-  }
-  if (content.length > 2000) {
-    throw new Error("Message content cannot exceed 2000 characters");
-  }
+  if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!senderId.trim()) throw new Error("Sender ID is required");
+  if (!content.trim()) throw new Error("Message content cannot be empty");
+  if (content.length > 2000) throw new Error("Message content cannot exceed 2000 characters");
 
   await verifyParticipant(conversationId, senderId);
 
@@ -423,46 +331,30 @@ export async function sendMessage(
     .select(messageSelect)
     .single<Message>();
 
-  if (error) {
-    throw new Error(`Failed to send message: ${error.message}`);
-  }
-  if (!data) {
-    throw new Error("Message send did not return data");
-  }
+  if (error) throw new Error(`Failed to send message: ${error.message}`);
+  if (!data) throw new Error("Message send did not return data");
 
-  // Touch the conversation's updated_at so getConversations sorts it to the top.
-  // Fire-and-forget: message was already inserted, so we don't throw on failure here.
+  // Touch conversation updated_at so getConversations sorts it to the top.
+  // Inserting a message doesn't automatically update the parent conversation row,
+  // so this explicit update is required. Fire-and-forget: message is already saved.
   supabase
     .from("conversations")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", conversationId)
     .then(({ error: touchError }) => {
-      if (touchError) {
-        console.warn(`Failed to touch conversation updated_at: ${touchError.message}`);
-      }
+      if (touchError) console.warn(`Failed to touch conversation updated_at: ${touchError.message}`);
     });
 
   return data;
 }
 
-/**
- * Marks all unread messages from the other participant as read.
- * The requesting user must be an active participant.
- *
- * param conversationId - UUID of the conversation.
- * param userId - UUID of the authenticated user marking messages as read.
- * throws If parameters are missing, user is not a participant, or the DB update fails.
- */
+// Marks all unread messages from the other participant as read.
 export async function markConversationAsRead(
   conversationId: string,
   userId: string,
 ): Promise<void> {
-  if (!conversationId.trim()) {
-    throw new Error("Conversation ID is required");
-  }
-  if (!userId.trim()) {
-    throw new Error("User ID is required");
-  }
+  if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!userId.trim()) throw new Error("User ID is required");
 
   await verifyParticipant(conversationId, userId);
 
@@ -473,90 +365,56 @@ export async function markConversationAsRead(
     .neq("sender_id", userId)
     .eq("is_read", false);
 
-  if (error) {
-    throw new Error(`Failed to mark messages as read: ${error.message}`);
-  }
+  if (error) throw new Error(`Failed to mark messages as read: ${error.message}`);
 }
 
-/**
- * Subscribes to realtime updates across all of a user's conversations.
- * Fires onUpdate whenever a new message arrives in any conversation the user
- * participates in — useful for keeping the inbox sidebar live.
- * Skips messages sent by the user themselves.
- *
- * param userId - UUID of the authenticated user.
- * param onUpdate - Callback invoked with the updated ConversationSummary when a new message arrives.
- * returns A cleanup function — call it on component unmount to stop the subscription.
- * throws If userId is empty.
- */
+// Subscribes to new messages across all of a user's conversations.
+// Fires onUpdate when a message arrives in any conversation the user participates in.
+// Messages sent by the user themselves are skipped.
+// Returns a cleanup function — call it on component unmount.
 export function subscribeToConversations(
   userId: string,
   onUpdate: (conversation: ConversationSummary) => void,
 ): () => void {
-  if (!userId.trim()) {
-    throw new Error("User ID is required");
-  }
+  if (!userId.trim()) throw new Error("User ID is required");
 
   const channel = supabase
     .channel(`inbox:${userId}`)
-    // Note: Supabase Realtime does not support filtering by dynamic membership
-    // (e.g. "only messages in this user's conversations"). The subscription
-    // receives all message INSERTs globally; getConversationById then verifies
-    // participation and silently discards events for unrelated conversations.
-    // This is an accepted trade-off for this project's scale.
+    // Realtime doesn't support filtering by conversation membership, so this receives
+    // ALL message INSERTs globally. getConversationById verifies participation;
+    // the catch below silently discards events for unrelated conversations.
     .on(
       "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-      },
+      { event: "INSERT", schema: "public", table: "messages" },
       async (payload) => {
         const { conversation_id, sender_id } = payload.new as {
           conversation_id: string;
           sender_id: string;
         };
-        // Skip messages the user sent themselves — the UI already handles those locally.
         if (sender_id === userId) return;
         try {
           const summary = await getConversationById(conversation_id, userId);
           onUpdate(summary);
         } catch {
-          // User is not a participant in this conversation — ignore silently.
+          // Not a participant in this conversation — discard silently.
         }
       },
     )
     .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+  return () => supabase.removeChannel(channel);
 }
 
-/**
- * Subscribes to new messages in a conversation via Supabase Realtime.
- * The requesting user must be an active participant.
- *
- * param conversationId - UUID of the conversation to watch.
- * param userId - UUID of the authenticated user (must be a participant).
- * param onMessage - Callback invoked with each new Message as it arrives.
- * returns A cleanup function — call it on component unmount to stop the subscription.
- * throws If parameters are missing or the user is not a participant.
- */
+// Subscribes to new messages in a specific conversation.
+// Returns a cleanup function — call it on component unmount.
 export async function subscribeToMessages(
   conversationId: string,
   userId: string,
   onMessage: (message: Message) => void,
 ): Promise<() => void> {
-  if (!conversationId.trim()) {
-    throw new Error("Conversation ID is required");
-  }
-  if (!userId.trim()) {
-    throw new Error("User ID is required");
-  }
+  if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!userId.trim()) throw new Error("User ID is required");
 
-  // Verify participant before opening the subscription — prevents listening to
-  // conversations the user isn't part of.
   await verifyParticipant(conversationId, userId);
 
   const channel = supabase
@@ -569,13 +427,9 @@ export async function subscribeToMessages(
         table: "messages",
         filter: `conversation_id=eq.${conversationId}`,
       },
-      (payload) => {
-        onMessage(payload.new as Message);
-      },
+      (payload) => onMessage(payload.new as Message),
     )
     .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
+  return () => supabase.removeChannel(channel);
 }
