@@ -2,89 +2,182 @@
 
 ## Syncing with Remote
 
-`git fetch` — downloads latest from GitHub without touching your files
+Downloads latest from GitHub without touching your files
+```bash
+git fetch
+```
 
-`git fetch origin` — same as above, explicit about using the `origin` remote
+Same as above, explicit about using the `origin` remote
+```bash
+git fetch origin
+```
 
-`git pull origin develop` — fetches and merges remote develop into your current branch
+Fetches and merges remote develop into your current branch
+```bash
+git pull origin develop
+```
 equivalent: `git fetch origin` + `git merge origin/develop`
 
-`git merge origin/develop` — merges the already-fetched remote develop into your current branch
+Merges the already-fetched remote develop into your current branch
+```bash
+git merge origin/develop
+```
 
 ---
 
 ## Branches
 
-`git branch --show-current` — shows your current branch name
+Shows your current branch name
+```bash
+git branch --show-current
+```
 
-`git branch -a` — lists all local and remote branches
+Lists all local and remote branches
+```bash
+git branch -a
+```
 
-`git checkout develop` — switches to your local develop branch
+Switches to your local develop branch
+```bash
+git checkout develop
+```
 
-`git checkout feat/my-feature` — switches to an existing local branch
+Switches to an existing local branch
+```bash
+git checkout feat/my-feature
+```
 
-`git checkout -b feat/my-feature` — creates a new branch and switches to it
+Creates a new branch and switches to it
+```bash
+git checkout -b feat/my-feature
+```
 
-`git checkout -b feat/my-feature origin/feat/my-feature` — creates a local copy of a remote branch and switches to it
+Creates a local copy of a remote branch and switches to it
+```bash
+git checkout -b feat/my-feature origin/feat/my-feature
+```
 
-`git branch -d feat/my-feature` — deletes a local branch (safe — only works if fully merged)
+Deletes a local branch (safe — only works if fully merged)
+```bash
+git branch -d feat/my-feature
+```
 
 ---
 
 ## Staging & Committing
 
-`git status` — shows what branch you're on and which files changed
+Shows what branch you're on and which files changed
+```bash
+git status
+```
 
-`git add .` — stages all changed files
+Stages all changed files
+```bash
+git add .
+```
 
-`git add path/to/file` — stages a single file
+Stages a single file
+```bash
+git add path/to/file
+```
 
-`git diff` — shows unstaged changes
+Shows unstaged changes
+```bash
+git diff
+```
 
-`git diff --staged` — shows staged changes (what will be committed)
+Shows staged changes (what will be committed)
+```bash
+git diff --staged
+```
 
-`git commit -m "message"` — commits staged changes with a message
+Commits staged changes with a message
+```bash
+git commit -m "message"
+```
 
 ---
 
 ## Pushing
 
-`git push origin feat/my-feature` — pushes your local branch to GitHub
+Pushes your local branch to GitHub
+```bash
+git push origin feat/my-feature
+```
 
-`git push -u origin feat/my-feature` — pushes and sets upstream so future `git push` works without arguments
+Pushes and sets upstream so future `git push` works without arguments
+```bash
+git push -u origin feat/my-feature
+```
 
 ---
 
 ## Inspecting
 
-`git log --oneline` — compact commit history for current branch
+Compact commit history for current branch
+```bash
+git log --oneline
+```
 
-`git log --oneline HEAD..origin/develop` — commits develop has that your branch does not
+Commits develop has that your branch does not
+```bash
+git log --oneline HEAD..origin/develop
+```
 
-`git rev-list --count HEAD..origin/develop` — how many commits your branch is behind develop
+How many commits your branch is behind develop
+```bash
+git rev-list --count HEAD..origin/develop
+```
 
-`git diff develop origin/develop` — difference between your local develop and remote develop
+Difference between your local develop and remote develop
+```bash
+git diff develop origin/develop
+```
 
-`git diff --name-only origin/develop...HEAD` — files your branch has changed compared to develop (what a PR would touch)
+Files your branch has changed compared to develop (what a PR would touch)
+```bash
+git diff --name-only origin/develop...HEAD
+```
 
 ---
 
 ## Merging
 
-`git merge develop` — merges your local develop into your current branch
+Merges your local develop into your current branch
+```bash
+git merge develop
+```
 
-`git merge origin/develop` — merges remote develop into your current branch
+Merges remote develop into your current branch
+```bash
+git merge origin/develop
+```
 
-`git merge --abort` — cancels an in-progress merge and restores the previous state
+Cancels an in-progress merge and restores the previous state
+```bash
+git merge --abort
+```
 
 ---
 
 ## Undoing
 
-`git restore path/to/file` — discards unstaged changes to a file
+Discards unstaged changes to a file
+```bash
+git restore path/to/file
+```
 
-`git restore --staged path/to/file` — unstages a file without losing changes
+Unstages a file without losing changes
+```bash
+git restore --staged path/to/file
+```
 
-`git reset --soft HEAD~1` — undoes last commit but keeps changes staged
+Undoes last commit but keeps changes staged
+```bash
+git reset --soft HEAD~1
+```
 
-`git reset --hard HEAD~1` — undoes last commit and discards all changes (destructive)
+Undoes last commit and discards all changes (destructive)
+```bash
+git reset --hard HEAD~1
+```
