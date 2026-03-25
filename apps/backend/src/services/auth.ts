@@ -77,17 +77,10 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     avatar_path: input.avatar_path ?? null,
   };
 
-  try {
-    await upsertProfile(profilePayload);
-  } catch (profileError) {
-    // Profile creation failed — roll back the auth user to avoid orphaned state.
-    await supabase.auth.admin.deleteUser(data.user.id).catch(() => {
-      // Rollback failed; log and continue so the original error still propagates.
-      console.error("Failed to roll back auth user after profile creation failure", profileError);
-    });
-    throw profileError;
-  }
-
+  // Note: if profile creation fails here, the auth user will be left orphaned.
+  // Rolling it back requires the service role key (admin API), which is not available
+  // in the browser. Cleanup would need to happen server-side.
+  await upsertProfile(profilePayload);
   return {
     user: data.user,
     session: data.session ?? null,
@@ -167,10 +160,11 @@ export async function signOutWithTokens(accessToken: string, refreshToken: strin
     refresh_token: refreshToken,
   });
 
+  // If setSession fails (e.g. fully expired tokens), still proceed with local sign-out
+  // so the user's in-memory session is cleared. Server-side revocation may not happen,
+  // but that is acceptable — the tokens are expired anyway.
   if (setSessionError) {
-    throw new Error(
-      `Failed to set session for sign out: ${setSessionError.message}`,
-    );
+    console.warn(`Could not set session before sign out: ${setSessionError.message}`);
   }
 
   const { error } = await supabase.auth.signOut({ scope: "local" });
@@ -202,11 +196,23 @@ export async function refreshSession(refreshToken: string): Promise<AuthResult> 
   };
 }
 
-// Changes the password for an authenticated user.
+// PASSWORD FLOWS — two separate scenarios:
+//
+// 1. Logged-in user changing their password (account settings):
+//    → call updatePassword(accessToken, refreshToken, newPassword)
+//    Requires an active session. Tokens come from localStorage.
+//
+// 2. Logged-out user who forgot their password:
+//    → call sendPasswordResetEmail(email, redirectTo) — sends a reset link to their email
+//    → user clicks the link, lands on /reset-password?code=abc123
+//    → call completePasswordReset(code, newPassword) — no session needed, the code proves identity
+
+// Changes the password for an authenticated user (scenario 1 above).
 export async function updatePassword(accessToken: string, refreshToken: string, newPassword: string): Promise<void> {
   if (!accessToken.trim()) throw new Error("Access token is required");
   if (!refreshToken.trim()) throw new Error("Refresh token is required");
   if (!newPassword.trim()) throw new Error("New password is required");
+  if (newPassword.length < 6) throw new Error("Password must be at least 6 characters");
 
   const { error: setError } = await supabase.auth.setSession({
     access_token: accessToken,
@@ -224,10 +230,44 @@ export async function updatePassword(accessToken: string, refreshToken: string, 
   }
 }
 
+// Completes a password reset using the PKCE code from the reset email link.
+// Call this on the reset-password page after extracting `code` from the URL.
+// Works for logged-out users — no session required.
+export async function completePasswordReset(token: string, newPassword: string): Promise<void> {
+  if (!token.trim()) {
+    throw new Error("Reset token is required");
+  }
+
+  if (!newPassword.trim()) {
+    throw new Error("Password is required");
+  }
+
+  if (newPassword.length < 6) {
+    throw new Error("Password must be at least 6 characters");
+  }
+
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(token);
+
+  if (exchangeError) {
+    throw new Error("Reset token is invalid or has expired");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    throw new Error(`Failed to update password: ${error.message}`);
+  }
+}
+
 // Sends Supabase password reset email.
 export async function sendPasswordResetEmail(email: string, redirectTo?: string): Promise<void> {
   if (!email.trim()) {
     throw new Error("Email is required");
+  }
+
+  const domain = email.split("@")[1]?.toLowerCase() ?? "";
+  if (!domain.endsWith(".edu")) {
+    throw new Error("Only .edu email addresses are allowed.");
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
