@@ -75,7 +75,7 @@ export default function Signup() {
         setLoading(true);
         setServerError('');
         try {
-            const { user, session } = await signUpWithEmail({
+            const { session } = await signUpWithEmail({
                 email,
                 password,
                 display_name: displayName,

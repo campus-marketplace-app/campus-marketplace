@@ -2,17 +2,21 @@ import { NavLink, type Location } from 'react-router-dom';
 
 type NavbarProps = {
     isSidebarOpen: boolean;
+    isloggedIn: boolean;
     toggleSidebar: () => void;
     openPostForm: () => void;
     location: Location;
     user?: unknown | null;
+    logout: () => void;
 };
 
 export default function Navbar({
     isSidebarOpen,
+    isloggedIn,
     toggleSidebar,
     openPostForm,
     location,
+    logout,
 }: NavbarProps) {
     return (
         <>
@@ -70,6 +74,21 @@ export default function Navbar({
                                 }
                             >
                                 Messages
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink
+                                to="/login"
+                                className={({ isActive }) =>
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${
+                                        isActive
+                                            ? 'bg-white/25 text-white shadow-sm'
+                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    }`
+                                }
+                                onClick={logout}
+                            >
+                                {isloggedIn ? 'Logout' : 'Login'}
                             </NavLink>
                         </li>
                     </ul>

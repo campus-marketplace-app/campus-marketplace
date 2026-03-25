@@ -13,6 +13,7 @@ import {
   refreshSession,
   updatePassword,
   sendPasswordResetEmail,
+  completePasswordReset,
 } from "@campus-marketplace/backend";
 ```
 
@@ -123,7 +124,22 @@ localStorage.setItem("refresh_token", session.refresh_token);
 
 ---
 
-## updatePassword(accessToken, refreshToken, newPassword) — change password
+## Password flows — which functions to use
+
+There are two separate password scenarios, each using different functions:
+
+**Forgot my password (user is logged out)** — 2-step flow:
+1. `sendPasswordResetEmail` — sends the reset link to the user's email
+2. `completePasswordReset` — called when the user lands back on the app from that link; no session required
+
+**Change my password (user is logged in)** — 1-step:
+- `updatePassword` — requires an active session (access + refresh tokens); use this from account settings
+
+---
+
+## updatePassword(accessToken, refreshToken, newPassword) — change password while logged in
+
+For authenticated users who want to update their password from account settings.
 
 ```ts
 await updatePassword(access, refresh, newPassword);
@@ -135,15 +151,34 @@ await updatePassword(access, refresh, newPassword);
 
 ---
 
-## sendPasswordResetEmail(email, redirectTo?) — trigger password reset
+## sendPasswordResetEmail(email, redirectTo?) — step 1 of forgot-password flow
+
+Sends a reset link to the user's email. Does not change the password itself — it only triggers the email. Pair this with `completePasswordReset`.
 
 ```ts
 await sendPasswordResetEmail(email, "https://yourapp.com/reset-password");
 ```
 
-**Input:** `email: string`, `redirectTo?: string`
+**Input:** `email: string`, `redirectTo?: string` — where Supabase redirects after the link is clicked (falls back to the URL configured in the Supabase dashboard)
 **Returns:** `void`
 **Throws:** if `email` is empty
+
+---
+
+## completePasswordReset(token, newPassword) — step 2 of forgot-password flow
+
+Call this on the reset-password page after the user lands from the email link. Extract `code` from the URL and pass it as `token`. No session needed — the code proves identity.
+
+```ts
+// e.g. on /reset-password?code=abc123
+const code = new URLSearchParams(window.location.search).get("code") ?? "";
+await completePasswordReset(code, newPassword);
+// user is now signed in with the new password
+```
+
+**Input:** `token: string` (the `code` param from the reset URL), `newPassword: string`
+**Returns:** `void` — establishes a session as a side effect
+**Throws:** if token is empty/invalid/expired, or if password is empty or under 6 characters
 
 ---
 

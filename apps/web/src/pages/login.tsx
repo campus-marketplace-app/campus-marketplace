@@ -43,7 +43,7 @@ export default function Login() {
 
         if (isEmailValid && isPasswordValid && email !== '' && password !== '') {
             try {
-                const {user, session } = await signInWithEmail({ email, password });
+                const { session } = await signInWithEmail({ email, password });
                 if (!session) {
                     alert("Please confirm your email first.");
                     return;
@@ -110,6 +110,13 @@ export default function Login() {
                             }
                         />
                         {submitted && passwordMessage !== '' ? (<p className="text-sm text-white">{passwordMessage}</p>) : null}
+
+                        <Link to="/reset-email">
+                            <p className="text-sm text-center text-white underline">
+                                Forgot password?
+                            </p>
+                        </Link>
+
                         <button
                             type="submit"
                             className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b]"
