@@ -7,6 +7,8 @@ import SidebarLayout from "./layouts/sidebar-layout.tsx";
 import Login from './pages/login.tsx'
 import Signup from './pages/signup.tsx'
 import './App.css'
+import ResetEmail from './pages/reset-email.tsx'
+import ResetPassword from './pages/reset-password.tsx'
 
 function App() {
   return (
@@ -21,6 +23,9 @@ function App() {
             <Route path="/profile" element={<Profile />}/>
             <Route path="/login" element={<Login />}/>
             <Route path="/signup" element={<Signup />}/>
+            <Route path="/home" element={<Index />} />
+            <Route path="/reset-email" element={<ResetEmail />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
         </Routes>
         </div>

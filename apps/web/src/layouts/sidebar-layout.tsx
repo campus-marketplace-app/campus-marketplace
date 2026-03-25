@@ -3,8 +3,9 @@ import { Outlet, useLocation } from 'react-router-dom';
 import PageHeader from '../features/page-header';
 import Navbar from '../features/navbar';
 import { getSessionFromTokens } from "@campus-marketplace/backend";
+import type { SessionUser } from "../features/types";
+import { useNavigate } from 'react-router-dom';
 
-type SessionUser = Awaited<ReturnType<typeof getSessionFromTokens>>["user"];
 
 const getCurrentDateTimeLocal = () => {
     const now = new Date();
@@ -24,8 +25,9 @@ export default function SidebarLayout() {
     const [listingDescription, setListingDescription] = useState('LISTINGS.description');
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
     const location = useLocation();
-    const isRegistering = !['/login', '/signup'].includes(location.pathname);
+    const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
     const [user, setUser] = useState<SessionUser | null>(null);
+    const navigate = useNavigate();
 
     const clearStoredTokens = () => {
         localStorage.removeItem("access_token");
@@ -39,11 +41,19 @@ export default function SidebarLayout() {
         }
     };
 
+    const logout =() => {
+        clearStoredTokens();
+        setIsLoggedIn(false);
+        setUser(null);
+        navigate("/login", { replace: true });
+    }
+
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
 
         if (showForm) {
             document.body.style.overflow = 'hidden';
+            setListingDate(getCurrentDateTimeLocal());
         }
 
         return () => {
@@ -58,6 +68,7 @@ export default function SidebarLayout() {
 
             if (!accessToken || !refreshToken) {
                 setIsLoggedIn(false);
+                setUser(null);
                 return;
             }
 
@@ -67,6 +78,7 @@ export default function SidebarLayout() {
                 if (!session) {
                     clearStoredTokens();
                     setIsLoggedIn(false);
+                    setUser(null);
                     return;
                 }
 
@@ -75,11 +87,12 @@ export default function SidebarLayout() {
             } catch {
                 clearStoredTokens();
                 setIsLoggedIn(false);
+                setUser(null);
             }
         };
 
         void checkUserSession();
-    }, []);
+    }, [location.pathname]);
 
     return (
         <div className="flex flex-col h-screen">
@@ -96,10 +109,12 @@ export default function SidebarLayout() {
                 >
                     <Navbar
                         isSidebarOpen={isSidebarOpen}
+                        isloggedIn={isLoggedIn}
                         toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
                         openPostForm={() => setShowForm(true)}
                         location={location}
                         user={user}
+                        logout={logout}
                     />
                 </aside> : null}
 
@@ -199,8 +214,8 @@ export default function SidebarLayout() {
                                             <input
                                                 id="date"
                                                 type="datetime-local"
+                                                readOnly={true}
                                                 value={listingDate}
-                                                onChange={(e) => setListingDate(e.target.value)}
                                                 className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
                                             />
                                         </div>

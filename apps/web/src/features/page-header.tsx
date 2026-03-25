@@ -9,11 +9,12 @@ type HeaderProps = {
 export default function PageHeader({
     isLoggedIn,
     isRegistering,
-    user,
 }: HeaderProps) {
+    const shouldCenterTitle = !isLoggedIn && !isRegistering;
+
     return (
         <nav className="bg-red-700 p-4 w-full">
-            <div className="flex items-center justify-between gap-8">
+            <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
                 <Link to="/" className="text-white font-bold text-xl">
                     Campus Marketplace
                 </Link>
@@ -32,7 +33,7 @@ export default function PageHeader({
                     isLoggedIn ? (
                         <Link to="/profile" className="text-white hover:text-gray-200">
                             Profile
-                        </Link>
+                        </Link> //placeholder for profile img
                     ) : (
                         <Link to="/login" className="text-white hover:text-gray-200">
                             Login
