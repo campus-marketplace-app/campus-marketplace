@@ -50,7 +50,7 @@ export default function Listing() {
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Title</p>
                             <div className="rounded-2xl bg-white px-4 py-3 text-center text-3xl text-black">
-                                {listingData.title}
+                                {listingData?.title ?? "Untitled listing"}
                             </div>
                         </div>
 
@@ -58,7 +58,7 @@ export default function Listing() {
                             <div>
                                 <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
                                 <div className="flex min-h-72 items-center justify-center rounded-xl bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
-                                    {listingData.imageLabel}
+                                    {listingData?.images?.[0]?.alt_text ?? "PICTURE OF THE PRODUCT"}
                                 </div>
                             </div>
 
@@ -67,14 +67,14 @@ export default function Listing() {
                                     <div>
                                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Price</p>
                                         <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                            {listingData.priceUnit}
-                                            {listingData.price}
+                                            {listingData?.price_unit ?? "$"}
+                                            {listingData?.price ?? "0"}
                                         </div>
                                     </div>
                                     <div>
                                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Category</p>
                                         <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                            {listingData.category}
+                                            {listingData?.category_name ?? "Uncategorized"}
                                         </div>
                                     </div>
                                 </div>
@@ -83,13 +83,13 @@ export default function Listing() {
                                     <div>
                                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Condition</p>
                                         <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                            {listingData.condition}
+                                            {listingData?.item_details?.condition ?? "N/A"}
                                         </div>
                                     </div>
                                     <div>
                                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Date Posted</p>
                                         <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                            {listingData.createdAt}
+                                            {listingData?.created_at ?? "N/A"}
                                         </div>
                                     </div>
                                 </div>
@@ -97,7 +97,7 @@ export default function Listing() {
                                 <div>
                                     <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Description</p>
                                     <div className="min-h-36 rounded-2xl bg-white px-4 py-4 text-sm text-black">
-                                        {listingData.description}
+                                        {listingData?.description ?? "No description provided."}
                                     </div>
                                 </div>
                             </div>
