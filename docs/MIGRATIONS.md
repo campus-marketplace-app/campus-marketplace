@@ -1,63 +1,43 @@
-# Running Migrations
+# Migrations
 
-## Push New Migrations to Database
-
-From project root:
-
-```bash
-npx supabase db push
-```
-
-Supabase will:
-
-1. Detect new migration files in `supabase/migrations/`
-2. Prompt you to confirm
-3. Apply only unapplied migrations to remote database
+We use one shared Supabase instance. Migration files in `supabase/migrations/` are just a record of what SQL has been applied to it.
 
 ---
 
-## Create a New Migration
+## Creating a Migration
 
-1. Create file: `supabase/migrations/YYYYMMDDHHMMSS_description.sql`
-   - Use timestamp format: `20260320150000` = March 20, 2026, 3:00 PM
+```bash
+# 1. Generate the file
+npx supabase migration new your_feature_name
 
-2. Write SQL:
+# 2. Write your SQL in the generated file
 
-   ```sql
-   -- supabase/migrations/20260320150000_add_new_feature.sql
-   ALTER TABLE listings ADD COLUMN new_field TEXT;
-   ```
+# 3. Apply it to the shared DB
+npx supabase db push
 
-3. Push:
-   ```bash
-   npx supabase db push
-   ```
+# 4. Commit and push
+git add supabase/migrations/
+git commit -m "migration: your_feature_name"
+git push origin your-branch
+# open PR → merge to develop
+```
+
+---
+
+## Pulling Someone Else's Migration
+
+```bash
+git pull origin develop
+```
+
+That's it. The migration is already applied to the shared DB by your teammate. The file is just a record.
+
+> Only run `npx supabase db push` after pulling if your teammate forgot to push before merging.
 
 ---
 
 ## Rules
 
-✅ **DO:**
-
-- Create new migration files for schema changes
-- Use `YYYYMMDDHHMMSS_description` naming
-- Include timestamp to define execution order
-
-❌ **DON'T:**
-
-- Edit migrations after they're pushed
-- Manually edit `_supabase_migrations` table
-- Commit `.env.local` files
-
----
-
-## Verify Migrations Applied
-
-In Supabase Dashboard:
-
-1. **SQL Editor** → Run:
-   ```sql
-   SELECT * FROM _supabase_migrations ORDER BY executed_at DESC;
-   ```
-
-See all applied migrations with timestamps.
+- **Never apply migrations through the Supabase dashboard** — always use local files
+- **Never edit a migration file after it's been pushed**
+- **Coordinate with teammates** before creating migrations to avoid timestamp conflicts — a quick message first
