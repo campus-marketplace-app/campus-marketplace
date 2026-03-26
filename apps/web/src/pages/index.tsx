@@ -22,7 +22,8 @@ export default function Index() {
 
     return (
         <section className="p-6 sm:p-8">
-            <select className="mb-8 text-2xl">search filter
+            <p className="mb-10 text-1xl font-semibold uppercase tracking-wide text-black">FILTER BY CONDITION</p>
+            <select id="filter" className="mb-8 rounded border border-black bg-white px-4 py-2 text-2xl text-black">
                 <option value="">--</option>
                 <option value="New">New</option>
                 <option value="Nearly_new">Nearly New</option>
@@ -38,9 +39,9 @@ export default function Index() {
                         key={listing.id}
                         to={`/listing/${listing.id}`}
                         state={{ backgroundLocation: location }}
-                        className="block rounded-lg p-2 text-center transition hover:bg-white/50 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                        className="block rounded-lg p-2 text-center transition hover:bg-white/50 hover:shadow-md focus:outline-color=none focus-visible:ring-2 focus-visible:ring-black"
                     >
-                        <article>
+                        <article className="rounded-lg border border-black bg-white p-4 text-center text-black">
                             <div className="mx-auto mb-2 flex h-32 w-32 items-center justify-center bg-[#cc7f84] text-[10px] text-black">
                                 {listing.imageLabel}
                             </div>
