@@ -91,6 +91,16 @@ export interface ListingImage {
   order_no: number;
 }
 
+/** Allowed image content types for listing uploads. */
+export type ListingImageContentType = "image/jpeg" | "image/png" | "image/webp";
+
+/** Optional metadata used when uploading a listing image. */
+export interface UploadListingImageOptions {
+  alt_text?: string | null;
+  order_no?: number;
+  filename?: string;
+}
+
 /** A tag associated with a listing via the `listing_tags` junction table. */
 export interface ListingTag {
   id: string;
