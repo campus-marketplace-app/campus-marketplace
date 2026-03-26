@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import {
   createListing,
+  deleteListingImage,
   getListingById,
+  getListingImageUrl,
   updateListing,
   deleteListing,
   getListingsByUser,
   getListingWithDetails,
   searchListings,
+  uploadListingImage,
   upsertItemDetails,
   upsertServiceDetails,
 } from "../listings.js";
@@ -15,12 +18,21 @@ import type { TestUser } from "./helpers.js";
 
 let testUser: TestUser;
 const listingIdsToCleanup: string[] = [];
+const imageCleanup: Array<{ imageId: string; userId: string }> = [];
 
 beforeAll(async () => {
   testUser = await createTestUser("Listings Test User");
 });
 
 afterAll(async () => {
+  for (const image of imageCleanup) {
+    try {
+      await deleteListingImage(image.imageId, image.userId);
+    } catch {
+      // Already deleted or listing removed — ignore
+    }
+  }
+
   // Clean up any listings that weren't explicitly deleted
   for (const id of listingIdsToCleanup) {
     try {
@@ -35,6 +47,15 @@ afterAll(async () => {
 function trackListing(id: string) {
   listingIdsToCleanup.push(id);
   return id;
+}
+
+function trackImage(imageId: string, userId: string) {
+  imageCleanup.push({ imageId, userId });
+  return imageId;
+}
+
+function createPngBytes(size = 64): Uint8Array {
+  return new Uint8Array(size).fill(1);
 }
 
 describe("createListing", () => {
@@ -300,5 +321,99 @@ describe("upsertServiceDetails", () => {
       available_to: null,
     });
     expect(updated.duration_minutes).toBe(90);
+  });
+});
+
+describe("listing image storage", () => {
+  it("uploads listing image for owner and returns metadata", async () => {
+    const listing = await createTestListing(testUser.user.id);
+    trackListing(listing.id);
+
+    const uploaded = await uploadListingImage(
+      listing.id,
+      testUser.user.id,
+      createPngBytes(),
+      "image/png",
+      { alt_text: "front view" },
+    );
+
+    trackImage(uploaded.id, testUser.user.id);
+
+    expect(uploaded.id).toBeTruthy();
+    expect(uploaded.path.startsWith(`${listing.id}/`)).toBe(true);
+    expect(uploaded.alt_text).toBe("front view");
+    expect(uploaded.order_no).toBeGreaterThanOrEqual(0);
+
+    const url = getListingImageUrl(uploaded.path);
+    expect(url).toContain("listing-images");
+  });
+
+  it("rejects upload from non-owner", async () => {
+    const listing = await createTestListing(testUser.user.id);
+    trackListing(listing.id);
+
+    await expect(
+      uploadListingImage(listing.id, "00000000-0000-0000-0000-000000000000", createPngBytes(), "image/png"),
+    ).rejects.toThrow("permission");
+  });
+
+  it("rejects unsupported content types", async () => {
+    const listing = await createTestListing(testUser.user.id);
+    trackListing(listing.id);
+
+    await expect(
+      uploadListingImage(listing.id, testUser.user.id, createPngBytes(), "image/gif"),
+    ).rejects.toThrow("Unsupported image content type");
+  });
+
+  it("rejects files over 5MB", async () => {
+    const listing = await createTestListing(testUser.user.id);
+    trackListing(listing.id);
+
+    await expect(
+      uploadListingImage(
+        listing.id,
+        testUser.user.id,
+        createPngBytes(5 * 1024 * 1024 + 1),
+        "image/png",
+      ),
+    ).rejects.toThrow("max size of 5 MB");
+  });
+
+  it("soft-deletes listing image metadata and excludes it from details", async () => {
+    const listing = await createTestListing(testUser.user.id);
+    trackListing(listing.id);
+
+    const uploaded = await uploadListingImage(
+      listing.id,
+      testUser.user.id,
+      createPngBytes(),
+      "image/png",
+    );
+
+    const beforeDelete = await getListingWithDetails(listing.id);
+    expect(beforeDelete.images.some((image) => image.id === uploaded.id)).toBe(true);
+
+    await deleteListingImage(uploaded.id, testUser.user.id);
+
+    const afterDelete = await getListingWithDetails(listing.id);
+    expect(afterDelete.images.some((image) => image.id === uploaded.id)).toBe(false);
+  });
+
+  it("rejects deleting image as non-owner", async () => {
+    const listing = await createTestListing(testUser.user.id);
+    trackListing(listing.id);
+
+    const uploaded = await uploadListingImage(
+      listing.id,
+      testUser.user.id,
+      createPngBytes(),
+      "image/png",
+    );
+    trackImage(uploaded.id, testUser.user.id);
+
+    await expect(
+      deleteListingImage(uploaded.id, "00000000-0000-0000-0000-000000000000"),
+    ).rejects.toThrow("permission");
   });
 });
