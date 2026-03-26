@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext, Link } from "react-router-dom";
 import { getProfile, updateProfile, uploadAvatar, getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 
@@ -22,6 +22,26 @@ export default function Profile() {
     const [nameError, setNameError] = useState("");
     const [bioError, setBioError] = useState("");
     const [avatarError, setAvatarError] = useState("");
+    
+    // Show sign-in prompt if user is not logged in
+    if (!user) {
+        return (
+            <div className="flex h-full min-h-[calc(100vh-64px)] w-full items-center justify-center bg-black/50">
+                <div className="mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+                    <h2 className="mb-4 text-2xl font-bold text-black">Sign In Required</h2>
+                    <p className="mb-6 text-gray-700">
+                        Please sign in to view and edit your profile.
+                    </p>
+                    <Link
+                        to="/login"
+                        className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700 font-semibold"
+                    >
+                        Go to Log In
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     const handleAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
