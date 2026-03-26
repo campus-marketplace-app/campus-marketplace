@@ -7,10 +7,12 @@ import type {
   ItemDetails,
   ServiceDetails,
   ListingImage,
+  ListingImageContentType,
   ListingTag,
   CreateListingInput,
   UpdateListingInput,
   SearchListingsOptions,
+  UploadListingImageOptions,
 } from "./listings.types.js";
 
 // ---------------------------------------------------------------------------
@@ -36,6 +38,25 @@ type ListingRow = {
   created_at: string;
   updated_at: string;
 };
+
+type ListingImageRow = ListingImage & {
+  deleted_at: string | null;
+};
+
+type ListingImageDeleteRow = {
+  id: string;
+  listing_id: string;
+  path: string;
+  deleted_at: string | null;
+};
+
+const LISTING_IMAGES_BUCKET = "listing-images";
+const MAX_LISTING_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const allowedListingImageContentTypes: readonly ListingImageContentType[] = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
 
 /** Converts a raw DB row to the app-facing Listing shape, normalizing the numeric price. */
 function mapListingRow(row: ListingRow): Listing {
@@ -64,10 +85,33 @@ const detailsSelect = `
   ${listingSelect},
   item_details(condition, quantity, expires_at),
   service_details(duration_minutes, price_unit, available_from, available_to),
-  listing_images(id, path, alt_text, order_no),
+  listing_images(id, path, alt_text, order_no, deleted_at),
   listing_tags(tags(id, name)),
   categories(name)
 `;
+
+function getListingImageExtension(contentType: ListingImageContentType): string {
+  switch (contentType) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    default:
+      return "bin";
+  }
+}
+
+function getBinarySize(file: Blob | ArrayBuffer | Uint8Array): number {
+  if (file instanceof ArrayBuffer) {
+    return file.byteLength;
+  }
+  if (file instanceof Uint8Array) {
+    return file.byteLength;
+  }
+  return file.size;
+}
 
 // Verifies that a listing exists, is not soft-deleted, and belongs to the given user.
 async function verifyListingOwnership(listingId: string, userId: string): Promise<void> {
@@ -272,6 +316,160 @@ export async function deleteListing(id: string, userId: string): Promise<void> {
 }
 
 /**
+ * Uploads an image object to Supabase Storage and creates a listing_images metadata row.
+ * Only the listing owner may upload images.
+ */
+export async function uploadListingImage(
+  listingId: string,
+  userId: string,
+  file: Blob | ArrayBuffer | Uint8Array,
+  contentType: string,
+  options: UploadListingImageOptions = {},
+): Promise<ListingImage> {
+  if (!listingId.trim()) {
+    throw new Error("Listing ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  if (!allowedListingImageContentTypes.includes(contentType as ListingImageContentType)) {
+    throw new Error("Unsupported image content type. Allowed types: image/jpeg, image/png, image/webp");
+  }
+
+  const fileSize = getBinarySize(file);
+  if (fileSize > MAX_LISTING_IMAGE_SIZE_BYTES) {
+    throw new Error("Listing image exceeds max size of 5 MB");
+  }
+
+  if (options.order_no !== undefined && (!Number.isInteger(options.order_no) || options.order_no < 0)) {
+    throw new Error("Listing image order_no must be a non-negative integer");
+  }
+
+  await verifyListingOwnership(listingId, userId);
+
+  let orderNo = options.order_no;
+  if (orderNo === undefined) {
+    const { data: lastImage, error: orderError } = await supabase
+      .from("listing_images")
+      .select("order_no")
+      .eq("listing_id", listingId)
+      .is("deleted_at", null)
+      .order("order_no", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ order_no: number }>();
+
+    if (orderError) {
+      throw new Error(`Failed to determine listing image order: ${orderError.message}`);
+    }
+
+    orderNo = (lastImage?.order_no ?? -1) + 1;
+  }
+
+  const extension = getListingImageExtension(contentType as ListingImageContentType);
+  const filenamePrefix = options.filename?.trim() ? options.filename.trim().replace(/\.[^/.]+$/, "") : "image";
+  const storagePath = `${listingId}/${filenamePrefix}-${crypto.randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(LISTING_IMAGES_BUCKET)
+    .upload(storagePath, file, { contentType, upsert: false });
+
+  if (uploadError) {
+    throw new Error(`Failed to upload listing image: ${uploadError.message}`);
+  }
+
+  const { data, error } = await supabase
+    .from("listing_images")
+    .insert({
+      listing_id: listingId,
+      path: storagePath,
+      alt_text: options.alt_text ?? null,
+      order_no: orderNo,
+    })
+    .select("id,path,alt_text,order_no")
+    .single<ListingImage>();
+
+  if (error) {
+    await supabase.storage.from(LISTING_IMAGES_BUCKET).remove([storagePath]);
+    throw new Error(`Failed to save listing image metadata: ${error.message}`);
+  }
+
+  if (!data) {
+    await supabase.storage.from(LISTING_IMAGES_BUCKET).remove([storagePath]);
+    throw new Error("Listing image upload did not return metadata");
+  }
+
+  return data;
+}
+
+/**
+ * Soft-deletes listing image metadata and removes the underlying storage object.
+ * Only the listing owner may delete images.
+ */
+export async function deleteListingImage(imageId: string, userId: string): Promise<void> {
+  if (!imageId.trim()) {
+    throw new Error("Listing image ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  const { data: imageRow, error: imageLookupError } = await supabase
+    .from("listing_images")
+    .select("id,listing_id,path,deleted_at")
+    .eq("id", imageId)
+    .single<ListingImageDeleteRow>();
+
+  if (imageLookupError) {
+    if (imageLookupError.code === "PGRST116") {
+      throw new Error("Listing image not found or you do not have permission to delete it");
+    }
+    throw new Error(`Failed to fetch listing image: ${imageLookupError.message}`);
+  }
+
+  if (!imageRow || imageRow.deleted_at) {
+    throw new Error("Listing image not found or you do not have permission to delete it");
+  }
+
+  await verifyListingOwnership(imageRow.listing_id, userId);
+
+  const { error: removeError } = await supabase.storage
+    .from(LISTING_IMAGES_BUCKET)
+    .remove([imageRow.path]);
+
+  if (removeError) {
+    throw new Error(`Failed to delete listing image object: ${removeError.message}`);
+  }
+
+  const { data, error } = await supabase
+    .from("listing_images")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", imageId)
+    .is("deleted_at", null)
+    .select("id")
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      throw new Error("Listing image not found or you do not have permission to delete it");
+    }
+    throw new Error(`Failed to delete listing image metadata: ${error.message}`);
+  }
+
+  if (!data) {
+    throw new Error("Listing image not found or you do not have permission to delete it");
+  }
+}
+
+/**
+ * Returns a public URL for a listing image path.
+ */
+export function getListingImageUrl(imagePath: string): string {
+  const { data } = supabase.storage.from(LISTING_IMAGES_BUCKET).getPublicUrl(imagePath);
+  return data.publicUrl;
+}
+
+/**
  * Returns all listings for a given user, sorted newest-first.
  *
  * param userId - UUID of the user whose listings to fetch.
@@ -348,9 +546,11 @@ export async function getListingWithDetails(id: string): Promise<ListingWithDeta
   });
 
   // Supabase returns images in DB insertion order — sort by order_no so the display order is correct.
-  const images: ListingImage[] = [...(data.listing_images ?? [])].sort(
-    (a: ListingImage, b: ListingImage) => a.order_no - b.order_no,
-  );
+  const rawImages = (data.listing_images ?? []) as ListingImageRow[];
+  const images: ListingImage[] = rawImages
+    .filter((image) => image.deleted_at === null)
+    .sort((a, b) => a.order_no - b.order_no)
+    .map(({ id, path, alt_text, order_no }) => ({ id, path, alt_text, order_no }));
 
   // Supabase returns the joined category as { name: "Books" }.
   // We pull out just the name string (or null if no category is set).
