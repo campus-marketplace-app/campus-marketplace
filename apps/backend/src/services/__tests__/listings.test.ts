@@ -17,13 +17,11 @@ import { createTestUser, createTestListing } from "./helpers.js";
 import type { TestUser } from "./helpers.js";
 
 let testUser: TestUser;
-let otherUser: TestUser;
 const listingIdsToCleanup: string[] = [];
 const imageCleanup: Array<{ imageId: string; userId: string }> = [];
 
 beforeAll(async () => {
   testUser = await createTestUser("Listings Test User");
-  otherUser = await createTestUser("Listings Other User");
 });
 
 afterAll(async () => {
@@ -43,7 +41,6 @@ afterAll(async () => {
       // Already deleted — ignore
     }
   }
-  await otherUser.cleanup();
   await testUser.cleanup();
 });
 
@@ -356,7 +353,7 @@ describe("listing image storage", () => {
     trackListing(listing.id);
 
     await expect(
-      uploadListingImage(listing.id, otherUser.user.id, createPngBytes(), "image/png"),
+      uploadListingImage(listing.id, "00000000-0000-0000-0000-000000000000", createPngBytes(), "image/png"),
     ).rejects.toThrow("permission");
   });
 
@@ -416,7 +413,7 @@ describe("listing image storage", () => {
     trackImage(uploaded.id, testUser.user.id);
 
     await expect(
-      deleteListingImage(uploaded.id, otherUser.user.id),
+      deleteListingImage(uploaded.id, "00000000-0000-0000-0000-000000000000"),
     ).rejects.toThrow("permission");
   });
 });

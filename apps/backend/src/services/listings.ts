@@ -403,7 +403,7 @@ export async function uploadListingImage(
 }
 
 /**
- * Soft-deletes listing image metadata and removes the underlying storage object.
+ * Deletes listing image metadata and removes the underlying storage object.
  * Only the listing owner may delete images.
  */
 export async function deleteListingImage(imageId: string, userId: string): Promise<void> {
@@ -441,13 +441,11 @@ export async function deleteListingImage(imageId: string, userId: string): Promi
     throw new Error(`Failed to delete listing image object: ${removeError.message}`);
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("listing_images")
-    .update({ deleted_at: new Date().toISOString() })
+    .delete()
     .eq("id", imageId)
-    .is("deleted_at", null)
-    .select("id")
-    .single();
+    .is("deleted_at", null);
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -456,9 +454,6 @@ export async function deleteListingImage(imageId: string, userId: string): Promi
     throw new Error(`Failed to delete listing image metadata: ${error.message}`);
   }
 
-  if (!data) {
-    throw new Error("Listing image not found or you do not have permission to delete it");
-  }
 }
 
 /**
