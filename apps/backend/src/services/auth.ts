@@ -77,9 +77,13 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     avatar_path: input.avatar_path ?? null,
   };
 
-  // Note: if profile creation fails here, the auth user will be left orphaned.
-  // Rolling it back requires the service role key (admin API), which is not available
-  // in the browser. Cleanup would need to happen server-side.
+  // The DB trigger `handle_new_user` also creates a profile on auth signup,
+  // but it only sets display_name. This explicit upsert adds bio, avatar_path,
+  // and other optional fields the trigger doesn't handle. Both writes are safe
+  // because upsertProfile uses "on conflict do update".
+  //
+  // If this call fails, the auth user is left without a full profile.
+  // Fixing that requires the service role key (admin API), not available in browser.
   await upsertProfile(profilePayload);
   return {
     user: data.user,
