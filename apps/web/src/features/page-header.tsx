@@ -6,12 +6,16 @@ type HeaderProps = {
     isLoggedIn: boolean;
     isRegistering: boolean;
     profile?: UserProfile | null;
+    searchQuery?: string;
+    setSearchQuery?: (query: string) => void;
 };
 
 export default function PageHeader({
     isLoggedIn,
     isRegistering,
     profile,
+    searchQuery,
+    setSearchQuery,
 }: HeaderProps) {
     const shouldCenterTitle = !isLoggedIn && !isRegistering;
     const profileAvatarSrc = profile?.avatar_path ? getAvatarUrl(profile.avatar_path) : '/default-avatar.png';
@@ -30,6 +34,8 @@ export default function PageHeader({
                         type="text"
                         placeholder="Search..."
                         className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-700"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery?.(e.target.value)}
                     />
                 ) : null}
 
