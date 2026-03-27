@@ -7,6 +7,7 @@ type FormProps = {
     showForm: boolean;
     user: SessionUser | null;
     onClose: () => void;
+    onSubmitSuccess?: () => void;
 };
 
 const getCurrentDateTimeLocal = () => {
@@ -19,6 +20,7 @@ export default function Form({
     showForm,
     user,
     onClose,
+    onSubmitSuccess,
 }: FormProps) {
     const [listingTitle, setListingTitle] = useState('LISTINGS.title');
     const [listingPrice, setListingPrice] = useState(0);
@@ -32,6 +34,7 @@ export default function Form({
     const [availableTo] = useState(getCurrentDateTimeLocal);
     const [listingQuantity, setListingQuantity] = useState(1);
     const [listingType] = useState<ListingType>('item');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -43,8 +46,17 @@ export default function Form({
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
+        setIsSubmitting(true);
+
         if (!user) {
             alert('You must be logged in to create a listing.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if(listingCategory === '') {
+            alert('Please select a category for your listing.');
+            setIsSubmitting(false);
             return;
         }
 
@@ -74,10 +86,12 @@ export default function Form({
                     available_to: availableTo,
                 });
             }
+            onSubmitSuccess?.();
+            setIsSubmitting(false);
+            onClose();
         } catch (error) {
             console.error('Error creating listing:', error);
-        } finally {
-            onClose();
+            setIsSubmitting(false);
         }
     };
 
@@ -102,7 +116,11 @@ export default function Form({
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div
                 className="absolute inset-0 bg-black/50"
-                onClick={onClose}
+                onClick={() => {
+                    if (!isSubmitting) {
+                        onClose();
+                    }
+                }}
             />
 
             <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
@@ -146,6 +164,7 @@ export default function Form({
                                             id="price"
                                             type="number"
                                             min={0}
+                                            step="0.01"
                                             value={listingPrice}
                                             onChange={(e) => setListingPrice(parseFloat(e.target.value))}
                                             className="w-full rounded-xl bg-transparent py-3 pl-7 pr-4 text-sm outline-none"
@@ -243,16 +262,18 @@ export default function Form({
                     <div className="flex items-center justify-between pt-8">
                         <button
                             type="button"
-                            className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                            disabled={isSubmitting}
+                            className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
                             onClick={onClose}
                         >
                             back
                         </button>
                         <button
                             type="submit"
-                            className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                            disabled={isSubmitting}
+                            className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
                         >
-                            upload
+                            Save draft
                         </button>
                     </div>
                 </form>

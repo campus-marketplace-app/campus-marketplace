@@ -6,11 +6,12 @@ import type { Listing } from "@campus-marketplace/backend";
 
 type OutletContext = {
     searchQuery: string;
+    listingsRefreshKey: number;
 };
 
 export default function Index() {
     const location = useLocation();
-    const { searchQuery } = useOutletContext<OutletContext>();
+    const { searchQuery, listingsRefreshKey } = useOutletContext<OutletContext>();
     const [listingsData, setListingsData] = useState<Array<Listing>>([]);
     const [isloading, setIsLoading] = useState(true);
     const [category, setCategory] = useState<string>("");
@@ -50,7 +51,7 @@ export default function Index() {
             }
         };
         fetchListings();
-    }, [category, searchQuery]);
+    }, [category, searchQuery, listingsRefreshKey]);
 
     return (isloading ? (<h2 >Loading...</h2>) : (
         <section className="p-6 sm:p-8">
