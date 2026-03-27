@@ -3,12 +3,12 @@
 All 16 tables in `public` are mapped to a service file in `apps/backend/src/services/`.
 The frontend imports everything via `@campus-marketplace/backend`.
 
-Legend: **done** = fully implemented · **stub** = function exists, body throws "Not yet implemented"
+Legend: **done** = fully implemented · **deferred** = planned but waiting on teammate
 
 ---
 
 ## profiles
-**Service:** `profile.ts`
+**Service:** `profile.ts` · **Docs:** `PROFILE_USAGE.md`
 
 | Function | Status |
 |---|---|
@@ -21,7 +21,7 @@ Legend: **done** = fully implemented · **stub** = function exists, body throws 
 ---
 
 ## listings
-**Service:** `listings.ts`
+**Service:** `listings.ts` · **Docs:** `LISTINGS_USAGE.md`
 
 | Function | Status |
 |---|---|
@@ -61,9 +61,10 @@ Legend: **done** = fully implemented · **stub** = function exists, body throws 
 | Function | Status |
 |---|---|
 | Read (via `getListingWithDetails`) | done |
-| `uploadListingImage(listingId, userId, file, contentType, altText?)` | stub needed |
+| `uploadListingImage(...)` | deferred — teammate working on images |
+| `deleteListingImage(...)` | deferred — teammate working on images |
 
-> Images are returned in detail queries but there is no dedicated upload/delete function yet. Add these when implementing the listing image upload UI.
+> Storage bucket and RLS are already set up (migration `20260325090000`). Functions will be added when the teammate finishes the image feature.
 
 ---
 
@@ -73,39 +74,37 @@ Legend: **done** = fully implemented · **stub** = function exists, body throws 
 | Function | Status |
 |---|---|
 | Read (via `getListingWithDetails`) | done |
-| `setListingTags(listingId, userId, tagIds)` | stub needed |
-
-> Tags are returned in detail queries but writing/replacing tags for a listing has no function yet.
+| `setListingTags(listingId, userId, tagIds)` | deferred |
 
 ---
 
 ## categories
-**Service:** `categories.ts`
+**Service:** `categories.ts` · **Docs:** `CATEGORIES_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `getCategories()` | stub |
-| `getCategoryById(id)` | stub |
+| `getCategories()` | done |
+| `getCategoryById(id)` | done |
 
 ---
 
 ## tags
-**Service:** `categories.ts`
+**Service:** `categories.ts` · **Docs:** `CATEGORIES_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `getTags()` | stub |
+| `getTags()` | done |
 
 ---
 
 ## conversations
-**Service:** `messaging.ts`
+**Service:** `messaging.ts` · **Docs:** `MESSAGING_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `createConversation(userId, participantId, listingId?)` | stub |
-| `getConversationsByUser(userId)` | stub |
-| `getConversation(conversationId)` | stub |
+| `createConversation(userId, participantId, listingId?)` | done |
+| `getConversationsByUser(userId)` | done |
+| `getConversation(conversationId, userId)` | done |
 
 ---
 
@@ -114,18 +113,19 @@ Legend: **done** = fully implemented · **stub** = function exists, body throws 
 
 | Function | Status |
 |---|---|
-| Managed by `createConversation` | stub |
+| Managed by `createConversation` | done |
 
 ---
 
 ## messages
-**Service:** `messaging.ts`
+**Service:** `messaging.ts` · **Docs:** `MESSAGING_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `getMessages(conversationId)` | stub |
-| `sendMessage(conversationId, senderId, content)` | stub |
-| `markMessagesRead(conversationId, userId)` | stub |
+| `getMessages(conversationId)` | done |
+| `sendMessage(conversationId, senderId, content)` | done |
+| `markMessagesRead(conversationId, userId)` | done |
+| `subscribeToMessages(conversationId, onMessage)` | done |
 
 Validation status: **CM-US-047 complete** for schema + RLS smoke checks.
 - See `apps/backend/src/services/__tests__/messages.smoke.test.ts` for acceptance coverage:
@@ -137,47 +137,47 @@ Validation status: **CM-US-047 complete** for schema + RLS smoke checks.
 ---
 
 ## notifications
-**Service:** `notifications.ts`
+**Service:** `notifications.ts` · **Docs:** `NOTIFICATIONS_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `getNotifications(userId)` | stub |
-| `markNotificationRead(notificationId, userId)` | stub |
-| `markAllNotificationsRead(userId)` | stub |
-| `deleteNotification(notificationId, userId)` | stub |
+| `getNotifications(userId)` | done |
+| `markNotificationRead(notificationId, userId)` | done |
+| `markAllNotificationsRead(userId)` | done |
+| `deleteNotification(notificationId, userId)` | done |
 
 ---
 
 ## favorites
-**Service:** `favorites.ts`
+**Service:** `favorites.ts` · **Docs:** `FAVORITES_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `addFavorite(userId, listingId)` | stub |
-| `removeFavorite(userId, listingId)` | stub |
-| `getFavoritesByUser(userId)` | stub |
-| `isFavorited(userId, listingId)` | stub |
+| `addFavorite(userId, listingId)` | done |
+| `removeFavorite(userId, listingId)` | done |
+| `getFavoritesByUser(userId)` | done |
+| `isFavorited(userId, listingId)` | done |
 
 ---
 
 ## reports
-**Service:** `reports.ts`
+**Service:** `reports.ts` · **Docs:** `REPORTS_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `createReport(reporterId, reportedListingId, reportedUserId, reason, details?)` | stub |
+| `createReport(reporterId, reportedListingId, reportedUserId, reason, details?)` | done |
 
 ---
 
 ## blocks
-**Service:** `blocks.ts`
+**Service:** `blocks.ts` · **Docs:** `BLOCKS_USAGE.md`
 
 | Function | Status |
 |---|---|
-| `blockUser(userId, blockedUserId)` | stub |
-| `unblockUser(userId, blockedUserId)` | stub |
-| `getBlockedUsers(userId)` | stub |
-| `isBlocked(userId, targetUserId)` | stub |
+| `blockUser(userId, blockedUserId)` | done |
+| `unblockUser(userId, blockedUserId)` | done |
+| `getBlockedUsers(userId)` | done |
+| `isBlocked(userId, targetUserId)` | done |
 
 ---
 
@@ -191,7 +191,7 @@ Validation status: **CM-US-047 complete** for schema + RLS smoke checks.
 ---
 
 ## auth (auth.users — Supabase managed)
-**Service:** `auth.ts`
+**Service:** `auth.ts` · **Docs:** `AUTH_USAGE.md`
 
 | Function | Status |
 |---|---|
@@ -206,21 +206,12 @@ Validation status: **CM-US-047 complete** for schema + RLS smoke checks.
 
 ---
 
-## search (cross-table)
-**Service:** `search.ts`
-
-| Function | Status |
-|---|---|
-| `advancedSearch(filters)` | stub |
-
-> Delegates to `searchListings` in `listings.ts`. Implement by mapping `SearchFilters` onto `SearchListingsOptions`.
-
----
-
 ## Summary
 
 | Status | Count |
 |---|---|
-| Fully implemented | 6 services (auth, profile, theme, listings, item_details, service_details) |
-| Stub — ready to implement | messaging, notifications, favorites, reports, blocks, categories, search |
-| Missing functions (no stub yet) | `listing_images` upload/delete · `listing_tags` write |
+| Fully implemented | 11 services — auth, profile, theme, listings, categories, messaging, notifications, favorites, blocks, reports, tags |
+| Deferred (teammate) | listing image upload/delete, listing tag write, publish validation |
+| Removed | `search.ts` — was redundant, `searchListings` in listings.ts covers all search needs |
+
+**Total functions:** 46 implemented, 3 deferred.
