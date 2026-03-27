@@ -127,6 +127,13 @@ Legend: **done** = fully implemented · **stub** = function exists, body throws 
 | `sendMessage(conversationId, senderId, content)` | stub |
 | `markMessagesRead(conversationId, userId)` | stub |
 
+Validation status: **CM-US-047 complete** for schema + RLS smoke checks.
+- See `apps/backend/src/services/__tests__/messages.smoke.test.ts` for acceptance coverage:
+	- messaging tables/constraints exist and enforce integrity
+	- participant-only message read/insert behavior
+	- spoofed `sender_id` insert rejection
+- See `docs/MESSAGING_USAGE.md` for policy behavior and smoke-check mapping.
+
 ---
 
 ## notifications

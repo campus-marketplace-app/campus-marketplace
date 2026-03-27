@@ -141,6 +141,27 @@ describe.sequential("CM-US-047 messaging schema + RLS smoke", () => {
     expect(error?.code).toBe("23505");
   });
 
+  it("enforces conversations FK constraint for listing_id", async () => {
+    const { error } = await supabase.from("conversations").insert({
+      listing_id: randomUUID(),
+    });
+
+    expect(error).toBeTruthy();
+    expect(error?.code).toBe("23503");
+  });
+
+  it("enforces participants FK constraint for user_id", async () => {
+    if (!conversationId) throw new Error("Test setup incomplete");
+
+    const { error } = await supabase.from("conversation_participants").insert({
+      conversation_id: conversationId,
+      user_id: randomUUID(),
+    });
+
+    expect(error).toBeTruthy();
+    expect(error?.code).toBe("23503");
+  });
+
   it("enforces messages FK constraint for conversation_id", async () => {
     if (!userA) throw new Error("Test setup incomplete");
 
@@ -148,6 +169,19 @@ describe.sequential("CM-US-047 messaging schema + RLS smoke", () => {
       conversation_id: randomUUID(),
       sender_id: userA.id,
       content: "fk check",
+    });
+
+    expect(error).toBeTruthy();
+    expect(error?.code).toBe("23503");
+  });
+
+  it("enforces messages FK constraint for sender_id", async () => {
+    if (!conversationId) throw new Error("Test setup incomplete");
+
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: randomUUID(),
+      content: "sender fk check",
     });
 
     expect(error).toBeTruthy();
@@ -210,6 +244,7 @@ describe.sequential("CM-US-047 messaging schema + RLS smoke", () => {
 
     expect(data).toBeNull();
     expect(error).toBeTruthy();
+    expect(error?.message.toLowerCase()).toContain("row-level security policy");
   });
 
   it("rejects insert by non-participant", async () => {
@@ -227,5 +262,6 @@ describe.sequential("CM-US-047 messaging schema + RLS smoke", () => {
 
     expect(data).toBeNull();
     expect(error).toBeTruthy();
+    expect(error?.message.toLowerCase()).toContain("row-level security policy");
   });
 });
