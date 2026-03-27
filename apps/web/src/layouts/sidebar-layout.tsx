@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function SidebarLayout() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [listingsRefreshKey, setListingsRefreshKey] = useState(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -94,7 +95,7 @@ export default function SidebarLayout() {
 
                 <main className="flex-1 overflow-auto">
                     <Outlet
-                        context={{ user }}
+                        context={{ user, searchQuery, listingsRefreshKey }}
                     />
                 </main>
             </div>
@@ -103,6 +104,7 @@ export default function SidebarLayout() {
                 showForm={showForm}
                 user={user}
                 onClose={() => setShowForm(false)}
+                onSubmitSuccess={() => setListingsRefreshKey((prev) => prev + 1)}
             />
         </div>
     );
