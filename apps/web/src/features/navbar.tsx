@@ -78,6 +78,20 @@ export default function Navbar({
                         </li>
                         <li>
                             <NavLink
+                                to="/my-listings"
+                                className={({ isActive }) =>
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${
+                                        isActive
+                                            ? 'bg-white/25 text-white shadow-sm'
+                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    }`
+                                }
+                            >
+                                My Listings
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink
                                 to="/login"
                                 className={({ isActive }) =>
                                     `block rounded-lg px-4 py-2 font-semibold transition ${
