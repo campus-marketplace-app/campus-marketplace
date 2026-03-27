@@ -2,25 +2,34 @@ import { searchListings } from "@campus-marketplace/backend";
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import type { Listing } from "@campus-marketplace/backend";
 
 export default function Index() {
     const location = useLocation();
-    const [listingsData, setListingsData] = useState<Array<any>>([]);
+    const [listingsData, setListingsData] = useState<Array<Listing>>([]);
+    const [isloading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchListings = async () => {
+            setIsLoading(true);
+
             try {
                 const data = await searchListings();
-                setListingsData(data);
-                console.log("Listings data:", data);
+                if (data !== null && (JSON.stringify(data) !== JSON.stringify(listingsData))) {
+                    setListingsData(data);
+                    console.log("Listings data:", data);
+                }
             } catch (error) {
                 console.error("Error fetching listings:", error);
+            }
+            finally {
+                setIsLoading(false);
             }
         };
         fetchListings();
     }, []);
 
-    return (
+    return (isloading ? (<h2>Loading...</h2>) : (
         <section className="p-6 sm:p-8">
             <p className="mb-10 text-1xl font-semibold uppercase tracking-wide text-black">FILTER BY CONDITION</p>
             <select id="filter" className="mb-8 rounded border border-black bg-white px-4 py-2 text-2xl text-black">
@@ -43,7 +52,7 @@ export default function Index() {
                     >
                         <article className="rounded-lg border border-black bg-white p-4 text-center text-black">
                             <div className="mx-auto mb-2 flex h-32 w-32 items-center justify-center bg-[#cc7f84] text-[10px] text-black">
-                                {listing.imageLabel}
+                                'img'
                             </div>
                             <p className="text-3xl leading-none">{listing.title}</p>
                             <p className="text-lg leading-none">{listing.price}</p>
@@ -52,5 +61,5 @@ export default function Index() {
                 ))}
             </div>
         </section>
-    );
+    ));
 }
