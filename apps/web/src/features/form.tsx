@@ -22,7 +22,7 @@ export default function Form({
 }: FormProps) {
     const [listingTitle, setListingTitle] = useState('LISTINGS.title');
     const [listingPrice, setListingPrice] = useState(0);
-    const [listingCategory, setListingCategory] = useState('LISTINGS.category');
+    const [listingCategory, setListingCategory] = useState('');
     const [listingCondition, setListingCondition] = useState<ItemCondition>('good');
     const [listingDate, setListingDate] = useState(getCurrentDateTimeLocal);
     const [listingDescription, setListingDescription] = useState('LISTINGS.description');
@@ -140,25 +140,41 @@ export default function Form({
                                     <label htmlFor="price" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
                                         Price
                                     </label>
-                                    <input
-                                        id="price"
-                                        type="number"
-                                        value={listingPrice}
-                                        onChange={(e) => setListingPrice(parseFloat(e.target.value))}
-                                        className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
-                                    />
+                                    <div className="relative rounded-xl bg-white">
+                                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-black">$</span>
+                                        <input
+                                            id="price"
+                                            type="number"
+                                            min={0}
+                                            value={listingPrice}
+                                            onChange={(e) => setListingPrice(parseFloat(e.target.value))}
+                                            className="w-full rounded-xl bg-transparent py-3 pl-7 pr-4 text-sm outline-none"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label htmlFor="category" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
                                         Category
                                     </label>
-                                    <input
+                                    <select
                                         id="category"
-                                        type="text"
                                         value={listingCategory}
                                         onChange={(e) => setListingCategory(e.target.value)}
-                                        className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
-                                    />
+                                        className="w-full overflow-y-auto rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                        size={1}
+                                    >
+                                        <option value="">-- Select --</option>
+                                        <option value="6a90f825-6c3c-4060-b5e1-ff394162bb6c">Furniture</option>
+                                        <option value="716836e6-f8a2-4cba-aa63-36445e70496e">School Supplies</option>
+                                        <option value="854c925a-84f6-4280-9c9e-b1452167bb33">Free Stuff</option>
+                                        <option value="95fe7a36-cb29-4c97-9a4d-56dccc56a7de">Transportation</option>
+                                        <option value="9f280f6c-d4f8-4178-8e61-059243d5c930">Clothing</option>
+                                        <option value="b87122bf-36dc-418c-a489-cb8ad0497f34">Electronics</option>
+                                        <option value="be4cc965-718d-4e7d-939f-9ace4dcc837c">Sports & Fitness</option>
+                                        <option value="cf2121d7-22b7-4e87-ab1b-801d55ebd4fe">Services</option>
+                                        <option value="dc2b319a-1068-4b06-bcb3-11c1f3dd3fa2">Textbooks</option>
+                                        <option value="744ab09f-350d-4f75-8b4a-cb84016545ef">Other</option>
+                                    </select>
                                 </div>
                             </div>
 
