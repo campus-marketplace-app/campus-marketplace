@@ -94,7 +94,7 @@ export default function SidebarLayout() {
 
                 <main className="flex-1 overflow-auto">
                     <Outlet
-                        context={{ user }}
+                        context={{ user, searchQuery}}
                     />
                 </main>
             </div>
