@@ -22,16 +22,16 @@ export default function Form({
     onClose,
     onSubmitSuccess,
 }: FormProps) {
-    const [listingTitle, setListingTitle] = useState('LISTINGS.title');
+    const [listingTitle, setListingTitle] = useState('Title');
     const [listingPrice, setListingPrice] = useState(0);
     const [listingCategory, setListingCategory] = useState('');
     const [listingCondition, setListingCondition] = useState<ItemCondition>('good');
     const [listingDate, setListingDate] = useState(getCurrentDateTimeLocal);
-    const [listingDescription, setListingDescription] = useState('LISTINGS.description');
+    const [listingDescription, setListingDescription] = useState('');
     const [listingImageLabel, setListingImageLabel] = useState('picture of the product');
-    const [durationMinutes] = useState(60);
-    const [availableFrom] = useState(getCurrentDateTimeLocal);
-    const [availableTo] = useState(getCurrentDateTimeLocal);
+    const [durationMinutes, setDurationMinutes] = useState(60);
+    const [availableFrom, setAvailableFrom] = useState('09:00');
+    const [availableTo, setAvailableTo] = useState('17:00');
     const [listingQuantity, setListingQuantity] = useState(1);
     const [listingType, setListingType] = useState<ListingType>('item');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,6 +47,7 @@ export default function Form({
         e.preventDefault();
 
         setIsSubmitting(true);
+        const regex = /<[^>]+>|javascript:|on\w+\s*=|data:text\/html|vbscript:/i;
 
         if (!user) {
             alert('You must be logged in to create a listing.');
@@ -59,6 +60,40 @@ export default function Form({
             setIsSubmitting(false);
             return;
         }
+
+        if(listingDescription.trim().length > 2000 && !regex.test(listingDescription)) {
+            alert('Description cannot exceed 2000 characters.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if(listingTitle.trim().length === 0) {
+            if (regex.test(listingTitle)) {
+                alert('Title cannot be empty.');
+                setIsSubmitting(false);
+                return;
+            }
+        }
+
+        if(listingPrice < 0) {
+            alert('Price cannot be negative.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (listingType === 'item' && listingQuantity < 1) {
+            alert('Quantity must be at least 1.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (listingType === 'service' && durationMinutes <= 0) {
+            alert('Duration must be greater than 0.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        const toTimeWithSeconds = (time: string) => (time.length === 5 ? `${time}:00` : time);
 
         try {
             const newlisting = await createListing({
@@ -82,8 +117,8 @@ export default function Form({
                 await upsertServiceDetails(newlisting.id, user.id, {
                     duration_minutes: durationMinutes,
                     price_unit: '',
-                    available_from: availableFrom,
-                    available_to: availableTo,
+                    available_from: toTimeWithSeconds(availableFrom),
+                    available_to: toTimeWithSeconds(availableTo),
                 });
             }
             onSubmitSuccess?.();
@@ -233,49 +268,93 @@ export default function Form({
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="condition" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                        Condition
-                                    </label>
-                                    <select
-                                        id="condition"
-                                        value={listingCondition}
-                                        onChange={(e) => setListingCondition(e.target.value as ItemCondition)}
-                                        className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
-                                    >
-                                        <option value="new">New</option>
-                                        <option value="like_new">Like New</option>
-                                        <option value="good">Good</option>
-                                        <option value="fair">Fair</option>
-                                        <option value="poor">Poor</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label htmlFor="date" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                        Date
-                                    </label>
-                                    <input
-                                        id="date"
-                                        type="datetime-local"
-                                        readOnly={true}
-                                        value={listingDate}
-                                        className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
-                                    />
-                                </div>
+                                {listingType === 'item' ? (
+                                    <>
+                                        <div>
+                                            <label htmlFor="condition" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                                Condition
+                                            </label>
+                                            <select
+                                                id="condition"
+                                                value={listingCondition}
+                                                onChange={(e) => setListingCondition(e.target.value as ItemCondition)}
+                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
+                                            >
+                                                <option value="new">New</option>
+                                                <option value="like_new">Like New</option>
+                                                <option value="good">Good</option>
+                                                <option value="fair">Fair</option>
+                                                <option value="poor">Poor</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label htmlFor="quantity" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                                Quantity
+                                            </label>
+                                            <input
+                                                id="quantity"
+                                                type="number"
+                                                value={listingQuantity}
+                                                onChange={(e) => setListingQuantity(parseInt(e.target.value, 10))}
+                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
+                                                min={1}
+                                                max={99}
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <label htmlFor="duration" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                                Duration (minutes)
+                                            </label>
+                                            <input
+                                                id="duration"
+                                                type="number"
+                                                min={1}
+                                                value={durationMinutes}
+                                                onChange={(e) => setDurationMinutes(parseInt(e.target.value, 10) || 0)}
+                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label htmlFor="available-from" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                                Available From
+                                            </label>
+                                            <input
+                                                id="available-from"
+                                                type="time"
+                                                value={availableFrom}
+                                                onChange={(e) => setAvailableFrom(e.target.value)}
+                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                            />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label htmlFor="available-to" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                                Available To
+                                            </label>
+                                            <input
+                                                id="available-to"
+                                                type="time"
+                                                value={availableTo}
+                                                onChange={(e) => setAvailableTo(e.target.value)}
+                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             <div>
-                                <label htmlFor="quantity" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                    Quantity
+                                <label htmlFor="date" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                    Date
                                 </label>
                                 <input
-                                    id="quantity"
-                                    type="number"
-                                    value={listingQuantity}
-                                    onChange={(e) => setListingQuantity(parseInt(e.target.value, 10))}
-                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
-                                    min={1}
-                                    max={99}
+                                    id="date"
+                                    type="datetime-local"
+                                    readOnly={true}
+                                    value={listingDate}
+                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
                                 />
                             </div>
 
