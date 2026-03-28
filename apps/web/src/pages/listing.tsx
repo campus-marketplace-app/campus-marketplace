@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { getListingWithDetails } from "@campus-marketplace/backend";
+import { useNavigate, useParams, useOutletContext } from "react-router-dom";
+import { getListingWithDetails, createConversation, ensureFreshSession } from "@campus-marketplace/backend";
+import type { OutletContext } from "../features/types";
 
 
 export default function Listing() {
     const navigate = useNavigate();
     const { id } = useParams();
+    const { user } = useOutletContext<OutletContext>();
     const [listingData, setListingData] = useState<any>(null);
+    const [messagingLoading, setMessagingLoading] = useState(false);
 
     useEffect(() => {
         if (!id) {
@@ -111,6 +114,41 @@ export default function Listing() {
                             >
                                 back
                             </button>
+
+                            {/* Only show "Message Seller" if logged in and not viewing your own listing */}
+                            {user && listingData.user_id !== user.id && (
+                                <button
+                                    type="button"
+                                    disabled={messagingLoading}
+                                    className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    onClick={async () => {
+                                        setMessagingLoading(true);
+                                        try {
+                                            // Force a token refresh so the JWT isn't expired.
+                                            const { session } = await ensureFreshSession();
+                                            // Store refreshed tokens.
+                                            localStorage.setItem("access_token", session!.access_token);
+                                            localStorage.setItem("refresh_token", session!.refresh_token);
+
+                                            const convo = await createConversation(user.id, listingData.user_id, listingData.id);
+                                            navigate(`/messages/${convo.id}`);
+                                        } catch (err) {
+                                            console.error("Failed to start conversation:", err);
+                                            if (String(err).includes("Session expired")) {
+                                                alert("Your session has expired. Please log in again.");
+                                                navigate("/login");
+                                            } else {
+                                                alert("Could not start conversation. Please try again.");
+                                            }
+                                        } finally {
+                                            setMessagingLoading(false);
+                                        }
+                                    }}
+                                >
+                                    {messagingLoading ? "Opening..." : "Message Seller"}
+                                </button>
+                            )}
+
                             <button
                                 type="button"
                                 className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"

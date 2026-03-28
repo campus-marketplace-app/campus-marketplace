@@ -147,41 +147,35 @@ export async function createConversation(userId: string, participantId: string, 
     return getConversation(existingId, userId);
   }
 
-  // Create new conversation.
-  const { data: convo, error: convoError } = await supabase
-    .from("conversations")
-    .insert({ listing_id: listingId ?? null })
-    .select("id,listing_id,created_at,updated_at")
-    .single();
+  // Generate the conversation ID up front so we don't need RETURNING.
+  // The SELECT RLS policy requires the user to be a participant, but
+  // participants are added after the insert — so .insert().select()
+  // would trigger a 403 on the read-back.
+  const convoId = crypto.randomUUID();
 
-  if (convoError || !convo) {
-    throw new Error(`Failed to create conversation: ${convoError?.message ?? "no data returned"}`);
+  const { error: convoError } = await supabase
+    .from("conversations")
+    .insert({ id: convoId, listing_id: listingId ?? null });
+
+  if (convoError) {
+    throw new Error(`Failed to create conversation: ${convoError.message}`);
   }
 
   // Add both users as participants.
   const { error: partError } = await supabase
     .from("conversation_participants")
     .insert([
-      { conversation_id: convo.id, user_id: userId },
-      { conversation_id: convo.id, user_id: participantId },
+      { conversation_id: convoId, user_id: userId },
+      { conversation_id: convoId, user_id: participantId },
     ]);
 
   if (partError) {
     throw new Error(`Failed to add participants: ${partError.message}`);
   }
 
-  const displayName = await getDisplayName(participantId);
-
-  return {
-    id: convo.id,
-    listing_id: convo.listing_id,
-    created_at: convo.created_at,
-    updated_at: convo.updated_at,
-    other_user_id: participantId,
-    other_user_display_name: displayName,
-    last_message: undefined,
-    unread_count: 0,
-  };
+  // Now that participants exist, the SELECT policy passes and we can
+  // read the full conversation object back.
+  return getConversation(convoId, userId);
 }
 
 // Get all conversations for a user, sorted newest-first.

@@ -263,6 +263,21 @@ export async function completePasswordReset(token: string, newPassword: string):
   }
 }
 
+// Forces a token refresh so the Supabase client has a non-expired JWT.
+// Call this before any RLS-protected write operation.
+export async function ensureFreshSession(): Promise<AuthResult> {
+  const { data, error } = await supabase.auth.refreshSession();
+
+  if (error || !data.session) {
+    throw new Error("Session expired — please log in again.");
+  }
+
+  return {
+    user: data.session.user,
+    session: data.session,
+  };
+}
+
 // Sends Supabase password reset email.
 export async function sendPasswordResetEmail(email: string, redirectTo?: string): Promise<void> {
   if (!email.trim()) {

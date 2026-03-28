@@ -21,6 +21,7 @@ function App() {
             <Route path="/listing" element={<Listing />}/>
             <Route path="/listing/:id" element={<Listing />}/>
             <Route path="/messages" element={<Messages />}/>
+            <Route path="/messages/:conversationId" element={<Messages />}/>
             <Route path="/profile" element={<Profile />}/>
             <Route path="/login" element={<Login />}/>
             <Route path="/signup" element={<Signup />}/>
