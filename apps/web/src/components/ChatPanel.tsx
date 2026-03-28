@@ -46,7 +46,7 @@ export default function ChatPanel({
     }
 
     return (
-        <div className="flex h-full flex-col border-l border-[#b9b9b9]">
+        <div className="flex h-full w-full flex-col border-l border-[#b9b9b9]">
             {/* Header */}
             <div className="flex items-center gap-2 border-b border-[#b9b9b9] bg-[#ececec] px-4 py-3">
                 {/* Back button — only visible on mobile */}

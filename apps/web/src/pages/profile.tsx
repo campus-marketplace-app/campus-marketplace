@@ -1,18 +1,20 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate, useOutletContext, Link } from "react-router-dom";
+import { useNavigate, useOutletContext, Link, useParams } from "react-router-dom";
 import { getProfile, updateProfile, uploadAvatar, getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 
 type OutletContext = {
     user: SessionUser | null;
+    onProfileSave?: () => void;
 };
 
 const xssRegex = /<[^>]*>|javascript\s*:|vbscript\s*:|data\s*:\s*text\/html|on[a-z]+\s*=/i;
 
 export default function Profile() {
-    const { user } = useOutletContext<OutletContext>();
+    const { user, onProfileSave } = useOutletContext<OutletContext>();
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
     const [accountTitle, setAccountTitle] = useState("Student Account");
     const [name, setName] = useState("Campus User");
     const [email, setEmail] = useState("student@university.edu");
@@ -22,6 +24,8 @@ export default function Profile() {
     const [nameError, setNameError] = useState("");
     const [bioError, setBioError] = useState("");
     const [avatarError, setAvatarError] = useState("");
+    const { userId: viewedUserId } = useParams<{ userId: string }>();
+    const isOwner = !viewedUserId || viewedUserId === user?.id;
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -97,7 +101,12 @@ export default function Profile() {
                 setBio(profile.bio);
             }
             if (profile.avatar_path !== null) {
-                setAvatarUrl(getAvatarUrl(profile.avatar_path));
+                setAvatarUrl(`${getAvatarUrl(profile.avatar_path)}?t=${Date.now()}`);
+            }
+            if (profile.account_type === 'student') {
+                setAccountTitle("Student");
+            } else if (profile.account_type === 'business') {
+                setAccountTitle("Business");
             }
         } catch (error) {
             console.error("Failed to load profile:", error);
@@ -129,7 +138,7 @@ export default function Profile() {
                     avatarPath = updatedProfile.avatar_path ?? undefined;
 
                     if (updatedProfile.avatar_path) {
-                        setAvatarUrl(getAvatarUrl(updatedProfile.avatar_path));
+                        setAvatarUrl(`${getAvatarUrl(updatedProfile.avatar_path)}?t=${Date.now()}`);
                     }
                 }
 
@@ -142,6 +151,8 @@ export default function Profile() {
                 console.error("Failed to save profile:", error);
             }
             setIsEditing(false);
+            setRefreshKey((prev) => prev + 1);
+            onProfileSave?.();
         }
     };
 
@@ -151,12 +162,12 @@ export default function Profile() {
             return;
         }
 
-        if (user.email) {
+        if (!viewedUserId && user.email) {
             setEmail(user.email);
         }
 
-        void loadProfile(user.id);
-    }, [user]);
+        void loadProfile(viewedUserId ?? user.id);
+    }, [user, refreshKey, viewedUserId]);
 
     const hasValidationErrors = Boolean(nameError || bioError || avatarError);
     const isSaveDisabled = isEditing && hasValidationErrors;
@@ -191,14 +202,12 @@ export default function Profile() {
                     <div className="space-y-8">
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Profile</p>
-                            <input
+                            <p
                                 id="accountTitle"
-                                type="text"
-                                value={accountTitle}
-                                readOnly={!isEditing}
-                                onChange={(e) => setAccountTitle(e.target.value)}
                                 className="w-full rounded-2xl bg-white px-4 py-3 text-center text-3xl text-black outline-none"
-                            />
+                            >
+                                {accountTitle}
+                            </p>
                         </div>
 
                         <div className="grid gap-8 md:grid-cols-[1fr_1.3fr]">
@@ -274,17 +283,19 @@ export default function Profile() {
                             >
                                 back
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => saveProfile()}
-                                disabled={isSaveDisabled}
-                                className={`px-8 py-2 text-2xl text-black transition ${isSaveDisabled
-                                        ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
-                                        : "bg-[#f1b7be] hover:bg-white"
-                                    }`}
-                            >
-                                {isEditing ? "save" : "edit"}
-                            </button>
+                            {isOwner && (
+                                <button
+                                    type="button"
+                                    onClick={() => saveProfile()}
+                                    disabled={isSaveDisabled}
+                                    className={`px-8 py-2 text-2xl text-black transition ${isSaveDisabled
+                                            ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
+                                            : "bg-[#f1b7be] hover:bg-white"
+                                        }`}
+                                >
+                                    {isEditing ? "save" : "edit"}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
