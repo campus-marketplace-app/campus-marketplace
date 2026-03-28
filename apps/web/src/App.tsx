@@ -9,6 +9,7 @@ import Signup from './pages/signup.tsx'
 import './App.css'
 import ResetEmail from './pages/reset-email.tsx'
 import ResetPassword from './pages/reset-password.tsx'
+import MyListings from './pages/my-listings.tsx'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="/home" element={<Index />} />
             <Route path="/reset-email" element={<ResetEmail />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path='/my-listings' element={<MyListings />} />
           </Route>
         </Routes>
         </div>
