@@ -37,10 +37,9 @@ export default function Navbar({
                                 to="/"
                                 end
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${
-                                        isActive
-                                            ? 'bg-white/25 text-white shadow-sm'
-                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
+                                        ? 'bg-white/25 text-white shadow-sm'
+                                        : 'text-white hover:bg-white/15 hover:text-white'
                                     }`
                                 }
                             >
@@ -52,10 +51,9 @@ export default function Navbar({
                                 to="/profile"
                                 state={{ backgroundLocation: location }}
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${
-                                        isActive
-                                            ? 'bg-white/25 text-white shadow-sm'
-                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
+                                        ? 'bg-white/25 text-white shadow-sm'
+                                        : 'text-white hover:bg-white/15 hover:text-white'
                                     }`
                                 }
                             >
@@ -66,10 +64,9 @@ export default function Navbar({
                             <NavLink
                                 to="/messages"
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${
-                                        isActive
-                                            ? 'bg-white/25 text-white shadow-sm'
-                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
+                                        ? 'bg-white/25 text-white shadow-sm'
+                                        : 'text-white hover:bg-white/15 hover:text-white'
                                     }`
                                 }
                             >
@@ -78,12 +75,24 @@ export default function Navbar({
                         </li>
                         <li>
                             <NavLink
+                                to="/my-listings"
+                                className={({ isActive }) =>
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
+                                        ? 'bg-white/25 text-white shadow-sm'
+                                        : 'text-white hover:bg-white/15 hover:text-white'
+                                    }`
+                                }
+                            >
+                                My Listings
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink
                                 to="/login"
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${
-                                        isActive
-                                            ? 'bg-white/25 text-white shadow-sm'
-                                            : 'text-white hover:bg-white/15 hover:text-white'
+                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
+                                        ? 'bg-white/25 text-white shadow-sm'
+                                        : 'text-white hover:bg-white/15 hover:text-white'
                                     }`
                                 }
                                 onClick={logout}
@@ -95,17 +104,18 @@ export default function Navbar({
                 ) : (
                     <div />
                 )}
-                <div className="text-center">
-                    <button
-                        type="button"
-                        onClick={openPostForm}
-                        className={`rounded-xl border-2 border-black bg-[#f6d3d6] text-xl font-semibold text-black shadow-[4px_4px_0_#000] transition hover:-translate-y-0.5 hover:bg-white ${
-                            isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'
-                        }`}
-                    >
-                        {isSidebarOpen ? 'Post' : '+'}
-                    </button>
-                </div>
+                {isloggedIn ? (
+                    <div className="text-center">
+                        <button
+                            type="button"
+                            onClick={openPostForm}
+                            className={`rounded-xl border-2 border-black bg-[#f6d3d6] text-xl font-semibold text-black shadow-[4px_4px_0_#000] transition hover:-translate-y-0.5 hover:bg-white ${isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'
+                                }`}
+                        >
+                            {isSidebarOpen ? 'Post' : '+'}
+                        </button>
+                    </div>
+                ) : null}
             </div>
         </>
     );
