@@ -20,8 +20,18 @@ afterEach(async () => {
   }
 });
 
-async function signUpTestUser(email: string, password: string, displayName = "Test User") {
-  const result = await signUpWithEmail({ email, password, display_name: displayName });
+async function signUpTestUser(
+  email: string,
+  password: string,
+  displayName = "Test User",
+  accountType?: "student" | "business",
+) {
+  const result = await signUpWithEmail({
+    email,
+    password,
+    display_name: displayName,
+    ...(accountType ? { account_type: accountType } : {}),
+  });
   userIdsToCleanup.push(result.user.id);
   return result;
 }
@@ -39,6 +49,14 @@ describe("signUpWithEmail", () => {
     const profile = await getProfile(result.user.id);
     expect(profile.user_id).toBe(result.user.id);
     expect(profile.display_name).toBe("Profile Check User");
+    expect(profile.account_type).toBe("student");
+  });
+
+  it("persists explicit business account_type from sign up", async () => {
+    const result = await signUpTestUser(testEmail(), "Password123!", "Business User", "business");
+    const { getProfile } = await import("../profile.js");
+    const profile = await getProfile(result.user.id);
+    expect(profile.account_type).toBe("business");
   });
 
   it("throws with non-.edu email", async () => {
