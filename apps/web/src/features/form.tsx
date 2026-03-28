@@ -226,7 +226,6 @@ export default function Form({
                                         <option value="9f280f6c-d4f8-4178-8e61-059243d5c930">Clothing</option>
                                         <option value="b87122bf-36dc-418c-a489-cb8ad0497f34">Electronics</option>
                                         <option value="be4cc965-718d-4e7d-939f-9ace4dcc837c">Sports & Fitness</option>
-                                        <option value="cf2121d7-22b7-4e87-ab1b-801d55ebd4fe">Services</option>
                                         <option value="dc2b319a-1068-4b06-bcb3-11c1f3dd3fa2">Textbooks</option>
                                         <option value="744ab09f-350d-4f75-8b4a-cb84016545ef">Other</option>
                                     </select>
