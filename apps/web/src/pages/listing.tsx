@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { getListingWithDetails } from "@campus-marketplace/backend";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { getListingWithDetails, getProfile } from "@campus-marketplace/backend";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
 
 
@@ -8,6 +8,7 @@ export default function Listing() {
     const navigate = useNavigate();
     const { id } = useParams();
     const [listingData, setListingData] = useState<ListingWithDetails | null>(null);
+    const [displayName, setDisplayName] = useState<string>("");
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -31,6 +32,8 @@ export default function Listing() {
                 console.log("Listing details:", listing);
 
                 setListingData(listing);
+                let account = await getProfile(listing.user_id);
+                setDisplayName(account.display_name);
             } catch (error) {
                 console.error("Error fetching listing details:", error);
                 navigate("/", { replace: true });
@@ -63,6 +66,13 @@ export default function Listing() {
                                 <div className="flex min-h-72 items-center justify-center rounded-xl bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
                                     {listingData?.images?.[0]?.alt_text ?? "PICTURE OF THE PRODUCT"}
                                 </div>
+                                <Link
+                                    to={`/profile/${listingData?.user_id}`}
+                                    className="mt-2 inline-block text-sm text-blue-500 hover:underline"
+                                >
+                                    Owned by {displayName}
+                                </Link>
+
                             </div>
 
                             <div className="space-y-5">

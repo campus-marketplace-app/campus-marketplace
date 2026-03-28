@@ -28,6 +28,7 @@ function App() {
             <Route path="/reset-email" element={<ResetEmail />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path='/my-listings' element={<MyListings />} />
+            <Route path='/profile/:userId' element={<Profile />} />
           </Route>
         </Routes>
         </div>

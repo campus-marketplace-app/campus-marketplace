@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useNavigate, useOutletContext, Link } from "react-router-dom";
+import { useNavigate, useOutletContext, Link, useParams } from "react-router-dom";
 import { getProfile, updateProfile, uploadAvatar, getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 
@@ -24,6 +24,8 @@ export default function Profile() {
     const [nameError, setNameError] = useState("");
     const [bioError, setBioError] = useState("");
     const [avatarError, setAvatarError] = useState("");
+    const { userId: viewedUserId } = useParams<{ userId: string }>();
+    const isOwner = !viewedUserId || viewedUserId === user?.id;
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -155,12 +157,12 @@ export default function Profile() {
             return;
         }
 
-        if (user.email) {
+        if (!viewedUserId && user.email) {
             setEmail(user.email);
         }
 
-        void loadProfile(user.id);
-    }, [user, refreshKey]);
+        void loadProfile(viewedUserId ?? user.id);
+    }, [user, refreshKey, viewedUserId]);
 
     const hasValidationErrors = Boolean(nameError || bioError || avatarError);
     const isSaveDisabled = isEditing && hasValidationErrors;
@@ -289,17 +291,19 @@ export default function Profile() {
                             >
                                 back
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => saveProfile()}
-                                disabled={isSaveDisabled}
-                                className={`px-8 py-2 text-2xl text-black transition ${isSaveDisabled
-                                        ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
-                                        : "bg-[#f1b7be] hover:bg-white"
-                                    }`}
-                            >
-                                {isEditing ? "save" : "edit"}
-                            </button>
+                            {isOwner && (
+                                <button
+                                    type="button"
+                                    onClick={() => saveProfile()}
+                                    disabled={isSaveDisabled}
+                                    className={`px-8 py-2 text-2xl text-black transition ${isSaveDisabled
+                                            ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
+                                            : "bg-[#f1b7be] hover:bg-white"
+                                        }`}
+                                >
+                                    {isEditing ? "save" : "edit"}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
