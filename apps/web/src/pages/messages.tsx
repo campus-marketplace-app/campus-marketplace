@@ -153,6 +153,10 @@ export default function Messages() {
 
     // --- select a conversation ---
     function handleSelectConversation(id: string) {
+        if (id === activeConversationId) {
+            setMobileView("chat");
+            return;
+        }
         setActiveConversationId(id);
         setMessages([]);
         setError(null);
@@ -175,7 +179,7 @@ export default function Messages() {
                     </p>
                     <Link
                         to="/login"
-                        className="block rounded bg-[var(--color-primary)] px-4 py-2 text-center font-semibold text-white"
+                        className="block rounded bg-[#8f0010] px-4 py-2 text-center font-semibold text-white"
                     >
                         Go to Login
                     </Link>

@@ -84,10 +84,10 @@ export default function ChatPanel({
                                 className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
                             >
                                 <div
-                                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm break-words ${
+                                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm font-medium break-words ${
                                         isMine
-                                            ? "bg-[var(--color-primary)] text-white"
-                                            : "bg-[#d8d8d8] text-black"
+                                            ? "bg-[#8f0010] text-white drop-shadow-sm"
+                                            : "bg-white text-black shadow-sm"
                                     }`}
                                 >
                                     {msg.content}
@@ -117,7 +117,7 @@ export default function ChatPanel({
                     type="button"
                     onClick={onSend}
                     disabled={!messageInput.trim()}
-                    className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
+                    className="rounded bg-[#8f0010] px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
                 >
                     Send
                 </button>

@@ -55,8 +55,8 @@ export default function ConversationList({
                             onClick={() => onSelect(convo.id)}
                             className={`mb-1 flex w-full cursor-pointer flex-col rounded px-3 py-2 text-left transition-colors ${
                                 convo.id === activeId
-                                    ? "bg-[var(--color-primary)] text-white"
-                                    : "hover:bg-[#d8d8d8]"
+                                    ? "bg-[#8f0010] text-white"
+                                    : "text-black hover:bg-[#d8d8d8]"
                             }`}
                         >
                             <div className="flex items-center justify-between">
@@ -66,7 +66,7 @@ export default function ConversationList({
 
                                 {/* Unread badge */}
                                 {(convo.unread_count ?? 0) > 0 && convo.id !== activeId && (
-                                    <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-xs font-bold text-white">
+                                    <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#8f0010] px-1.5 text-xs font-bold text-white">
                                         {convo.unread_count}
                                     </span>
                                 )}
