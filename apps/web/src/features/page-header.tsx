@@ -6,6 +6,7 @@ type HeaderProps = {
     isLoggedIn: boolean;
     isRegistering: boolean;
     profile?: UserProfile | null;
+    avatarCacheBust?: number;
     searchQuery?: string;
     setSearchQuery?: (query: string) => void;
 };
@@ -14,11 +15,14 @@ export default function PageHeader({
     isLoggedIn,
     isRegistering,
     profile,
+    avatarCacheBust,
     searchQuery,
     setSearchQuery,
 }: HeaderProps) {
     const shouldCenterTitle = !isLoggedIn && !isRegistering;
-    const profileAvatarSrc = profile?.avatar_path ? getAvatarUrl(profile.avatar_path) : '/default-avatar.png';
+    const profileAvatarSrc = profile?.avatar_path
+        ? `${getAvatarUrl(profile.avatar_path)}?t=${avatarCacheBust ?? 0}`
+        : '/default-avatar.png';
 
     return (
         <nav className="bg-red-700 p-4 w-full">

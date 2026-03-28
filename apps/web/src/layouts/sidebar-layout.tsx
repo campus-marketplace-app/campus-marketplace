@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 export default function SidebarLayout() {
     const [searchQuery, setSearchQuery] = useState('');
     const [listingsRefreshKey, setListingsRefreshKey] = useState(0);
+    const [profileRefreshKey, setProfileRefreshKey] = useState(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -65,7 +66,7 @@ export default function SidebarLayout() {
         };
 
         void checkUserSession();
-    }, [location.pathname]);
+    }, [location.pathname, profileRefreshKey]);
 
     return (
         <div className="flex flex-col h-screen">
@@ -73,6 +74,7 @@ export default function SidebarLayout() {
                 isLoggedIn={isLoggedIn}
                 isRegistering={isRegistering}
                 profile={profile}
+                avatarCacheBust={profileRefreshKey}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
             />
@@ -95,7 +97,7 @@ export default function SidebarLayout() {
 
                 <main className="flex-1 overflow-auto">
                     <Outlet
-                        context={{ user, searchQuery, listingsRefreshKey }}
+                        context={{ user, searchQuery, listingsRefreshKey, onProfileSave: () => setProfileRefreshKey((prev) => prev + 1) }}
                     />
                 </main>
             </div>

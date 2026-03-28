@@ -5,14 +5,16 @@ import type { SessionUser } from "../features/types";
 
 type OutletContext = {
     user: SessionUser | null;
+    onProfileSave?: () => void;
 };
 
 const xssRegex = /<[^>]*>|javascript\s*:|vbscript\s*:|data\s*:\s*text\/html|on[a-z]+\s*=/i;
 
 export default function Profile() {
-    const { user } = useOutletContext<OutletContext>();
+    const { user, onProfileSave } = useOutletContext<OutletContext>();
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
     const [accountTitle, setAccountTitle] = useState("Student Account");
     const [name, setName] = useState("Campus User");
     const [email, setEmail] = useState("student@university.edu");
@@ -97,7 +99,7 @@ export default function Profile() {
                 setBio(profile.bio);
             }
             if (profile.avatar_path !== null) {
-                setAvatarUrl(getAvatarUrl(profile.avatar_path));
+                setAvatarUrl(`${getAvatarUrl(profile.avatar_path)}?t=${Date.now()}`);
             }
         } catch (error) {
             console.error("Failed to load profile:", error);
@@ -129,7 +131,7 @@ export default function Profile() {
                     avatarPath = updatedProfile.avatar_path ?? undefined;
 
                     if (updatedProfile.avatar_path) {
-                        setAvatarUrl(getAvatarUrl(updatedProfile.avatar_path));
+                        setAvatarUrl(`${getAvatarUrl(updatedProfile.avatar_path)}?t=${Date.now()}`);
                     }
                 }
 
@@ -142,6 +144,8 @@ export default function Profile() {
                 console.error("Failed to save profile:", error);
             }
             setIsEditing(false);
+            setRefreshKey((prev) => prev + 1);
+            onProfileSave?.();
         }
     };
 
@@ -156,7 +160,7 @@ export default function Profile() {
         }
 
         void loadProfile(user.id);
-    }, [user]);
+    }, [user, refreshKey]);
 
     const hasValidationErrors = Boolean(nameError || bioError || avatarError);
     const isSaveDisabled = isEditing && hasValidationErrors;
@@ -189,6 +193,17 @@ export default function Profile() {
             <section className="relative z-10 w-full p-6 sm:p-8">
                 <div className="overflow-y-auto mx-auto w-full max-w-3xl rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
                     <div className="space-y-8">
+                        {isEditing && (
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setAccountTitle(prev => prev === "Student Account" ? "Business Account" : "Student Account")}
+                                    className="rounded-xl bg-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/30"
+                                >
+                                    {accountTitle === "Student Account" ? "Switch to Business" : "Switch to Student"}
+                                </button>
+                            </div>
+                        )}
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Profile</p>
                             <input
