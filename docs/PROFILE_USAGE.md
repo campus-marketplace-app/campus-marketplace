@@ -25,6 +25,7 @@ interface UserProfile {
   last_name: string | null
   bio: string | null
   avatar_path: string | null // storage path e.g. "uuid/avatar.png" — NOT a URL, use getAvatarUrl()
+  account_type: "student" | "business"
   created_at: string     // ISO-8601
   updated_at: string
 }
@@ -65,6 +66,7 @@ const profile = await upsertProfile({
 | `last_name` | `string \| null` | no |
 | `bio` | `string \| null` | no |
 | `avatar_path` | `string \| null` | no |
+| `account_type` | `"student" \| "business" \| null` | no (defaults to `"student"`) |
 
 **Returns:** `UserProfile`
 **Throws:** if `user_id` or `display_name` is empty
@@ -87,6 +89,8 @@ await updateProfile(session.user.id, { bio: "Updated bio" });
 | `updates.last_name` | `string \| null` | no |
 | `updates.bio` | `string \| null` | no |
 | `updates.avatar_path` | `string \| null` | no |
+
+`account_type` is intentionally not accepted by `updateProfile` and is immutable after profile creation.
 
 **Returns:** updated `UserProfile`
 **Throws:** if no fields are provided, or `display_name` is set to `""`
