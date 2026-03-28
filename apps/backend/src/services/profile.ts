@@ -1,5 +1,11 @@
 import { supabase } from "../supabase-client.js";
 
+export type AccountType = "student" | "business";
+
+function isAccountType(value: string): value is AccountType {
+  return value === "student" || value === "business";
+}
+
 // Expected object shape for profile rows in the database
 export interface UserProfile {
   user_id: string;
@@ -8,11 +14,12 @@ export interface UserProfile {
   last_name: string | null;
   bio: string | null;
   avatar_path: string | null;
+  account_type: AccountType;
   created_at: string;
   updated_at: string;
 }
 
-// Input shape for creating/updating profiles. user_id is required for upsert but not update.
+// Input shape for creating/upserting profiles.
 export interface UpsertProfileInput {
   user_id: string;
   display_name: string;
@@ -20,9 +27,18 @@ export interface UpsertProfileInput {
   last_name?: string | null;
   bio?: string | null;
   avatar_path?: string | null;
+  account_type?: AccountType | null;
 }
 
-const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,created_at,updated_at";
+export interface UpdateProfileInput {
+  display_name?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  bio?: string | null;
+  avatar_path?: string | null;
+}
+
+const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,account_type,created_at,updated_at";
 
 // GET: Loads one user's profile by auth user ID. Returns a user profile, otherwise throws an error.
 export async function getProfile(userId: string): Promise<UserProfile> {
@@ -57,6 +73,10 @@ export async function upsertProfile(input: UpsertProfileInput): Promise<UserProf
     throw new Error("Profile display_name is required");
   }
 
+  if (input.account_type !== undefined && input.account_type !== null && !isAccountType(input.account_type)) {
+    throw new Error("Profile account_type must be either 'student' or 'business'");
+  }
+
   // Supabase upsert requires all fields to be present, so we set missing optional fields to null
   const payload = {
     user_id: input.user_id,
@@ -65,6 +85,7 @@ export async function upsertProfile(input: UpsertProfileInput): Promise<UserProf
     last_name: input.last_name ?? null,
     bio: input.bio ?? null,
     avatar_path: input.avatar_path ?? null,
+    account_type: input.account_type ?? "student",
   };
 
   const { data, error } = await supabase
@@ -114,8 +135,8 @@ export function getAvatarUrl(avatarPath: string): string {
   return data.publicUrl;
 }
 
-// UPDATE: Applies partial profile updates.
-export async function updateProfile(userId: string, updates: Partial<Omit<UpsertProfileInput, "user_id">>): Promise<UserProfile> {
+// UPDATE: Applies partial profile updates (account_type is intentionally immutable here).
+export async function updateProfile(userId: string, updates: UpdateProfileInput): Promise<UserProfile> {
   if (!userId.trim()) {
     throw new Error("Profile user_id is required");
   }

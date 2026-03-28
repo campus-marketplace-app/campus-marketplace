@@ -1,6 +1,6 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../supabase-client.js";
-import { upsertProfile, type UpsertProfileInput } from "./profile.js";
+import { upsertProfile, type AccountType, type UpsertProfileInput } from "./profile.js";
 
 // Input shape for signing up with email/password. We require display_name for profile creation but other profile fields are optional.
 export interface SignUpInput {
@@ -11,6 +11,7 @@ export interface SignUpInput {
   last_name?: string | null;
   bio?: string | null;
   avatar_path?: string | null;
+  account_type?: AccountType | null;
 }
 
 // Input shape for signing in with email/password.
@@ -23,6 +24,10 @@ export interface SignInInput {
 export interface AuthResult {
   user: User;
   session: Session | null;
+}
+
+function isAccountType(value: string): value is AccountType {
+  return value === "student" || value === "business";
 }
 
 // SIGNUP: Creates an auth user with email/password and initializes a profile.
@@ -48,6 +53,12 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     throw new Error("Only .edu email addresses are allowed to sign up.");
   }
 
+  if (input.account_type !== undefined && input.account_type !== null && !isAccountType(input.account_type)) {
+    throw new Error("Account type must be either 'student' or 'business'");
+  }
+
+  const accountType: AccountType = input.account_type ?? "student";
+
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
@@ -56,6 +67,7 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
         display_name: input.display_name,
         first_name: input.first_name ?? null,
         last_name: input.last_name ?? null,
+        account_type: accountType,
       },
     },
   });
@@ -75,11 +87,12 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     last_name: input.last_name ?? null,
     bio: input.bio ?? null,
     avatar_path: input.avatar_path ?? null,
+    account_type: accountType,
   };
 
   // The DB trigger `handle_new_user` also creates a profile on auth signup,
-  // but it only sets display_name. This explicit upsert adds bio, avatar_path,
-  // and other optional fields the trigger doesn't handle. Both writes are safe
+  // including display_name/name metadata and account_type. This explicit upsert
+  // still applies optional profile fields like bio/avatar and remains safe
   // because upsertProfile uses "on conflict do update".
   //
   // If this call fails, the auth user is left without a full profile.

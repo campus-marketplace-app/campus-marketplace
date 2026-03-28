@@ -22,6 +22,7 @@ describe("upsertProfile", () => {
 
     expect(profile.user_id).toBe(testUser.user.id);
     expect(profile.display_name).toBe("Profile Test User");
+    expect(profile.account_type).toBe("student");
     expect(profile.created_at).toBeDefined();
     expect(profile.updated_at).toBeDefined();
   });
@@ -47,6 +48,7 @@ describe("getProfile", () => {
     expect(profile.display_name).toBeTruthy();
     expect("first_name" in profile).toBe(true);
     expect("bio" in profile).toBe(true);
+    expect("account_type" in profile).toBe(true);
   });
 
   it("throws for nonexistent userId", async () => {
