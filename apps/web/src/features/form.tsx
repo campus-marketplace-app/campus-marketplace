@@ -33,7 +33,7 @@ export default function Form({
     const [availableFrom] = useState(getCurrentDateTimeLocal);
     const [availableTo] = useState(getCurrentDateTimeLocal);
     const [listingQuantity, setListingQuantity] = useState(1);
-    const [listingType] = useState<ListingType>('item');
+    const [listingType, setListingType] = useState<ListingType>('item');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -154,6 +154,42 @@ export default function Form({
 
                         <div className="space-y-5">
                             <div className="grid grid-cols-2 gap-4">
+                                <div className="col-span-2">
+                                    <p className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">Listing Type</p>
+                                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/15 p-1">
+                                        <input
+                                            type="radio"
+                                            id="item"
+                                            name="listingType"
+                                            value="item"
+                                            checked={listingType === 'item'}
+                                            onChange={() => setListingType('item')}
+                                            className="sr-only"
+                                        />
+                                        <label
+                                            htmlFor="item"
+                                            className={`cursor-pointer rounded-lg border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'item' ? 'border-black bg-black text-white shadow-md ring-2 ring-white/80' : 'border-white/60 bg-transparent text-white hover:bg-white/15'}`}
+                                        >
+                                            Item
+                                        </label>
+
+                                        <input
+                                            type="radio"
+                                            id="service"
+                                            name="listingType"
+                                            value="service"
+                                            checked={listingType === 'service'}
+                                            onChange={() => setListingType('service')}
+                                            className="sr-only"
+                                        />
+                                        <label
+                                            htmlFor="service"
+                                            className={`cursor-pointer rounded-lg border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'service' ? 'border-black bg-black text-white shadow-md ring-2 ring-white/80' : 'border-white/60 bg-transparent text-white hover:bg-white/15'}`}
+                                        >
+                                            Service
+                                        </label>
+                                    </div>
+                                </div>
                                 <div>
                                     <label htmlFor="price" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
                                         Price
