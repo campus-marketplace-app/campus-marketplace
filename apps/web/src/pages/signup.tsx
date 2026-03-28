@@ -2,9 +2,12 @@ import { useState, type ComponentProps } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signUpWithEmail } from "@campus-marketplace/backend";
 
+type SignupAccountType = "student" | "business";
+
 export default function Signup() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
+    const [accountType, setAccountType] = useState<SignupAccountType>("student");
     const [password, setPassword] = useState('');
     const [rePassword, setRePassword] = useState('');
     const [emailMessage, setEmailMessage] = useState('');
@@ -79,6 +82,7 @@ export default function Signup() {
                 email,
                 password,
                 display_name: displayName,
+                account_type: accountType,
             });
 
             if (session) {
@@ -108,11 +112,12 @@ export default function Signup() {
                     </p>
                 </div>
 
-                <div className="mx-auto w-full max-w-[380px] border border-[#7d5558] bg-[#c86d72] px-5 pb-6 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:px-7">
-                    <h1 className="mb-8 bg-[#8c0010] py-2 text-center text-3xl uppercase tracking-wide text-black">
+                <div className="mx-auto w-full max-w-[380px] overflow-hidden border border-[#7d5558] bg-[#c86d72] shadow-[0_2px_8px_rgba(0,0,0,0.22)]">
+                    <h1 className="mb-8 bg-[#8c0010] py-3 text-center text-3xl uppercase tracking-wide text-white shadow-sm">
                         Signup
                     </h1>
 
+                    <div className="px-5 pb-6 sm:px-7">
                     <form className="flex flex-col gap-7" onSubmit={handleSubmit}>
                         <input
                             type="text"
@@ -170,6 +175,47 @@ export default function Signup() {
                             (<p className="text-sm text-white">{rePasswordMessage}</p>) : null
                         }
 
+                        <div className="space-y-3">
+                            <p className="text-center text-base font-medium text-black">I am a...</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <label
+                                    className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
+                                        accountType === 'student'
+                                            ? 'border-[#8c0010] bg-[#8c0010] text-white'
+                                            : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="accountType"
+                                        value="student"
+                                        checked={accountType === 'student'}
+                                        onChange={() => setAccountType('student')}
+                                        className="sr-only"
+                                    />
+                                    Student
+                                </label>
+
+                                <label
+                                    className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
+                                        accountType === 'business'
+                                            ? 'border-[#8c0010] bg-[#8c0010] text-white'
+                                            : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
+                                    }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="accountType"
+                                        value="business"
+                                        checked={accountType === 'business'}
+                                        onChange={() => setAccountType('business')}
+                                        className="sr-only"
+                                    />
+                                    Business
+                                </label>
+                            </div>
+                        </div>
+
                         {serverError && <p className="text-sm text-white">{serverError}</p>}
 
                         <button
@@ -187,6 +233,7 @@ export default function Signup() {
                     >
                         Back to login
                     </Link>
+                    </div>
                 </div>
             </div>
         </section>

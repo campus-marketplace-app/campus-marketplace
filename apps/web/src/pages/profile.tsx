@@ -103,6 +103,11 @@ export default function Profile() {
             if (profile.avatar_path !== null) {
                 setAvatarUrl(`${getAvatarUrl(profile.avatar_path)}?t=${Date.now()}`);
             }
+            if (profile.account_type === 'student') {
+                setAccountTitle("Student");
+            } else if (profile.account_type === 'business') {
+                setAccountTitle("Business");
+            }
         } catch (error) {
             console.error("Failed to load profile:", error);
         }
@@ -195,27 +200,14 @@ export default function Profile() {
             <section className="relative z-10 w-full p-6 sm:p-8">
                 <div className="overflow-y-auto mx-auto w-full max-w-3xl rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
                     <div className="space-y-8">
-                        {isEditing && (
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={() => setAccountTitle(prev => prev === "Student Account" ? "Business Account" : "Student Account")}
-                                    className="rounded-xl bg-white/20 px-3 py-1 text-xs font-semibold text-white transition hover:bg-white/30"
-                                >
-                                    {accountTitle === "Student Account" ? "Switch to Business" : "Switch to Student"}
-                                </button>
-                            </div>
-                        )}
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Profile</p>
-                            <input
+                            <p
                                 id="accountTitle"
-                                type="text"
-                                value={accountTitle}
-                                readOnly={!isEditing}
-                                onChange={(e) => setAccountTitle(e.target.value)}
                                 className="w-full rounded-2xl bg-white px-4 py-3 text-center text-3xl text-black outline-none"
-                            />
+                            >
+                                {accountTitle}
+                            </p>
                         </div>
 
                         <div className="grid gap-8 md:grid-cols-[1fr_1.3fr]">
