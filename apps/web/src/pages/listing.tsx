@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useOutletContext } from "react-router-dom";
-import { getListingWithDetails, createConversation, ensureFreshSession } from "@campus-marketplace/backend";
+import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
+import { getListingWithDetails, createConversation, ensureFreshSession, getProfile } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 
 
@@ -10,6 +10,14 @@ export default function Listing() {
     const { user } = useOutletContext<OutletContext>();
     const [listingData, setListingData] = useState<any>(null);
     const [messagingLoading, setMessagingLoading] = useState(false);
+    const [displayName, setDisplayName] = useState<string>("");
+
+    const formatDateTime = (value?: string | null) => {
+        if (!value) return "N/A";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString();
+    };
 
     useEffect(() => {
         if (!id) {
