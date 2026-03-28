@@ -6,6 +6,7 @@ import {
     sendMessage,
     markMessagesRead,
     subscribeToMessages,
+    getSessionFromTokens,
 } from "@campus-marketplace/backend";
 import type { Conversation, Message } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
@@ -28,6 +29,15 @@ export default function Messages() {
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+
+    // --- restore Supabase session so RLS recognizes the user ---
+    useEffect(() => {
+        const accessToken = localStorage.getItem("access_token");
+        const refreshToken = localStorage.getItem("refresh_token");
+        if (accessToken && refreshToken) {
+            getSessionFromTokens(accessToken, refreshToken).catch(console.error);
+        }
+    }, []);
 
     // --- load conversations on mount ---
     useEffect(() => {
