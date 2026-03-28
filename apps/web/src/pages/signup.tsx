@@ -221,7 +221,7 @@ export default function Signup() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b] disabled:opacity-60"
+                            className="bg-[#8c0010] py-2 text-lg text-white transition hover:bg-[#9f0a1b] disabled:opacity-60"
                         >
                             {loading ? 'Signing up...' : 'Submit'}
                         </button>
