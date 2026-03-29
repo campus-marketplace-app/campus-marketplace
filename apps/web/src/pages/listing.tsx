@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl } from "@campus-marketplace/backend";
+import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
 
@@ -21,6 +21,49 @@ export default function Listing() {
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return value;
         return date.toLocaleString();
+    };
+
+    const formatMissingPublishFields = (fields: string[]) => {
+        const labels: Record<string, string> = {
+            title: "Title",
+            category_id: "Category",
+            price: "Price",
+            location: "Location",
+            images: "At least one image",
+            item_condition: "Item condition",
+            item_quantity: "Item quantity",
+            service_duration_minutes: "Service duration",
+        };
+
+        return fields.map((field) => labels[field] ?? field);
+    };
+
+    const getClientMissingPublishFields = () => {
+        if (!listingData) return [] as string[];
+
+        const missing: string[] = [];
+
+        if (!listingData.title || !String(listingData.title).trim()) {
+            missing.push("title");
+        }
+
+        if (listingData.price === null || listingData.price === undefined || Number.isNaN(Number(listingData.price))) {
+            missing.push("price");
+        }
+
+        if (!listingData.category_id) {
+            missing.push("category_id");
+        }
+
+        if (!listingData.location || !String(listingData.location).trim()) {
+            missing.push("location");
+        }
+
+        if (!Array.isArray(listingData.images) || listingData.images.length === 0) {
+            missing.push("images");
+        }
+
+        return missing;
     };
 
     const refreshTokens = async () => {
@@ -46,9 +89,18 @@ export default function Listing() {
         setPublishLoading(true);
         if (listingData.status === "draft") {
             try {
-                await publishListing(listingData.id, user.id);
-                const updatedListing = await getListingWithDetails(listingData.id);
-                setListingData(updatedListing);
+                const readiness = await getListingPublishReadiness(listingData.id, user.id);
+                const clientMissing = getClientMissingPublishFields();
+                const mergedMissing = Array.from(new Set([...(readiness.missingFields as string[]), ...clientMissing]));
+
+                if (!readiness.isPublishable || mergedMissing.length > 0) {
+                    const missingLabels = formatMissingPublishFields(mergedMissing);
+                    alert(`This listing cannot be published yet. Please add:\n- ${missingLabels.join("\n- ")}`);
+                } else {
+                    await publishListing(listingData.id, user.id);
+                    const updatedListing = await getListingWithDetails(listingData.id);
+                    setListingData(updatedListing);
+                }
             } catch (error) {
                 console.error("Error publishing listing:", error);
             }
