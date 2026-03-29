@@ -136,7 +136,7 @@ export default function Listing() {
         }
         setDeleteLoading(true);
         try {
-            await deleteListing(user?.id, listingData.id);
+            await deleteListing(listingData.id, user?.id);
             alert("Listing deleted successfully.");
             navigate("/");
         } catch (error) {
