@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing } from "@campus-marketplace/backend";
+import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
 
@@ -164,7 +164,15 @@ export default function Listing() {
                             <div>
                                 <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
                                 <div className="flex min-h-72 items-center justify-center rounded-xl bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
-                                    {listingData?.images?.[0]?.alt_text ?? "PICTURE OF THE PRODUCT"}
+                                    {listingData?.images?.[0]?.path ? (
+                                        <img
+                                            src={getListingImageUrl(listingData.images[0].path)}
+                                            alt={listingData?.images?.[0]?.alt_text ?? "Listing image"}
+                                            className="h-64 w-full rounded-lg object-cover"
+                                        />
+                                    ) : (
+                                        "PICTURE OF THE PRODUCT"
+                                    )}
                                 </div>
                                 <Link
                                     to={`/profile/${listingData?.user_id}`}

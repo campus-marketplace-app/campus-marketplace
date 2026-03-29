@@ -19,6 +19,34 @@ const MyListings = () => {
     const [isLoading, setIsLoading] = useState(true);     // State to track if data is still loading
     const [filterStatus, setFilterStatus] = useState<"published" | "draft">("published");     // State to track the current filter: published or draft
 
+    // Fetch user profile and listings on component mount
+    useEffect(() => {
+        if (!user) {
+            setProfileData(null);
+            setListingsData([]);
+            setIsLoading(false);
+            return;
+        }
+
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                // Fetch profile and listings in parallel
+                const [profile, listings] = await Promise.all([
+                    getProfile(user.id),
+                    getListingsByUser(user.id),
+                ]);
+                setProfileData(profile);
+                setListingsData(listings as ListingWithDetails[]);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        void fetchData();
+    }, [user]);
+
     // Show sign-in prompt if user is not logged in.
     if (!user) {
         return (
@@ -38,27 +66,6 @@ const MyListings = () => {
             </div>
         );
     }
-
-    // Fetch user profile and listings on component mount
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                // Fetch profile and listings in parallel
-                const [profile, listings] = await Promise.all([
-                    getProfile(user.id),
-                    getListingsByUser(user.id),
-                ]);
-                setProfileData(profile);
-                setListingsData(listings as ListingWithDetails[]);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
-    }, [user.id]);
 
     // Filter listings by status: active = published, draft = draft
     const publishedListings = listingsData.filter((l) => l.status === "active");

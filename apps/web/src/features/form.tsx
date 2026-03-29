@@ -1,6 +1,14 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { createListing, updateListing, upsertItemDetails, upsertServiceDetails } from '@campus-marketplace/backend';
-import type { ItemCondition, ListingWithDetails } from '@campus-marketplace/backend';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import {
+    createListing,
+    deleteListingImage,
+    getListingImageUrl,
+    updateListing,
+    uploadListingImage,
+    upsertItemDetails,
+    upsertServiceDetails,
+} from '@campus-marketplace/backend';
+import type { ItemCondition, ListingImageContentType, ListingWithDetails } from '@campus-marketplace/backend';
 import type { ListingType, SessionUser } from './types';
 
 type FormProps = {
@@ -38,12 +46,34 @@ export default function Form({
     const [listingType, setListingType] = useState<ListingType>('item');
     const [location, setLocation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const objectUrlRef = useRef<string | null>(null);
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
-        if (selectedFile) {
-            setListingImageLabel(selectedFile.name);
+        if (!selectedFile) return;
+
+        const allowedMimeTypes: ListingImageContentType[] = ['image/jpeg', 'image/png', 'image/webp'];
+        const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase() ?? '';
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+
+        if (!allowedMimeTypes.includes(selectedFile.type as ListingImageContentType) || !allowedExtensions.includes(fileExtension)) {
+            alert('Only jpg, jpeg, png, and webp files are allowed.');
+            event.target.value = '';
+            return;
         }
+
+        if (objectUrlRef.current) {
+            URL.revokeObjectURL(objectUrlRef.current);
+        }
+
+        const previewUrl = URL.createObjectURL(selectedFile);
+        objectUrlRef.current = previewUrl;
+
+        setSelectedImageFile(selectedFile);
+        setListingImageLabel(selectedFile.name);
+        setImagePreviewUrl(previewUrl);
     };
 
     const handleSubmit = async (e: FormEvent) => {
@@ -106,6 +136,7 @@ export default function Form({
 
         try {
             const listingId = editListing?.id;
+            let targetListingId = listingId;
 
             if (listingId) {
                 await updateListing(listingId, user.id, {
@@ -140,6 +171,7 @@ export default function Form({
                     price_unit: '$',
                     location: location.trim() || null,
                 });
+                targetListingId = newlisting.id;
 
                 if (listingType === 'item') {
                     await upsertItemDetails(newlisting.id, user.id, {
@@ -155,6 +187,39 @@ export default function Form({
                     });
                 }
             }
+
+            if (selectedImageFile && targetListingId) {
+                const existingImage = editListing?.images?.[0] ?? null;
+
+                if (existingImage) {
+                    await deleteListingImage(existingImage.id, user.id);
+                }
+
+                const extension = selectedImageFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+                const baseName = selectedImageFile.name.replace(/\.[^/.]+$/, '');
+                const cacheSafeFilename = `${baseName}-${Date.now()}.${extension}`;
+
+                const uploadedImage = await uploadListingImage(
+                    targetListingId,
+                    user.id,
+                    selectedImageFile,
+                    selectedImageFile.type as ListingImageContentType,
+                    {
+                        alt_text: selectedImageFile.name,
+                        filename: cacheSafeFilename,
+                    },
+                );
+
+                const uploadedUrl = getListingImageUrl(uploadedImage.path);
+
+                if (objectUrlRef.current) {
+                    URL.revokeObjectURL(objectUrlRef.current);
+                    objectUrlRef.current = null;
+                }
+
+                setImagePreviewUrl(uploadedUrl);
+            }
+
             onSubmitSuccess?.();
             setIsSubmitting(false);
             onClose();
@@ -178,6 +243,8 @@ export default function Form({
                 setListingType(editListing.type);
                 setListingDate(editListing.created_at ? editListing.created_at.slice(0, 16) : getCurrentDateTimeLocal());
                 setListingImageLabel(editListing.images?.[0]?.alt_text ?? 'picture of the product');
+                setSelectedImageFile(null);
+                setImagePreviewUrl(editListing.images?.[0]?.path ? getListingImageUrl(editListing.images[0].path) : null);
 
                 if (editListing.type === 'item' && editListing.item_details) {
                     setListingCondition(editListing.item_details.condition);
@@ -191,6 +258,9 @@ export default function Form({
                 }
             } else {
                 setListingDate(getCurrentDateTimeLocal());
+                setListingImageLabel('picture of the product');
+                setSelectedImageFile(null);
+                setImagePreviewUrl(null);
             }
         }
 
@@ -198,6 +268,14 @@ export default function Form({
             document.body.style.overflow = previousOverflow;
         };
     }, [showForm, editListing]);
+
+    useEffect(() => {
+        return () => {
+            if (objectUrlRef.current) {
+                URL.revokeObjectURL(objectUrlRef.current);
+            }
+        };
+    }, []);
 
     if (!showForm) {
         return null;
@@ -235,10 +313,18 @@ export default function Form({
                         <div>
                             <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
                             <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
-                                <span>{listingImageLabel}</span>
+                                {imagePreviewUrl ? (
+                                    <img
+                                        src={imagePreviewUrl}
+                                        alt={listingImageLabel}
+                                        className="h-40 w-full max-w-xs rounded-lg object-cover"
+                                    />
+                                ) : (
+                                    <span>{listingImageLabel}</span>
+                                )}
                                 <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
                                     Choose Image
-                                    <input type="file" accept="image/*" className="hidden" onChange={handleListingImageChange} />
+                                    <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="hidden" onChange={handleListingImageChange} />
                                 </label>
                             </div>
                         </div>
