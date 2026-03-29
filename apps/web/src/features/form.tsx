@@ -34,7 +34,9 @@ export default function Form({
     const [availableTo, setAvailableTo] = useState('17:00');
     const [listingQuantity, setListingQuantity] = useState(1);
     const [listingType, setListingType] = useState<ListingType>('item');
+    const [location, setLocation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [imgFile, setImgFile] = useState<File | null>(null);
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -93,6 +95,12 @@ export default function Form({
             return;
         }
 
+        if (regex.test(location) || location.trim().length > 100) {
+            alert('Location cannot exceed 100 characters.');
+            setIsSubmitting(false);
+            return;
+        }
+
         const toTimeWithSeconds = (time: string) => (time.length === 5 ? `${time}:00` : time);
 
         try {
@@ -104,6 +112,7 @@ export default function Form({
                 description: listingDescription,
                 category_id: listingCategory,
                 price_unit: '$',
+                location: location.trim() || null,
             });
 
             console.log('Listing created successfully:', newlisting);
@@ -355,6 +364,20 @@ export default function Form({
                                     readOnly={true}
                                     value={listingDate}
                                     className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="location" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                    Location
+                                </label>
+                                <input
+                                    id="location"
+                                    type="text"
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                    placeholder="e.g. Campus Center, Building A"
+                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-gray-400"
                                 />
                             </div>
 
