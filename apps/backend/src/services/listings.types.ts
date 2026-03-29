@@ -136,3 +136,20 @@ export interface SearchListingsOptions {
   limit?: number;       // Max rows to return — defaults to 50
   offset?: number;      // Rows to skip for pagination (e.g. offset 20 + limit 20 = page 2)
 }
+
+/** Machine-readable fields that can block publishing a listing. */
+export type PublishMissingField =
+  | "title"
+  | "category_id"
+  | "price"
+  | "location"
+  | "images"
+  | "item_condition"
+  | "item_quantity"
+  | "service_duration_minutes";
+
+/** Publish readiness result used by backend and frontend consumers. */
+export interface ListingPublishReadiness {
+  isPublishable: boolean;
+  missingFields: PublishMissingField[];
+}
