@@ -11,6 +11,7 @@ export default function Listing() {
     const [listingData, setListingData] = useState<any>(null);
     const [messagingLoading, setMessagingLoading] = useState(false);
     const [displayName, setDisplayName] = useState<string>("");
+    const [publishLoading, setPublishLoading] = useState(false);
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -18,6 +19,15 @@ export default function Listing() {
         if (Number.isNaN(date.getTime())) return value;
         return date.toLocaleString();
     };
+
+    const refreshTokens = async () => {
+        const { session } = await ensureFreshSession();
+        if (session) {
+            localStorage.setItem("access_token", session.access_token);
+            localStorage.setItem("refresh_token", session.refresh_token);
+        }
+    };
+
 
     useEffect(() => {
         if (!id) {
