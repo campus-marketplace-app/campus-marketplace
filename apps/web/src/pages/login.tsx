@@ -1,9 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState, type ComponentProps } from 'react';
 import { signInWithEmail } from "@campus-marketplace/backend";
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Login() {
     const navigate = useNavigate();
+    const { schoolName, emailDomain } = useTheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [emailMessage, setEmailMessage] = useState('');
@@ -11,10 +13,11 @@ export default function Login() {
     const [submitted, setSubmitted] = useState(false);
 
     const checkEmail = (value: string) => {
-        const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
+        const escapedDomain = emailDomain.replace(/\./g, '\\.');
+        const emailRegex = new RegExp(`^[A-Z0-9._%+-]+@${escapedDomain}$`, 'i');
 
         if (!emailRegex.test(value)) {
-            setEmailMessage('Please enter a valid NJIT email address ending in @njit.edu.');
+            setEmailMessage(`Please enter a valid ${schoolName} email address ending in @${emailDomain}.`);
             return false;
         }
 
@@ -63,11 +66,11 @@ export default function Login() {
     }
 
     return (
-        <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[#dddddd] px-4 py-8 sm:px-8">
+        <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[var(--color-background-alt)] px-4 py-8 sm:px-8">
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
                 <div className="px-2 text-black sm:px-6">
                     <p className="text-2xl font-normal tracking-tight sm:text-4xl">
-                        Welcome to Campus Marketplace!
+                        Welcome to {schoolName} Marketplace!
                     </p>
                     <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
                         Your one-stop shop for buying and selling items on campus!
@@ -78,15 +81,15 @@ export default function Login() {
                     </p>
                 </div>
 
-                <div className="mx-auto w-full max-w-[380px] border border-[#7d5558] bg-[#c86d72] px-5 pb-6 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:px-7">
-                    <h1 className="mb-8 bg-[#8c0010] py-2 text-center text-3xl uppercase tracking-wide text-black">
+                <div className="mx-auto w-full max-w-[380px] border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] px-5 pb-6 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:px-7">
+                    <h1 className="mb-8 bg-[var(--color-primary)] py-2 text-center text-3xl uppercase tracking-wide text-[var(--color-text-on-primary)]">
                         Login
                     </h1>
 
                     <form className="flex flex-col gap-7" onSubmit={handleSubmit}>
                         <input
                             type="email"
-                            placeholder="Njit Email"
+                            placeholder="School Email"
                             className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
                             value={email}
                             onChange={
@@ -119,7 +122,7 @@ export default function Login() {
 
                         <button
                             type="submit"
-                            className="bg-[#8c0010] py-2 text-lg text-black transition hover:bg-[#9f0a1b]"
+                            className="bg-[var(--color-primary)] py-2 text-lg text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-hover)]"
                         >
                             Submit
                         </button>
@@ -127,7 +130,7 @@ export default function Login() {
 
                     <Link
                         to="/signup"
-                        className="mx-auto mt-4 block w-fit bg-[#8c0010] px-8 py-2 text-center text-sm text-black transition hover:bg-[#9f0a1b]"
+                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary)] px-8 py-2 text-center text-sm text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-hover)]"
                     >
                         create new account
                     </Link>

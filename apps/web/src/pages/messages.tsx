@@ -179,7 +179,7 @@ export default function Messages() {
                     </p>
                     <Link
                         to="/login"
-                        className="block rounded bg-[#8f0010] px-4 py-2 text-center font-semibold text-white"
+                        className="block rounded bg-[var(--color-primary)] px-4 py-2 text-center font-semibold text-[var(--color-text-on-primary)]"
                     >
                         Go to Login
                     </Link>
@@ -206,7 +206,7 @@ export default function Messages() {
         <section className="h-full w-full">
             {errorBanner}
 
-            <div className="grid h-full w-full grid-cols-1 overflow-hidden border border-[#b9b9b9] bg-[#cfcfcf] sm:grid-cols-[230px_1fr]">
+            <div className="grid h-full w-full grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_1fr]">
                 {/* Sidebar — hidden on mobile when viewing a chat */}
                 <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"}`}>
                     <ConversationList
@@ -233,8 +233,8 @@ export default function Messages() {
                             onBack={() => setMobileView("list")}
                         />
                     ) : (
-                        <div className="flex h-full w-full flex-col border-l border-[#b9b9b9]">
-                            <div className="mx-auto mt-3 w-[55%] bg-[#ececec] py-3 text-center text-2xl text-black">
+                        <div className="flex h-full w-full flex-col border-l border-[var(--color-border)]">
+                            <div className="mx-auto mt-3 w-[55%] bg-[var(--color-background)] py-3 text-center text-2xl text-black">
                                 Messages
                             </div>
                             <div className="flex flex-1 items-center justify-center px-4 pb-4 pt-6 sm:px-8">

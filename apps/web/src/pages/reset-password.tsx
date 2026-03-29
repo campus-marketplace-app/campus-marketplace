@@ -70,9 +70,9 @@ export default function ResetPassword() {
     }, []);
 
     return (
-        <section className="flex min-h-[calc(100vh-64px)] w-full items-center justify-center bg-[#dddddd] px-4 py-10 sm:px-8">
-            <div className="w-full max-w-md border border-[#7d5558] bg-[#c86d72] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:p-8">
-                <h1 className="bg-[#8c0010] py-2 text-center text-3xl font-semibold uppercase tracking-wide text-black">
+        <section className="flex min-h-[calc(100vh-64px)] w-full items-center justify-center bg-[var(--color-background-alt)] px-4 py-10 sm:px-8">
+            <div className="w-full max-w-md border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:p-8">
+                <h1 className="bg-[var(--color-primary)] py-2 text-center text-3xl font-semibold uppercase tracking-wide text-black">
                     Reset Password
                 </h1>
 
@@ -115,7 +115,7 @@ export default function ResetPassword() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="mt-2 bg-[#8c0010] py-3 text-base font-semibold text-black transition hover:bg-[#9f0a1b] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-2 bg-[var(--color-primary)] py-3 text-base font-semibold text-black transition hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {loading ? 'Updating...' : 'Reset Password'}
                     </button>
@@ -123,7 +123,7 @@ export default function ResetPassword() {
 
                 <Link
                     to="/login"
-                    className="mx-auto mt-5 block w-fit bg-[#8c0010] px-6 py-2 text-center text-sm font-medium text-black transition hover:bg-[#9f0a1b]"
+                    className="mx-auto mt-5 block w-fit bg-[var(--color-primary)] px-6 py-2 text-center text-sm font-medium text-black transition hover:bg-[var(--color-primary-hover)]"
                 >
                     Back to login
                 </Link>

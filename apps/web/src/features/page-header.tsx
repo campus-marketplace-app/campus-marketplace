@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { getAvatarUrl } from '@campus-marketplace/backend';
+import { useTheme } from '../contexts/ThemeContext';
 import type { UserProfile } from "./types";
 
 type HeaderProps = {
@@ -19,16 +20,18 @@ export default function PageHeader({
     searchQuery,
     setSearchQuery,
 }: HeaderProps) {
+    const { schoolName, logoUrl } = useTheme();
     const shouldCenterTitle = !isLoggedIn && !isRegistering;
     const profileAvatarSrc = profile?.avatar_path
         ? `${getAvatarUrl(profile.avatar_path)}?t=${avatarCacheBust ?? 0}`
         : '/default-avatar.png';
 
     return (
-        <nav className="bg-red-700 p-4 w-full">
+        <nav className="bg-[var(--color-primary)] p-4 w-full">
             <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
-                <Link to="/" className="text-white font-bold text-xl">
-                    Campus Marketplace
+                <Link to="/" className="flex items-center gap-2 text-[var(--color-text-on-primary)] font-bold text-xl">
+                    {logoUrl ? <img src={logoUrl} alt={schoolName} className="h-8 w-auto" /> : null}
+                    {schoolName} Marketplace
                 </Link>
 
                 {isRegistering ? (

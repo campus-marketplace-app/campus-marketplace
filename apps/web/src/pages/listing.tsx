@@ -53,7 +53,7 @@ export default function Listing() {
             <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
 
             <section className="relative z-10 w-full p-6 sm:p-8">
-                <div className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
+                <div className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
                     <div className="space-y-8">
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Title</p>
@@ -65,7 +65,7 @@ export default function Listing() {
                         <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
                             <div>
                                 <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
-                                <div className="flex min-h-72 items-center justify-center rounded-xl bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
+                                <div className="flex min-h-72 items-center justify-center rounded-xl bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
                                     {listingData?.images?.[0]?.alt_text ?? "PICTURE OF THE PRODUCT"}
                                 </div>
                                 <Link
@@ -165,7 +165,7 @@ export default function Listing() {
                         <div className="flex items-center justify-between pt-8">
                             <button
                                 type="button"
-                                className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
                                 onClick={() => navigate(-1)}
                             >
                                 back
@@ -176,7 +176,7 @@ export default function Listing() {
                                 <button
                                     type="button"
                                     disabled={messagingLoading}
-                                    className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                                     onClick={async () => {
                                         setMessagingLoading(true);
                                         try {
@@ -207,7 +207,7 @@ export default function Listing() {
 
                             <button
                                 type="button"
-                                className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
                             >
                                 cart
                             </button>

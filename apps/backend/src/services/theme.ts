@@ -30,6 +30,12 @@ export interface SchoolTheme {
   background_image_url?: string;
   /** Dark-mode background image URL. Null if not configured. */
   background_image_url_dark?: string;
+  /** Email domain for this school (e.g. "njit.edu"). Used for signup/login validation. */
+  email_domain?: string;
+  /** Page background color. Null if not configured. */
+  background_color?: string;
+  /** Text color on primary-colored elements (e.g. "#FFFFFF" for white text on dark primary). */
+  text_on_primary?: string;
 }
 
 /**
@@ -44,7 +50,7 @@ export async function getThemeBySchoolCode(schoolCode: number): Promise<SchoolTh
   const { data, error } = await supabase
     .from("school_themes")
     .select(
-      "school_code, school_name, primary_color, secondary_color, accent_color, logo_url, font_family, button_style, primary_color_dark, secondary_color_dark, accent_color_dark, background_image_url, background_image_url_dark",
+      "school_code, school_name, primary_color, secondary_color, accent_color, logo_url, font_family, button_style, primary_color_dark, secondary_color_dark, accent_color_dark, background_image_url, background_image_url_dark, email_domain, background_color, text_on_primary",
     )
     .eq("school_code", schoolCode)
     .single();
