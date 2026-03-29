@@ -8,4 +8,5 @@ export type OutletContext = {
     user: SessionUser | null;
     profile: UserProfile | null;
     listingType: ListingType;
+    listingsRefreshKey: number;
 };

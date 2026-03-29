@@ -1,8 +1,8 @@
-import { searchListings } from "@campus-marketplace/backend";
+import { getListingImageUrl, getListingWithDetails, searchListings } from "@campus-marketplace/backend";
 import { useEffect } from "react";
 import { Link, useLocation, useOutletContext } from "react-router-dom";
 import { useState } from "react";
-import type { Listing } from "@campus-marketplace/backend";
+import type { ListingWithDetails } from "@campus-marketplace/backend";
 
 type OutletContext = {
     searchQuery: string;
@@ -12,7 +12,7 @@ type OutletContext = {
 export default function Index() {
     const location = useLocation();
     const { searchQuery, listingsRefreshKey } = useOutletContext<OutletContext>();
-    const [listingsData, setListingsData] = useState<Array<Listing>>([]);
+    const [listingsData, setListingsData] = useState<Array<ListingWithDetails>>([]);
     const [isloading, setIsLoading] = useState(true);
     const [category, setCategory] = useState<string>("");
     const [listingType, setListingType] = useState<"" | "item" | "service">("");
@@ -39,10 +39,11 @@ export default function Index() {
                 }
 
                 const data = await searchListings(options);
+                const detailedListings = await Promise.all(
+                    data.map((listing) => getListingWithDetails(listing.id)),
+                );
 
-                if (data !== null && (JSON.stringify(data) !== JSON.stringify(listingsData))) {
-                    setListingsData(data);
-                }
+                setListingsData(detailedListings);
             } catch (error) {
                 console.error("Error fetching listings:", error);
             }
@@ -105,14 +106,54 @@ export default function Index() {
                             key={listing.id}
                             to={`/listing/${listing.id}`}
                             state={{ backgroundLocation: location }}
-                            className="block rounded-lg p-2 text-center transition hover:bg-white/50 hover:shadow-md focus:outline-color=none focus-visible:ring-2 focus-visible:ring-black"
+                            className="block rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-black"
                         >
-                            <article className="rounded-lg border border-black bg-white p-4 text-center text-black">
-                                <div className="mx-auto mb-2 flex h-32 w-32 items-center justify-center bg-[var(--color-accent-muted)] text-[10px] text-black">
-                                    'img'
+                            <article
+                                className="rounded-xl border p-4 text-left text-black shadow-sm"
+                                style={{
+                                    background: "linear-gradient(180deg, color-mix(in srgb, var(--color-secondary) 26%, white), white)",
+                                    borderColor: "color-mix(in srgb, var(--color-primary) 30%, white)",
+                                }}
+                            >
+                                <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-[var(--color-secondary)] text-xs text-black">
+                                    {listing.images?.[0]?.path ? (
+                                        <img
+                                            src={getListingImageUrl(listing.images[0].path)}
+                                            alt={listing.images?.[0]?.alt_text ?? listing.title}
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-3xl">📷</span>
+                                    )}
                                 </div>
-                                <p className="text-3xl leading-none">{listing.title}</p>
-                                <p className="text-lg leading-none">{listing.price}</p>
+
+                                <p className="text-lg font-bold leading-tight">{listing.title}</p>
+
+                                <div className="mt-2 flex justify-between text-sm">
+                                    <span className="font-semibold">
+                                        {listing.price_unit ?? "$"}
+                                        {listing.price ?? "0"}
+                                    </span>
+                                    <span className="text-gray-700">
+                                        {listing.category_name ?? "N/A"}
+                                    </span>
+                                </div>
+
+                                <div className="mt-2 flex justify-between text-xs text-gray-700">
+                                    <span>
+                                        {listing.type === "item"
+                                            ? listing.item_details?.condition || "N/A"
+                                            : "Service"}
+                                    </span>
+                                    <span>{listing.created_at?.split("T")[0] ?? "N/A"}</span>
+                                </div>
+
+                                <div
+                                    className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-[var(--color-text-on-primary)]"
+                                    style={{ backgroundColor: "var(--color-primary)" }}
+                                >
+                                    {listing.status === "active" ? "✓ PUBLISHED" : "📝 DRAFT"}
+                                </div>
                             </article>
                         </Link>
                     ))}

@@ -1,6 +1,14 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { createListing, upsertItemDetails, upsertServiceDetails } from '@campus-marketplace/backend';
-import type { ItemCondition } from '@campus-marketplace/backend';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import {
+    createListing,
+    deleteListingImage,
+    getListingImageUrl,
+    updateListing,
+    uploadListingImage,
+    upsertItemDetails,
+    upsertServiceDetails,
+} from '@campus-marketplace/backend';
+import type { ItemCondition, ListingImageContentType, ListingWithDetails } from '@campus-marketplace/backend';
 import type { ListingType, SessionUser } from './types';
 
 type FormProps = {
@@ -8,6 +16,7 @@ type FormProps = {
     user: SessionUser | null;
     onClose: () => void;
     onSubmitSuccess?: () => void;
+    editListing?: ListingWithDetails | null;
 };
 
 const getCurrentDateTimeLocal = () => {
@@ -21,6 +30,7 @@ export default function Form({
     user,
     onClose,
     onSubmitSuccess,
+    editListing,
 }: FormProps) {
     const [listingTitle, setListingTitle] = useState('Title');
     const [listingPrice, setListingPrice] = useState(0);
@@ -34,13 +44,36 @@ export default function Form({
     const [availableTo, setAvailableTo] = useState('17:00');
     const [listingQuantity, setListingQuantity] = useState(1);
     const [listingType, setListingType] = useState<ListingType>('item');
+    const [location, setLocation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const objectUrlRef = useRef<string | null>(null);
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
-        if (selectedFile) {
-            setListingImageLabel(selectedFile.name);
+        if (!selectedFile) return;
+
+        const allowedMimeTypes: ListingImageContentType[] = ['image/jpeg', 'image/png', 'image/webp'];
+        const fileExtension = selectedFile.name.split('.').pop()?.toLowerCase() ?? '';
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+
+        if (!allowedMimeTypes.includes(selectedFile.type as ListingImageContentType) || !allowedExtensions.includes(fileExtension)) {
+            alert('Only jpg, jpeg, png, and webp files are allowed.');
+            event.target.value = '';
+            return;
         }
+
+        if (objectUrlRef.current) {
+            URL.revokeObjectURL(objectUrlRef.current);
+        }
+
+        const previewUrl = URL.createObjectURL(selectedFile);
+        objectUrlRef.current = previewUrl;
+
+        setSelectedImageFile(selectedFile);
+        setListingImageLabel(selectedFile.name);
+        setImagePreviewUrl(previewUrl);
     };
 
     const handleSubmit = async (e: FormEvent) => {
@@ -93,39 +126,105 @@ export default function Form({
             return;
         }
 
+        if (regex.test(location) || location.trim().length > 100) {
+            alert('Location cannot exceed 100 characters.');
+            setIsSubmitting(false);
+            return;
+        }
+
         const toTimeWithSeconds = (time: string) => (time.length === 5 ? `${time}:00` : time);
 
         try {
-            const newlisting = await createListing({
-                user_id: user.id,
-                title: listingTitle,
-                type: listingType,
-                price: listingPrice,
-                description: listingDescription,
-                category_id: listingCategory,
-                price_unit: '$',
-            });
+            const listingId = editListing?.id;
+            let targetListingId = listingId;
 
-            console.log('Listing created successfully:', newlisting);
+            if (listingId) {
+                await updateListing(listingId, user.id, {
+                    title: listingTitle,
+                    description: listingDescription,
+                    price: listingPrice,
+                    category_id: listingCategory,
+                    location: location.trim() || null,
+                });
 
-            if (listingType === 'item') {
-                await upsertItemDetails(newlisting.id, user.id, {
-                    quantity: listingQuantity,
-                    condition: listingCondition,
+                if (listingType === 'item') {
+                    await upsertItemDetails(listingId, user.id, {
+                        quantity: listingQuantity,
+                        condition: listingCondition,
+                    });
+                } else if (listingType === 'service') {
+                    await upsertServiceDetails(listingId, user.id, {
+                        duration_minutes: durationMinutes,
+                        price_unit: '',
+                        available_from: toTimeWithSeconds(availableFrom),
+                        available_to: toTimeWithSeconds(availableTo),
+                    });
+                }
+            } else {
+                const newlisting = await createListing({
+                    user_id: user.id,
+                    title: listingTitle,
+                    type: listingType,
+                    price: listingPrice,
+                    description: listingDescription,
+                    category_id: listingCategory,
+                    price_unit: '$',
+                    location: location.trim() || null,
                 });
-            } else if (listingType === 'service') {
-                await upsertServiceDetails(newlisting.id, user.id, {
-                    duration_minutes: durationMinutes,
-                    price_unit: '',
-                    available_from: toTimeWithSeconds(availableFrom),
-                    available_to: toTimeWithSeconds(availableTo),
-                });
+                targetListingId = newlisting.id;
+
+                if (listingType === 'item') {
+                    await upsertItemDetails(newlisting.id, user.id, {
+                        quantity: listingQuantity,
+                        condition: listingCondition,
+                    });
+                } else if (listingType === 'service') {
+                    await upsertServiceDetails(newlisting.id, user.id, {
+                        duration_minutes: durationMinutes,
+                        price_unit: '',
+                        available_from: toTimeWithSeconds(availableFrom),
+                        available_to: toTimeWithSeconds(availableTo),
+                    });
+                }
             }
+
+            if (selectedImageFile && targetListingId) {
+                const existingImage = editListing?.images?.[0] ?? null;
+
+                if (existingImage) {
+                    await deleteListingImage(existingImage.id, user.id);
+                }
+
+                const extension = selectedImageFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+                const baseName = selectedImageFile.name.replace(/\.[^/.]+$/, '');
+                const cacheSafeFilename = `${baseName}-${Date.now()}.${extension}`;
+
+                const uploadedImage = await uploadListingImage(
+                    targetListingId,
+                    user.id,
+                    selectedImageFile,
+                    selectedImageFile.type as ListingImageContentType,
+                    {
+                        alt_text: selectedImageFile.name,
+                        filename: cacheSafeFilename,
+                    },
+                );
+
+                const uploadedUrl = getListingImageUrl(uploadedImage.path);
+
+                if (objectUrlRef.current) {
+                    URL.revokeObjectURL(objectUrlRef.current);
+                    objectUrlRef.current = null;
+                }
+
+                setImagePreviewUrl(uploadedUrl);
+            }
+
             onSubmitSuccess?.();
             setIsSubmitting(false);
             onClose();
         } catch (error) {
-            console.error('Error creating listing:', error);
+            console.error(editListing ? 'Error updating listing:' : 'Error creating listing:', error);
             setIsSubmitting(false);
         }
     };
@@ -135,13 +234,48 @@ export default function Form({
 
         if (showForm) {
             document.body.style.overflow = 'hidden';
-            setListingDate(getCurrentDateTimeLocal());
+            if (editListing) {
+                setListingTitle(editListing.title ?? 'Title');
+                setListingPrice(editListing.price ?? 0);
+                setListingCategory(editListing.category_id ?? '');
+                setListingDescription(editListing.description ?? '');
+                setLocation(editListing.location ?? '');
+                setListingType(editListing.type);
+                setListingDate(editListing.created_at ? editListing.created_at.slice(0, 16) : getCurrentDateTimeLocal());
+                setListingImageLabel(editListing.images?.[0]?.alt_text ?? 'picture of the product');
+                setSelectedImageFile(null);
+                setImagePreviewUrl(editListing.images?.[0]?.path ? getListingImageUrl(editListing.images[0].path) : null);
+
+                if (editListing.type === 'item' && editListing.item_details) {
+                    setListingCondition(editListing.item_details.condition);
+                    setListingQuantity(editListing.item_details.quantity);
+                }
+
+                if (editListing.type === 'service' && editListing.service_details) {
+                    setDurationMinutes(editListing.service_details.duration_minutes);
+                    setAvailableFrom((editListing.service_details.available_from ?? '09:00').slice(0, 5));
+                    setAvailableTo((editListing.service_details.available_to ?? '17:00').slice(0, 5));
+                }
+            } else {
+                setListingDate(getCurrentDateTimeLocal());
+                setListingImageLabel('picture of the product');
+                setSelectedImageFile(null);
+                setImagePreviewUrl(null);
+            }
         }
 
         return () => {
             document.body.style.overflow = previousOverflow;
         };
-    }, [showForm]);
+    }, [showForm, editListing]);
+
+    useEffect(() => {
+        return () => {
+            if (objectUrlRef.current) {
+                URL.revokeObjectURL(objectUrlRef.current);
+            }
+        };
+    }, []);
 
     if (!showForm) {
         return null;
@@ -179,10 +313,18 @@ export default function Form({
                         <div>
                             <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
                             <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
-                                <span>{listingImageLabel}</span>
+                                {imagePreviewUrl ? (
+                                    <img
+                                        src={imagePreviewUrl}
+                                        alt={listingImageLabel}
+                                        className="h-40 w-full max-w-xs rounded-lg object-cover"
+                                    />
+                                ) : (
+                                    <span>{listingImageLabel}</span>
+                                )}
                                 <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
                                     Choose Image
-                                    <input type="file" accept="image/*" className="hidden" onChange={handleListingImageChange} />
+                                    <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="hidden" onChange={handleListingImageChange} />
                                 </label>
                             </div>
                         </div>
@@ -355,6 +497,20 @@ export default function Form({
                                     readOnly={true}
                                     value={listingDate}
                                     className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="location" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                    Location
+                                </label>
+                                <input
+                                    id="location"
+                                    type="text"
+                                    value={location}
+                                    onChange={(e) => setLocation(e.target.value)}
+                                    placeholder="e.g. Campus Center, Building A"
+                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-gray-400"
                                 />
                             </div>
 
