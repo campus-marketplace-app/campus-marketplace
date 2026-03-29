@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { getListingWithDetails, createConversation, ensureFreshSession, getProfile } from "@campus-marketplace/backend";
+import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 
 
 export default function Listing() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { user } = useOutletContext<OutletContext>();
+    const { user, listingsRefreshKey } = useOutletContext<OutletContext>();
     const [listingData, setListingData] = useState<any>(null);
     const [messagingLoading, setMessagingLoading] = useState(false);
     const [displayName, setDisplayName] = useState<string>("");
     const [publishLoading, setPublishLoading] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -26,6 +27,70 @@ export default function Listing() {
             localStorage.setItem("access_token", session.access_token);
             localStorage.setItem("refresh_token", session.refresh_token);
         }
+    };
+
+    const handlePublish = async () => {
+        if (!listingData) return;
+        if (!user) {
+            alert("You must be logged in to publish a listing.");
+            navigate("/login");
+            return;
+        }
+        await refreshTokens();
+        if (listingData.user_id !== user.id) {
+            alert("You can only publish your own listings.");
+            return;
+        }
+        setPublishLoading(true);
+        if (listingData.status === "draft") {
+            try {
+                await publishListing(listingData.id, user.id);
+                const updatedListing = await getListingWithDetails(listingData.id);
+                setListingData(updatedListing);
+            } catch (error) {
+                console.error("Error publishing listing:", error);
+            }
+        }
+        else if (listingData.status === "active") {
+            try {
+                await unpublishListing(listingData.id, user.id);
+                const updatedListing = await getListingWithDetails(listingData.id);
+                setListingData(updatedListing);
+            } catch (error) {
+                console.error("Error unpublishing listing:", error);
+            }
+        }
+        setPublishLoading(false);
+        listingsRefreshKey + 1;
+    };
+
+    const handleDelete = async () => {
+        if (!listingData) return;
+        if (!user) {
+            alert("You must be logged in to delete a listing.");
+            navigate("/login");
+            return;
+        }
+        await refreshTokens();
+        if (listingData.user_id !== user.id) {
+            alert("You can only delete your own listings.");
+            return;
+        }
+        if (!window.confirm("Are you sure you want to delete this listing? This action cannot be undone.")) {
+            return;
+        }
+        setDeleteLoading(true);
+        try {
+            await deleteListing(user?.id, listingData.id);
+            alert("Listing deleted successfully.");
+            navigate("/");
+        } catch (error) {
+            console.error("Error deleting listing");
+            alert("Failed to delete listing. Please try again.");
+        } finally {
+            setDeleteLoading(false);
+        }
+        listingsRefreshKey + 1;
     };
 
 
@@ -84,7 +149,24 @@ export default function Listing() {
                                 >
                                     Owned by {displayName}
                                 </Link>
-
+                                {user && listingData.user_id === user.id ? (
+                                    <div className="mt-4 flex flex-col items-start gap-2">
+                                        <button className="inline-flex rounded-xl bg-[#f1b7be] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                            type="button"
+                                            disabled={publishLoading}
+                                            onClick={handlePublish}
+                                        >
+                                            {listingData.status === "draft" ? "Publish" : "Unpublish"}
+                                        </button>
+                                        <button className="inline-flex rounded-xl bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                            type="button"
+                                            disabled={deleteLoading}
+                                            onClick={handleDelete}
+                                        >
+                                            {deleteLoading ? "Deleting..." : "Delete Listing"}
+                                        </button>
+                                    </div>
+                                ) : null}
                             </div>
 
                             <div className="space-y-5">
