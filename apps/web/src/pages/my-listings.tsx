@@ -84,20 +84,21 @@ const MyListings = () => {
                 <div className="rounded-lg border border-[var(--color-secondary)] bg-[var(--color-primary)] p-6">
                     <div className="flex items-center gap-6">
                         {/* Avatar - shows first letter of name in a colored circle */}
-                        <div className="h-24 w-24 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-white text-4xl">
-                            {profileData.display_name?.charAt(0)} /* Display the first letter of the user's name as the avatar initial */
+                        <div className="h-24 w-24 rounded-full bg-[var(--color-secondary)] flex items-center justify-center text-black text-4xl">
+                            /* Display the first letter of the user's name as the avatar initial */
+                            {profileData.display_name?.charAt(0)} 
                         </div>
 
                         {/* User info section - name, bio, and stats */}
                         <div className="flex-1">
-                            <h1 className="text-3xl font-bold text-white">
+                            <h1 className="text-3xl font-bold text-black">
                                 {profileData.display_name}
                             </h1>
                             {profileData.bio && (
-                                <p className="mt-2 text-sm text-white/80">{profileData.bio}</p>
+                                <p className="mt-2 text-sm text-black/80">{profileData.bio}</p>
                             )}
                             {/* Display count of published and draft listings */}
-                            <div className="mt-4 flex gap-6 text-sm text-white/80">
+                            <div className="mt-4 flex gap-6 text-sm text-black/80">
                                 <span>📊 {publishedListings.length} Published</span>
                                 <span>📝 {draftListings.length} Drafts</span>
                             </div>
@@ -106,7 +107,7 @@ const MyListings = () => {
                         {/* Edit Profile button - navigates to profile page */}
                         <button
                             onClick={() => navigate("/profile")}
-                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-2 font-semibold text-black transition hover:bg-white"
+                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-2 font-semibold text-black transition hover:bg-black"
                         >
                             Edit Profile
                         </button>
@@ -118,13 +119,13 @@ const MyListings = () => {
             <div className="flex gap-4">
                 <button
                     onClick={() => navigate("/listing")}
-                    className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-white"
+                    className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
                 >
                     + Create Item
                 </button>
                 <button
                     onClick={() => navigate("/listing")}
-                    className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-white"
+                    className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
                 >
                     + Create Service
                 </button>
@@ -133,16 +134,20 @@ const MyListings = () => {
             {/* Filter dropdown - only show if user has listings */}
             {hasAnyListings && (
                 <div className="flex items-center gap-3">
-                    <label className="font-semibold uppercase text-white">Filter:</label> //filter label
-                    <select //dropdown to select between published and draft listings, updates filterStatus state on change
+                    <label className="font-semibold uppercase text-white">Filter:</label>
+                    //dropdown to select between published and draft listings, updates filterStatus state on change
+                    <select 
                         value={filterStatus}
-                        onChange={(e) => //update filter state based on user selection - published or draft
+                        //update filter state based on user selection - published or draft
+                        onChange={(e) => 
                             setFilterStatus(e.target.value as "published" | "draft")
                         }
                         className="rounded-lg bg-[var(--color-secondary)] px-4 py-2 font-semibold text-black"
                     >
-                        <option value="published">Published</option> //shows published listings when selected
-                        <option value="draft">Draft</option> //shows draft listings when selected
+                        //shows published listings when selected
+                        <option value="published">Published</option> 
+                        //shows draft listings when selected
+                        <option value="draft">Draft</option>
                     </select>
                 </div>
             )}
@@ -151,7 +156,7 @@ const MyListings = () => {
             {hasAnyListings ? (
                 <section className="space-y-6">
                     {/* Section title with count - updates based on filter selection */}
-                    <h2 className="text-2xl font-bold uppercase text-white">
+                    <h2 className="text-2xl font-bold uppercase text-black">
                         {filterStatus === "published"
                             ? `Published Listings (${publishedListings.length})`
                             : `Draft Listings (${draftListings.length})`}
@@ -164,7 +169,7 @@ const MyListings = () => {
                                 <div
                                     key={listing.id}
                                     onClick={() => navigate(`/listing/${listing.id}`)}
-                                    className="cursor-pointer rounded-lg border border-black bg-white p-4 text-center text-black transition hover:shadow-lg"
+                                    className="cursor-pointer rounded-lg border border-black bg-black p-4 text-center text-black transition hover:shadow-lg"
                                 >
                                     {/* Listing image placeholder - images not in basic Listing type */}
                                     <div className="mx-auto mb-3 flex h-32 w-32 items-center justify-center rounded-lg bg-[var(--color-secondary)] text-xs text-black">
@@ -197,7 +202,7 @@ const MyListings = () => {
                                     </div>
 
                                     {/* Status badge - shows Published or Draft with icon */}
-                                    <div className="mt-3 rounded bg-[var(--color-primary)] px-2 py-1 text-xs font-bold text-white">
+                                    <div className="mt-3 rounded bg-[var(--color-primary)] px-2 py-1 text-xs font-bold text-black">
                                         {filterStatus === "published" ? "✓ PUBLISHED" : "📝 DRAFT"}
                                     </div>
                                 </div>
@@ -205,7 +210,7 @@ const MyListings = () => {
                         </div>
                     ) : (
                         /* Empty state for current filter - no listings in this category */
-                        <div className="rounded-lg bg-gray-700 p-8 text-center text-white">
+                        <div className="rounded-lg bg-gray-700 p-8 text-center text-black">
                             <p className="text-lg font-semibold">
                                 No {filterStatus === "published" ? "published" : "draft"} listings yet.
                             </p>
@@ -214,7 +219,7 @@ const MyListings = () => {
                 </section>
             ) : (
                 /* Empty state - user has no listings at all (neither published nor draft) */
-                <div className="rounded-lg bg-gray-700 p-12 text-center text-white">
+                <div className="rounded-lg bg-gray-700 p-12 text-center text-black">
                     <p className="text-3xl font-bold">📭</p>
                     <p className="mt-4 text-2xl font-semibold">You haven't posted anything yet!</p>
                     <p className="mt-2 text-gray-300">Start selling today — it only takes a minute</p>
@@ -223,13 +228,13 @@ const MyListings = () => {
                     <div className="mt-8 flex justify-center gap-4">
                         <button
                             onClick={() => navigate("/listing")}
-                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-white"
+                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
                         >
                             + Create Item
                         </button>
                         <button
                             onClick={() => navigate("/listing")}
-                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-white"
+                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
                         >
                             + Create Service
                         </button>
