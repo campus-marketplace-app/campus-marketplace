@@ -8,9 +8,12 @@
 import {
   getListingById,
   getListingWithDetails,
+  getListingPublishReadiness,
   getListingsByUser,
   searchListings,
   createListing,
+  publishListing,
+  unpublishListing,
   updateListing,
   deleteListing,
   upsertItemDetails,
@@ -187,7 +190,65 @@ await updateListing(listing.id, session.user.id, { price: 35, location: "Library
 | `updates.*` | any `Listing` field except `id` and `user_id` | at least one |
 
 **Returns:** updated `Listing`
-**Throws:** if you don't own the listing, or no fields are provided
+**Throws:** if you don't own the listing, no fields are provided, or publishing is blocked by missing required fields
+
+---
+
+## getListingPublishReadiness(id, userId, updates?) — check if a listing can be published
+
+Use this before publishing to surface missing requirements.
+
+```ts
+const readiness = await getListingPublishReadiness(listing.id, session.user.id);
+
+if (!readiness.isPublishable) {
+  console.log(readiness.missingFields);
+  // e.g. ["images", "location", "item_condition"]
+}
+```
+
+**Missing field keys:**
+- `"title"`
+- `"category_id"`
+- `"price"`
+- `"location"`
+- `"images"`
+- `"item_condition"`
+- `"item_quantity"`
+- `"service_duration_minutes"`
+
+---
+
+## publishListing(id, userId) — publish a draft listing
+
+Sets `status = "active"` only when all publish requirements are complete.
+
+```ts
+await publishListing(listing.id, session.user.id);
+```
+
+**Publish requirements (enforced by backend + DB):**
+- title is non-empty
+- category_id is set
+- price is set
+- location is non-empty
+- at least one listing image exists
+- item listing: condition + quantity >= 1
+- service listing: duration_minutes > 0
+
+If requirements are missing, backend throws `ListingPublishValidationError` with:
+- `code = "LISTING_PUBLISH_VALIDATION_FAILED"`
+- `missingFields = PublishMissingField[]`
+
+---
+
+## unpublishListing(id, userId) — unpublish an active listing
+
+Sets `status = "draft"`.
+
+```ts
+await unpublishListing(listing.id, session.user.id);
+```
 
 ---
 
