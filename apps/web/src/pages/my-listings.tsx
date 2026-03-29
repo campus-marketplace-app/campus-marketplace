@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext, Link } from "react-router-dom";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
-import { getListingImageUrl, getListingsByUser, getProfile } from "@campus-marketplace/backend";
+import { getListingImageUrl, getListingWithDetails, getListingsByUser, getProfile } from "@campus-marketplace/backend";
 import type { SessionUser, UserProfile } from "../features/types";
 
 //Section 1: outlet context and types
@@ -36,8 +36,13 @@ const MyListings = () => {
                     getProfile(user.id),
                     getListingsByUser(user.id),
                 ]);
+
+                const detailedListings = await Promise.all(
+                    listings.map((listing) => getListingWithDetails(listing.id)),
+                );
+
                 setProfileData(profile);
-                setListingsData(listings as ListingWithDetails[]);
+                setListingsData(detailedListings);
             } catch (error) {
                 console.error("Error fetching data:", error);
             } finally {
@@ -135,7 +140,7 @@ const MyListings = () => {
             <div className="flex gap-4">
                 <button
                     onClick={openPostForm}
-                    className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black shadow-sm transition hover:brightness-110"
+                    className="rounded-lg border border-white/40 bg-[var(--color-secondary)] px-6 py-3 font-bold text-black shadow-sm transition hover:brightness-110"
                 >
                     + Create draft listing
                 </button>
@@ -144,10 +149,9 @@ const MyListings = () => {
             {/* Filter dropdown - only show if user has listings */}
             {hasAnyListings && (
                 <div
-                    className="flex w-fit items-center gap-3 rounded-xl border px-3 py-2"
+                    className="flex w-fit items-center gap-3 rounded-xl px-3 py-2"
                     style={{
                         backgroundColor: "color-mix(in srgb, var(--color-primary) 50%, white)",
-                        borderColor: "color-mix(in srgb, var(--color-secondary) 45%, white)",
                     }}
                 >
                     <label className="font-semibold uppercase text-black">Filter:</label>
