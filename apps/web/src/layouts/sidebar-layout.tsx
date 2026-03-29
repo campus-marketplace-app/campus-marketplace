@@ -97,7 +97,13 @@ export default function SidebarLayout() {
 
                 <main className="flex-1 overflow-auto">
                     <Outlet
-                        context={{ user, searchQuery, listingsRefreshKey, onProfileSave: () => setProfileRefreshKey((prev) => prev + 1) }}
+                        context={{
+                            user,
+                            searchQuery,
+                            listingsRefreshKey,
+                            onProfileSave: () => setProfileRefreshKey((prev) => prev + 1),
+                            openPostForm: () => setShowForm(true),
+                        }}
                     />
                 </main>
             </div>

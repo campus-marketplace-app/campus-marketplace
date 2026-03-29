@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
 import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
+import Form from "../features/form";
 
 
 export default function Listing() {
@@ -13,6 +14,7 @@ export default function Listing() {
     const [displayName, setDisplayName] = useState<string>("");
     const [publishLoading, setPublishLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [showForm, setShowForm] = useState(false);
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -93,6 +95,13 @@ export default function Listing() {
         listingsRefreshKey + 1;
     };
 
+    const editListing = () => {
+        if (!user || !listingData || listingData.user_id !== user.id) {
+            return;
+        }
+        setShowForm(true);
+    };
+
 
     useEffect(() => {
         if (!id) {
@@ -123,6 +132,20 @@ export default function Listing() {
         return <div className="flex h-screen items-center justify-center text-white">Loading...</div>;
     }
 
+    if (showForm) {
+        return (
+            <Form
+                showForm={true}
+                user={user}
+                editListing={listingData}
+                onClose={() => navigate(-1)}
+                onSubmitSuccess={() => {
+                    navigate(-1);
+                }}
+            />
+        );
+    }
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
@@ -151,6 +174,13 @@ export default function Listing() {
                                 </Link>
                                 {user && listingData.user_id === user.id ? (
                                     <div className="mt-4 flex flex-col items-start gap-2">
+                                        <button
+                                            className="inline-flex rounded-xl bg-[#f1b7be] px-4 py-2 text-sm text-black transition hover:bg-white"
+                                            type="button"
+                                            onClick={editListing}
+                                        >
+                                            Edit Listing
+                                        </button>
                                         <button className="inline-flex rounded-xl bg-[#f1b7be] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                                             type="button"
                                             disabled={publishLoading}
@@ -242,6 +272,13 @@ export default function Listing() {
                                         <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
                                             {formatDateTime(listingData.created_at)}
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Location</p>
+                                    <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                        {listingData?.location ?? "N/A"}
                                     </div>
                                 </div>
 

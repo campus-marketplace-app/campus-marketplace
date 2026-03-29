@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { createListing, upsertItemDetails, upsertServiceDetails } from '@campus-marketplace/backend';
-import type { ItemCondition } from '@campus-marketplace/backend';
+import { createListing, updateListing, upsertItemDetails, upsertServiceDetails } from '@campus-marketplace/backend';
+import type { ItemCondition, ListingWithDetails } from '@campus-marketplace/backend';
 import type { ListingType, SessionUser } from './types';
 
 type FormProps = {
@@ -8,6 +8,7 @@ type FormProps = {
     user: SessionUser | null;
     onClose: () => void;
     onSubmitSuccess?: () => void;
+    editListing?: ListingWithDetails | null;
 };
 
 const getCurrentDateTimeLocal = () => {
@@ -21,6 +22,7 @@ export default function Form({
     user,
     onClose,
     onSubmitSuccess,
+    editListing,
 }: FormProps) {
     const [listingTitle, setListingTitle] = useState('Title');
     const [listingPrice, setListingPrice] = useState(0);
@@ -36,7 +38,6 @@ export default function Form({
     const [listingType, setListingType] = useState<ListingType>('item');
     const [location, setLocation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imgFile, setImgFile] = useState<File | null>(null);
 
     const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -104,37 +105,61 @@ export default function Form({
         const toTimeWithSeconds = (time: string) => (time.length === 5 ? `${time}:00` : time);
 
         try {
-            const newlisting = await createListing({
-                user_id: user.id,
-                title: listingTitle,
-                type: listingType,
-                price: listingPrice,
-                description: listingDescription,
-                category_id: listingCategory,
-                price_unit: '$',
-                location: location.trim() || null,
-            });
+            const listingId = editListing?.id;
 
-            console.log('Listing created successfully:', newlisting);
+            if (listingId) {
+                await updateListing(listingId, user.id, {
+                    title: listingTitle,
+                    description: listingDescription,
+                    price: listingPrice,
+                    category_id: listingCategory,
+                    location: location.trim() || null,
+                });
 
-            if (listingType === 'item') {
-                await upsertItemDetails(newlisting.id, user.id, {
-                    quantity: listingQuantity,
-                    condition: listingCondition,
+                if (listingType === 'item') {
+                    await upsertItemDetails(listingId, user.id, {
+                        quantity: listingQuantity,
+                        condition: listingCondition,
+                    });
+                } else if (listingType === 'service') {
+                    await upsertServiceDetails(listingId, user.id, {
+                        duration_minutes: durationMinutes,
+                        price_unit: '',
+                        available_from: toTimeWithSeconds(availableFrom),
+                        available_to: toTimeWithSeconds(availableTo),
+                    });
+                }
+            } else {
+                const newlisting = await createListing({
+                    user_id: user.id,
+                    title: listingTitle,
+                    type: listingType,
+                    price: listingPrice,
+                    description: listingDescription,
+                    category_id: listingCategory,
+                    price_unit: '$',
+                    location: location.trim() || null,
                 });
-            } else if (listingType === 'service') {
-                await upsertServiceDetails(newlisting.id, user.id, {
-                    duration_minutes: durationMinutes,
-                    price_unit: '',
-                    available_from: toTimeWithSeconds(availableFrom),
-                    available_to: toTimeWithSeconds(availableTo),
-                });
+
+                if (listingType === 'item') {
+                    await upsertItemDetails(newlisting.id, user.id, {
+                        quantity: listingQuantity,
+                        condition: listingCondition,
+                    });
+                } else if (listingType === 'service') {
+                    await upsertServiceDetails(newlisting.id, user.id, {
+                        duration_minutes: durationMinutes,
+                        price_unit: '',
+                        available_from: toTimeWithSeconds(availableFrom),
+                        available_to: toTimeWithSeconds(availableTo),
+                    });
+                }
             }
             onSubmitSuccess?.();
             setIsSubmitting(false);
             onClose();
         } catch (error) {
-            console.error('Error creating listing:', error);
+            console.error(editListing ? 'Error updating listing:' : 'Error creating listing:', error);
             setIsSubmitting(false);
         }
     };
@@ -144,13 +169,35 @@ export default function Form({
 
         if (showForm) {
             document.body.style.overflow = 'hidden';
-            setListingDate(getCurrentDateTimeLocal());
+            if (editListing) {
+                setListingTitle(editListing.title ?? 'Title');
+                setListingPrice(editListing.price ?? 0);
+                setListingCategory(editListing.category_id ?? '');
+                setListingDescription(editListing.description ?? '');
+                setLocation(editListing.location ?? '');
+                setListingType(editListing.type);
+                setListingDate(editListing.created_at ? editListing.created_at.slice(0, 16) : getCurrentDateTimeLocal());
+                setListingImageLabel(editListing.images?.[0]?.alt_text ?? 'picture of the product');
+
+                if (editListing.type === 'item' && editListing.item_details) {
+                    setListingCondition(editListing.item_details.condition);
+                    setListingQuantity(editListing.item_details.quantity);
+                }
+
+                if (editListing.type === 'service' && editListing.service_details) {
+                    setDurationMinutes(editListing.service_details.duration_minutes);
+                    setAvailableFrom((editListing.service_details.available_from ?? '09:00').slice(0, 5));
+                    setAvailableTo((editListing.service_details.available_to ?? '17:00').slice(0, 5));
+                }
+            } else {
+                setListingDate(getCurrentDateTimeLocal());
+            }
         }
 
         return () => {
             document.body.style.overflow = previousOverflow;
         };
-    }, [showForm]);
+    }, [showForm, editListing]);
 
     if (!showForm) {
         return null;

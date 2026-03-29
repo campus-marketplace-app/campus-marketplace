@@ -7,12 +7,13 @@ import type { SessionUser, UserProfile } from "../features/types";
 //Section 1: outlet context and types
 type OutletContext = {
     user: SessionUser | null;
+    openPostForm: () => void;
 };
 
 
 const MyListings = () => {
     const navigate = useNavigate();
-    const { user } = useOutletContext<OutletContext>();  // Get the logged-in user from the sidebar layout context
+    const { user, openPostForm } = useOutletContext<OutletContext>();  // Get context from the sidebar layout
     const [profileData, setProfileData] = useState<UserProfile | null>(null);     // State for user profile data
     const [listingsData, setListingsData] = useState<Array<ListingWithDetails>>([]);     // State for all user's listings
     const [isLoading, setIsLoading] = useState(true);     // State to track if data is still loading
@@ -118,16 +119,10 @@ const MyListings = () => {
             {/* Action buttons to create new Item or Service listing */}
             <div className="flex gap-4">
                 <button
-                    onClick={() => navigate("/listing")}
+                    onClick={openPostForm}
                     className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
                 >
-                    + Create Item
-                </button>
-                <button
-                    onClick={() => navigate("/listing")}
-                    className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
-                >
-                    + Create Service
+                    + Create draft listing
                 </button>
             </div>
 
@@ -227,16 +222,10 @@ const MyListings = () => {
                     {/* Action buttons in empty state - same as top buttons */}
                     <div className="mt-8 flex justify-center gap-4">
                         <button
-                            onClick={() => navigate("/listing")}
+                            onClick={openPostForm}
                             className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
                         >
-                            + Create Item
-                        </button>
-                        <button
-                            onClick={() => navigate("/listing")}
-                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:bg-black"
-                        >
-                            + Create Service
+                            + Create draft listing
                         </button>
                     </div>
                 </div>
