@@ -23,7 +23,7 @@ export default function Navbar({
             <button
                 type="button"
                 onClick={toggleSidebar}
-                className="absolute right-2 top-2 rounded border border-black bg-[var(--color-accent-light)] px-2 py-1 text-sm font-semibold text-black hover:bg-white"
+                className="absolute right-2 top-2 rounded border border-black bg-[#f6d3d6] px-2 py-1 text-sm font-semibold text-black hover:bg-white"
                 aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
                 {isSidebarOpen ? '<' : '>'}
@@ -109,7 +109,7 @@ export default function Navbar({
                         <button
                             type="button"
                             onClick={openPostForm}
-                            className={`rounded-xl border-2 border-black bg-[var(--color-accent-light)] text-xl font-semibold text-black shadow-[4px_4px_0_#000] transition hover:-translate-y-0.5 hover:bg-white ${isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'
+                            className={`rounded-xl border-2 border-black bg-[#f6d3d6] text-xl font-semibold text-black shadow-[4px_4px_0_#000] transition hover:-translate-y-0.5 hover:bg-white ${isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'
                                 }`}
                         >
                             {isSidebarOpen ? 'Post' : '+'}

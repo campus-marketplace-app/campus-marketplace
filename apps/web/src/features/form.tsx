@@ -158,7 +158,7 @@ export default function Form({
                 }}
             />
 
-            <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
+            <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="mx-auto w-full max-w-sm">
                         <label htmlFor="title" className="mb-2 block text-center text-sm font-semibold uppercase tracking-wide text-white">
@@ -178,7 +178,7 @@ export default function Form({
                     <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
                         <div>
                             <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
-                            <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
+                            <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[#f1b7be] p-6 text-center text-sm uppercase text-black">
                                 <span>{listingImageLabel}</span>
                                 <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
                                     Choose Image
@@ -377,7 +377,7 @@ export default function Form({
                         <button
                             type="button"
                             disabled={isSubmitting}
-                            className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
+                            className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
                             onClick={onClose}
                         >
                             back
@@ -385,7 +385,7 @@ export default function Form({
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
+                            className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
                         >
                             Save draft
                         </button>

@@ -1,13 +1,11 @@
 import { useState, type ComponentProps } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signUpWithEmail } from "@campus-marketplace/backend";
-import { useTheme } from '../contexts/ThemeContext';
 
 type SignupAccountType = "student" | "business";
 
 export default function Signup() {
     const navigate = useNavigate();
-    const { schoolName, emailDomain } = useTheme();
     const [email, setEmail] = useState('');
     const [accountType, setAccountType] = useState<SignupAccountType>("student");
     const [password, setPassword] = useState('');
@@ -22,11 +20,10 @@ export default function Signup() {
     const [serverError, setServerError] = useState('');
 
     const checkEmail = (value: string) => {
-        const escapedDomain = emailDomain.replace(/\./g, '\\.');
-        const emailRegex = new RegExp(`^[A-Z0-9._%+-]+@${escapedDomain}$`, 'i');
+        const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
 
         if (!emailRegex.test(value)) {
-            setEmailMessage(`Please enter a valid ${schoolName} email address ending in @${emailDomain}.`);
+            setEmailMessage('Please enter a valid NJIT email address ending in @njit.edu.');
             return false;
         }
 
@@ -106,7 +103,7 @@ export default function Signup() {
 
 
     return (
-        <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-[var(--color-background-alt)] px-4 py-8 sm:px-8">
+        <section className="flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-[#dddddd] px-4 py-8 sm:px-8">
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
                 <div className="px-1 text-black sm:px-6">
                     <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
@@ -115,8 +112,8 @@ export default function Signup() {
                     </p>
                 </div>
 
-                <div className="mx-auto w-full max-w-[380px] overflow-hidden border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] shadow-[0_2px_8px_rgba(0,0,0,0.22)]">
-                    <h1 className="mb-8 bg-[var(--color-primary)] py-3 text-center text-3xl uppercase tracking-wide text-white shadow-sm">
+                <div className="mx-auto w-full max-w-[380px] overflow-hidden border border-[#7d5558] bg-[#c86d72] shadow-[0_2px_8px_rgba(0,0,0,0.22)]">
+                    <h1 className="mb-8 bg-[#8c0010] py-3 text-center text-3xl uppercase tracking-wide text-white shadow-sm">
                         Signup
                     </h1>
 
@@ -184,7 +181,7 @@ export default function Signup() {
                                 <label
                                     className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
                                         accountType === 'student'
-                                            ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                                            ? 'border-[#8c0010] bg-[#8c0010] text-white'
                                             : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
                                     }`}
                                 >
@@ -202,7 +199,7 @@ export default function Signup() {
                                 <label
                                     className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
                                         accountType === 'business'
-                                            ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                                            ? 'border-[#8c0010] bg-[#8c0010] text-white'
                                             : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
                                     }`}
                                 >
@@ -224,7 +221,7 @@ export default function Signup() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="bg-[var(--color-primary)] py-2 text-lg text-white transition hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
+                            className="bg-[#8c0010] py-2 text-lg text-white transition hover:bg-[#9f0a1b] disabled:opacity-60"
                         >
                             {loading ? 'Signing up...' : 'Submit'}
                         </button>
@@ -232,7 +229,7 @@ export default function Signup() {
 
                     <Link
                         to="/login"
-                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary)] px-8 py-2 text-center text-sm text-black transition hover:bg-[var(--color-primary-hover)]"
+                        className="mx-auto mt-4 block w-fit bg-[#8c0010] px-8 py-2 text-center text-sm text-black transition hover:bg-[#9f0a1b]"
                     >
                         Back to login
                     </Link>

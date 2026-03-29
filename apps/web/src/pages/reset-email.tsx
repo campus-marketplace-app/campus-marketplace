@@ -1,10 +1,8 @@
 import { useState, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
 import { sendPasswordResetEmail } from "@campus-marketplace/backend";
-import { useTheme } from '../contexts/ThemeContext';
 
 export default function ResetPassword() {
-    const { schoolName, emailDomain } = useTheme();
     const [email, setEmail] = useState('');
     const [emailMessage, setEmailMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
@@ -13,11 +11,10 @@ export default function ResetPassword() {
     const [successMessage, setSuccessMessage] = useState('');
 
     const checkEmail = (value: string) => {
-        const escapedDomain = emailDomain.replace(/\./g, '\\.');
-        const emailRegex = new RegExp(`^[A-Z0-9._%+-]+@${escapedDomain}$`, 'i');
+        const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
 
         if (!emailRegex.test(value)) {
-            setEmailMessage(`Please enter a valid ${schoolName} email address ending in @${emailDomain}.`);
+            setEmailMessage('Please enter a valid NJIT email address ending in @njit.edu.');
             return false;
         }
 
@@ -51,14 +48,14 @@ export default function ResetPassword() {
 
 
     return (
-        <section className="flex min-h-[calc(100vh-64px)] w-full items-center justify-center bg-[var(--color-background-alt)] px-4 py-10 sm:px-8">
-            <div className="w-full max-w-md border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:p-8">
-                <h1 className="bg-[var(--color-primary)] py-2 text-center text-3xl font-semibold uppercase tracking-wide text-black">
+        <section className="flex min-h-[calc(100vh-64px)] w-full items-center justify-center bg-[#dddddd] px-4 py-10 sm:px-8">
+            <div className="w-full max-w-md border border-[#7d5558] bg-[#c86d72] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:p-8">
+                <h1 className="bg-[#8c0010] py-2 text-center text-3xl font-semibold uppercase tracking-wide text-black">
                     Reset Password
                 </h1>
 
                 <p className="mt-4 text-center text-base text-black sm:text-lg">
-                    Enter your school email and we will send a password reset link.
+                    Enter your NJIT email and we will send a password reset link.
                 </p>
 
                 <form className="mt-8 flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -68,7 +65,7 @@ export default function ResetPassword() {
                     <input
                         id="reset-email"
                         type="email"
-                        placeholder={`you@${emailDomain}`}
+                        placeholder="you@njit.edu"
                         className="w-full rounded-md border-b border-black bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/70"
                         value={email}
                         onChange={(e) => {
@@ -85,7 +82,7 @@ export default function ResetPassword() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="mt-2 bg-[var(--color-primary)] py-3 text-base font-semibold text-black transition hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-2 bg-[#8c0010] py-3 text-base font-semibold text-black transition hover:bg-[#9f0a1b] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {loading ? 'Sending...' : 'Send Reset Link'}
                     </button>
@@ -93,7 +90,7 @@ export default function ResetPassword() {
 
                 <Link
                     to="/login"
-                    className="mx-auto mt-5 block w-fit bg-[var(--color-primary)] px-6 py-2 text-center text-sm font-medium text-black transition hover:bg-[var(--color-primary-hover)]"
+                    className="mx-auto mt-5 block w-fit bg-[#8c0010] px-6 py-2 text-center text-sm font-medium text-black transition hover:bg-[#9f0a1b]"
                 >
                     Back to login
                 </Link>

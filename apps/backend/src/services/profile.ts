@@ -15,7 +15,6 @@ export interface UserProfile {
   bio: string | null;
   avatar_path: string | null;
   account_type: AccountType;
-  school_code: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,7 +38,7 @@ export interface UpdateProfileInput {
   avatar_path?: string | null;
 }
 
-const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,account_type,school_code,created_at,updated_at";
+const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,account_type,created_at,updated_at";
 
 // GET: Loads one user's profile by auth user ID. Returns a user profile, otherwise throws an error.
 export async function getProfile(userId: string): Promise<UserProfile> {

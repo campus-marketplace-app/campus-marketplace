@@ -1,7 +1,5 @@
 import { Link } from 'react-router-dom';
 import { getAvatarUrl } from '@campus-marketplace/backend';
-import { useTheme } from '../contexts/ThemeContext';
-import ThemeModeToggle from './theme-mode-toggle';
 import type { UserProfile } from "./types";
 
 type HeaderProps = {
@@ -21,48 +19,38 @@ export default function PageHeader({
     searchQuery,
     setSearchQuery,
 }: HeaderProps) {
-    const { schoolName, logoUrl } = useTheme();
     const shouldCenterTitle = !isLoggedIn && !isRegistering;
     const profileAvatarSrc = profile?.avatar_path
         ? `${getAvatarUrl(profile.avatar_path)}?t=${avatarCacheBust ?? 0}`
         : '/default-avatar.png';
 
     return (
-        <nav className="relative w-full bg-[var(--color-primary)] p-4 text-[var(--color-text-on-primary)]">
-            {!isRegistering ? (
-                <div className="absolute right-4 top-4">
-                    <ThemeModeToggle />
-                </div>
-            ) : null}
-            <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'} ${isRegistering ? 'pr-0' : 'pr-32'}`}>
-                <Link to="/" className="flex items-center gap-2 text-xl font-bold text-[var(--color-text-on-primary)]">
-                    {logoUrl ? <img src={logoUrl} alt={schoolName} className="h-8 w-auto" /> : null}
-                    {schoolName} Marketplace
+        <nav className="bg-red-700 p-4 w-full">
+            <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
+                <Link to="/" className="text-white font-bold text-xl">
+                    Campus Marketplace
                 </Link>
 
                 {isRegistering ? (
-                    <div className="flex flex-1 items-center justify-center gap-4">
-                        <input
-                            id='search'
-                            name='search'
-                            type="text"
-                            placeholder="Search..."
-                            className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-700"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery?.(e.target.value)}
-                        />
-                        <ThemeModeToggle />
-                    </div>
+                    <input
+                        id='search'
+                        name='search'
+                        type="text"
+                        placeholder="Search..."
+                        className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-700"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery?.(e.target.value)}
+                    />
                 ) : null}
 
                 {isRegistering ? (
                     isLoggedIn ? (
-                        <Link to="/profile" className="flex items-center gap-2 text-[var(--color-text-on-primary)] hover:text-gray-200">
+                        <Link to="/profile" className="flex items-center gap-2 text-white hover:text-gray-200">
                             <img src={profileAvatarSrc} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
-                            <p className="text-[var(--color-text-on-primary)]">{profile?.display_name || 'Profile'}</p>
+                            <p className="text-white">{profile?.display_name || 'Profile'}</p>
                         </Link> //placeholder for profile img
                     ) : (
-                        <Link to="/login" className="text-[var(--color-text-on-primary)] hover:text-gray-200">
+                        <Link to="/login" className="text-white hover:text-gray-200">
                             Login
                         </Link>
                     )
@@ -73,7 +61,7 @@ export default function PageHeader({
                         type="button"
                         aria-label="Cart"
                         onClick={() => {}}
-                        className="cursor-pointer p-1 text-[var(--color-text-on-primary)] hover:text-gray-200"
+                        className="text-white p-1 cursor-pointer hover:text-gray-200"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
