@@ -61,10 +61,11 @@ Legend: **done** = fully implemented · **deferred** = planned but waiting on te
 | Function | Status |
 |---|---|
 | Read (via `getListingWithDetails`) | done |
-| `uploadListingImage(...)` | deferred — teammate working on images |
-| `deleteListingImage(...)` | deferred — teammate working on images |
+| `uploadListingImage(listingId, userId, file, contentType, options?)` | done |
+| `deleteListingImage(imageId, userId)` | done |
+| `getListingImageUrl(imagePath)` | done |
 
-> Storage bucket and RLS are already set up (migration `20260325090000`). Functions will be added when the teammate finishes the image feature.
+> Storage bucket and RLS are set up via migration `20260325090000_listing_images_storage_and_rls.sql`.
 
 ---
 
@@ -211,7 +212,7 @@ Validation status: **CM-US-047 complete** for schema + RLS smoke checks.
 | Status | Count |
 |---|---|
 | Fully implemented | 11 services — auth, profile, theme, listings, categories, messaging, notifications, favorites, blocks, reports, tags |
-| Deferred (teammate) | listing image upload/delete, listing tag write, publish validation |
+| Deferred (teammate) | listing tag write, publish validation |
 | Removed | `search.ts` — was redundant, `searchListings` in listings.ts covers all search needs |
 
-**Total functions:** 46 implemented, 3 deferred.
+**Total functions:** 48 implemented, 1 deferred.
