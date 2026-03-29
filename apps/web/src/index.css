@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   /* Base colors — overwritten at runtime by ThemeProvider */
   --color-primary: #B81C24;
   --color-secondary: #FFFFFF;
@@ -24,10 +25,14 @@
   font-family: var(--font-family);
 }
 
+:root[data-theme-mode='dark'] {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--color-background);
+  background-color: var(--color-background);
 }
 
 button {

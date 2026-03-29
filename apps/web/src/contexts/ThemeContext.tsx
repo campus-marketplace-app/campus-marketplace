@@ -1,5 +1,12 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getThemeBySchoolCode, type SchoolTheme } from '@campus-marketplace/backend';
+
+const THEME_MODE_STORAGE_KEY = 'campus-marketplace-theme-mode';
+const LIGHT_THEME_BACKGROUND = '#ececec';
+const DARK_THEME_BACKGROUND = '#111318';
+
+export type ThemeModePreference = 'system' | 'light' | 'dark';
+export type ResolvedThemeMode = 'light' | 'dark';
 
 // --- Color utility: hex <-> HSL conversions and simple transforms ---
 
@@ -87,15 +94,70 @@ function blendColors(colorA: string, colorB: string, ratio: number): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+function isThemeModePreference(value: string | null): value is ThemeModePreference {
+  return value === 'system' || value === 'light' || value === 'dark';
+}
+
+function getStoredThemeMode(): ThemeModePreference {
+  if (typeof window === 'undefined') {
+    return 'system';
+  }
+
+  try {
+    const value = window.localStorage.getItem(THEME_MODE_STORAGE_KEY);
+    return isThemeModePreference(value) ? value : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+function getSystemPrefersDark(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function hasDarkTheme(theme: SchoolTheme | null): boolean {
+  return Boolean(theme?.primary_color_dark && theme.secondary_color_dark && theme.accent_color_dark);
+}
+
+function resolveThemeMode(
+  modePreference: ThemeModePreference,
+  systemPrefersDark: boolean,
+  darkThemeAvailable: boolean,
+): ResolvedThemeMode {
+  if (modePreference === 'light') {
+    return 'light';
+  }
+
+  if (modePreference === 'dark') {
+    return darkThemeAvailable ? 'dark' : 'light';
+  }
+
+  return systemPrefersDark && darkThemeAvailable ? 'dark' : 'light';
+}
+
 // --- Derive the full set of CSS variables from base theme colors ---
 
-function deriveThemeVars(theme: SchoolTheme) {
-  const primary = theme.primary_color;
-  const secondary = theme.secondary_color;
-  const accent = theme.accent_color ?? '#f1b7be';
-  const background = theme.background_color ?? '#ececec';
+function deriveThemeVars(theme: SchoolTheme, resolvedMode: ResolvedThemeMode) {
+  const isDarkMode = resolvedMode === 'dark';
+  const primary = isDarkMode ? theme.primary_color_dark ?? theme.primary_color : theme.primary_color;
+  const secondary = isDarkMode ? theme.secondary_color_dark ?? theme.secondary_color : theme.secondary_color;
+  const accent = isDarkMode ? theme.accent_color_dark ?? theme.accent_color ?? '#f1b7be' : theme.accent_color ?? '#f1b7be';
+  const background = isDarkMode
+    ? theme.background_color ? adjustLightness(theme.background_color, -72) : DARK_THEME_BACKGROUND
+    : theme.background_color ?? LIGHT_THEME_BACKGROUND;
   const textOnPrimary = theme.text_on_primary ?? '#FFFFFF';
   const buttonStyle = theme.button_style ?? '#000000';
+  const primaryHoverDelta = isDarkMode ? 10 : 12;
+  const primaryDarkDelta = isDarkMode ? -10 : -15;
+  const accentLightDelta = isDarkMode ? 6 : 10;
+  const backgroundAltDelta = isDarkMode ? 6 : -6;
+  const borderDelta = isDarkMode ? 14 : -22;
+  const surfaceDelta = isDarkMode ? 10 : -10;
+  const surfaceAltDelta = isDarkMode ? 14 : -15;
 
   return {
     '--color-primary': primary,
@@ -106,14 +168,14 @@ function deriveThemeVars(theme: SchoolTheme) {
     '--color-button-style': buttonStyle,
 
     // Derived
-    '--color-primary-hover': adjustLightness(primary, 12),
-    '--color-primary-dark': adjustLightness(primary, -15),
-    '--color-accent-light': adjustLightness(accent, 10),
+    '--color-primary-hover': adjustLightness(primary, primaryHoverDelta),
+    '--color-primary-dark': adjustLightness(primary, primaryDarkDelta),
+    '--color-accent-light': adjustLightness(accent, accentLightDelta),
     '--color-accent-muted': desaturate(accent, 30),
-    '--color-background-alt': adjustLightness(background, -6),
-    '--color-border': adjustLightness(background, -22),
-    '--color-surface': adjustLightness(background, -10),
-    '--color-surface-alt': adjustLightness(background, -15),
+    '--color-background-alt': adjustLightness(background, backgroundAltDelta),
+    '--color-border': adjustLightness(background, borderDelta),
+    '--color-surface': adjustLightness(background, surfaceDelta),
+    '--color-surface-alt': adjustLightness(background, surfaceAltDelta),
     '--color-secondary-muted': blendColors(primary, accent, 0.5),
 
     // Font
@@ -127,6 +189,10 @@ type ThemeContextValue = {
   theme: SchoolTheme | null;
   loading: boolean;
   error: string | null;
+  themeModePreference: ThemeModePreference;
+  resolvedThemeMode: ResolvedThemeMode;
+  darkModeAvailable: boolean;
+  setThemeMode: (mode: ThemeModePreference) => void;
   /** School display name, e.g. "New Jersey Institute of Technology" */
   schoolName: string;
   /** Email domain for validation, e.g. "njit.edu" */
@@ -143,10 +209,55 @@ const schoolCodeValid = !isNaN(schoolCode) && schoolCode > 0;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<SchoolTheme | null>(null);
+  const [themeModePreference, setThemeModePreference] = useState<ThemeModePreference>(() => getStoredThemeMode());
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => getSystemPrefersDark());
   const [loading, setLoading] = useState(schoolCodeValid);
   const [error, setError] = useState<string | null>(
     schoolCodeValid ? null : 'VITE_SCHOOL_CODE is not set or invalid',
   );
+  const darkModeAvailable = hasDarkTheme(theme);
+  const resolvedThemeMode = resolveThemeMode(themeModePreference, systemPrefersDark, darkModeAvailable);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeModePreference);
+    } catch {
+      // Ignore storage failures and keep the in-memory preference.
+    }
+  }, [themeModePreference]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (event: MediaQueryListEvent) => {
+      setSystemPrefersDark(event.matches);
+    };
+
+    setSystemPrefersDark(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
+  const themeVars = useMemo(() => {
+    if (!theme) {
+      return null;
+    }
+
+    return deriveThemeVars(theme, resolvedThemeMode);
+  }, [theme, resolvedThemeMode]);
 
   useEffect(() => {
     if (!schoolCodeValid) return;
@@ -154,13 +265,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     getThemeBySchoolCode(schoolCode)
       .then((data) => {
         setTheme(data);
-
-        // Apply CSS variables to :root
-        const vars = deriveThemeVars(data);
-        const root = document.documentElement;
-        for (const [key, value] of Object.entries(vars)) {
-          root.style.setProperty(key, value);
-        }
       })
       .catch((err) => {
         console.error('Failed to load theme:', err);
@@ -171,10 +275,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.themeMode = resolvedThemeMode;
+    root.style.colorScheme = resolvedThemeMode;
+
+    if (!themeVars) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(themeVars)) {
+      root.style.setProperty(key, value);
+    }
+  }, [resolvedThemeMode, themeVars]);
+
   const value: ThemeContextValue = {
     theme,
     loading,
     error,
+    themeModePreference,
+    resolvedThemeMode,
+    darkModeAvailable,
+    setThemeMode: setThemeModePreference,
     schoolName: theme?.school_name ?? 'Campus',
     emailDomain: theme?.email_domain ?? 'university.edu',
     logoUrl: theme?.logo_url ?? null,
@@ -188,7 +310,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100vh',
-        background: '#ececec',
+        background: 'var(--color-background)',
       }}>
         <div style={{
           width: 32,
