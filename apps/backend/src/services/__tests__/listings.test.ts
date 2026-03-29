@@ -4,24 +4,61 @@ import {
   deleteListingImage,
   getListingById,
   getListingImageUrl,
+  getListingPublishReadiness,
+  ListingPublishValidationError,
+  publishListing,
   updateListing,
   deleteListing,
   getListingsByUser,
   getListingWithDetails,
   searchListings,
+  unpublishListing,
   uploadListingImage,
   upsertItemDetails,
   upsertServiceDetails,
 } from "../listings.js";
+import { supabase } from "../../supabase-client.js";
 import { createTestUser, createTestListing } from "./helpers.js";
 import type { TestUser } from "./helpers.js";
 
 let testUser: TestUser;
+let categoryId: string;
 const listingIdsToCleanup: string[] = [];
 const imageCleanup: Array<{ imageId: string; userId: string }> = [];
 
 beforeAll(async () => {
   testUser = await createTestUser("Listings Test User");
+
+  const { data: existingCategory, error: categoryLookupError } = await supabase
+    .from("categories")
+    .select("id")
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle<{ id: string }>();
+
+  if (categoryLookupError) {
+    throw new Error(`Failed to fetch category for tests: ${categoryLookupError.message}`);
+  }
+
+  if (existingCategory?.id) {
+    categoryId = existingCategory.id;
+    return;
+  }
+
+  const { data: createdCategory, error: categoryCreateError } = await supabase
+    .from("categories")
+    .insert({
+      name: `Test Category ${Date.now()}`,
+      description: "Temporary category for listings tests",
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (categoryCreateError || !createdCategory) {
+    throw new Error(`Failed to create category for tests: ${categoryCreateError?.message ?? "unknown error"}`);
+  }
+
+  categoryId = createdCategory.id;
 });
 
 afterAll(async () => {
@@ -56,6 +93,54 @@ function trackImage(imageId: string, userId: string) {
 
 function createPngBytes(size = 64): Uint8Array {
   return new Uint8Array(size).fill(1);
+}
+
+type PublishableDraftOptions = {
+  type?: "item" | "service";
+  title?: string;
+  price?: number;
+  location?: string;
+};
+
+async function createPublishableDraft(userId: string, options: PublishableDraftOptions = {}) {
+  const {
+    type = "item",
+    title = "Publishable Test Listing",
+    price = 25,
+    location = "Campus Center",
+  } = options;
+
+  const listing = await createListing({
+    user_id: userId,
+    type,
+    title,
+    description: "Listing prepared for publish workflow tests",
+    price,
+    category_id: categoryId,
+    location,
+  });
+  trackListing(listing.id);
+
+  if (type === "item") {
+    await upsertItemDetails(listing.id, userId, {
+      condition: "good",
+      quantity: 1,
+    });
+  } else {
+    await upsertServiceDetails(listing.id, userId, {
+      duration_minutes: 60,
+      price_unit: "session",
+      available_from: null,
+      available_to: null,
+    });
+  }
+
+  const uploaded = await uploadListingImage(listing.id, userId, createPngBytes(), "image/png", {
+    alt_text: "publish-ready",
+  });
+  trackImage(uploaded.id, userId);
+
+  return listing;
 }
 
 describe("createListing", () => {
@@ -192,13 +277,10 @@ describe("searchListings", () => {
   });
 
   it("with text query returns relevant listings", async () => {
-    // Create an active listing to search for
-    const listing = await createListing({
-      user_id: testUser.user.id,
+    const listing = await createPublishableDraft(testUser.user.id, {
       title: "Unique Xylophone Instrument",
-      status: "active",
     });
-    trackListing(listing.id);
+    await publishListing(listing.id, testUser.user.id);
 
     const results = await searchListings({ query: "Xylophone" });
     // Full-text search may not find it immediately due to indexing, so just confirm no error
@@ -206,25 +288,83 @@ describe("searchListings", () => {
   });
 
   it("filters by min_price and max_price", async () => {
-    const cheap = await createListing({
-      user_id: testUser.user.id,
+    const cheap = await createPublishableDraft(testUser.user.id, {
       title: "Cheap Item",
       price: 5,
-      status: "active",
     });
-    trackListing(cheap.id);
+    await publishListing(cheap.id, testUser.user.id);
 
-    const expensive = await createListing({
-      user_id: testUser.user.id,
+    const expensive = await createPublishableDraft(testUser.user.id, {
       title: "Expensive Item",
       price: 100,
-      status: "active",
     });
-    trackListing(expensive.id);
+    await publishListing(expensive.id, testUser.user.id);
 
     const results = await searchListings({ user_id: testUser.user.id, min_price: 50 });
     expect(results.some((l) => l.id === expensive.id)).toBe(true);
     expect(results.some((l) => l.id === cheap.id)).toBe(false);
+  });
+});
+
+describe("publish/unpublish listing", () => {
+  it("reports missing fields for an incomplete draft", async () => {
+    const draft = await createTestListing(testUser.user.id, { title: "Incomplete Publish Test" });
+    trackListing(draft.id);
+
+    const readiness = await getListingPublishReadiness(draft.id, testUser.user.id);
+
+    expect(readiness.isPublishable).toBe(false);
+    expect(readiness.missingFields).toEqual(
+      expect.arrayContaining(["category_id", "price", "location", "images", "item_condition", "item_quantity"]),
+    );
+  });
+
+  it("blocks publishing incomplete draft via updateListing status transition", async () => {
+    const draft = await createTestListing(testUser.user.id, { title: "Blocked Publish Test" });
+    trackListing(draft.id);
+
+    await expect(updateListing(draft.id, testUser.user.id, { status: "active" })).rejects.toThrow(
+      ListingPublishValidationError,
+    );
+  });
+
+  it("publishes a complete item draft and includes it in public search results", async () => {
+    const draft = await createPublishableDraft(testUser.user.id, {
+      title: "Ready To Publish",
+      price: 42,
+      location: "Library",
+    });
+
+    const published = await publishListing(draft.id, testUser.user.id);
+    expect(published.status).toBe("active");
+
+    const browseResults = await searchListings({ query: "Ready To Publish" });
+    expect(browseResults.some((listing) => listing.id === draft.id)).toBe(true);
+  });
+
+  it("unpublishes a published listing back to draft", async () => {
+    const draft = await createPublishableDraft(testUser.user.id, {
+      title: "Will Unpublish",
+    });
+    await publishListing(draft.id, testUser.user.id);
+
+    const unpublished = await unpublishListing(draft.id, testUser.user.id);
+    expect(unpublished.status).toBe("draft");
+
+    const browseResults = await searchListings({ query: "Will Unpublish" });
+    expect(browseResults.some((listing) => listing.id === draft.id)).toBe(false);
+
+    const mine = await getListingsByUser(testUser.user.id, "draft");
+    expect(mine.some((listing) => listing.id === draft.id)).toBe(true);
+  });
+
+  it("rejects publish/unpublish for non-owner", async () => {
+    const draft = await createPublishableDraft(testUser.user.id, {
+      title: "Owner Protected",
+    });
+
+    await expect(publishListing(draft.id, "00000000-0000-0000-0000-000000000000")).rejects.toThrow();
+    await expect(unpublishListing(draft.id, "00000000-0000-0000-0000-000000000000")).rejects.toThrow();
   });
 });
 

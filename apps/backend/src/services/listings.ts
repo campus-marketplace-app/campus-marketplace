@@ -4,12 +4,14 @@ import type {
   Listing,
   ListingStatus,
   ListingWithDetails,
+  ListingPublishReadiness,
   ItemDetails,
   ServiceDetails,
   ListingImage,
   ListingImageContentType,
   ListingTag,
   CreateListingInput,
+  PublishMissingField,
   UpdateListingInput,
   SearchListingsOptions,
   UploadListingImageOptions,
@@ -111,6 +113,79 @@ function getBinarySize(file: Blob | ArrayBuffer | Uint8Array): number {
     return file.byteLength;
   }
   return file.size;
+}
+
+const publishFieldLabels: Record<PublishMissingField, string> = {
+  title: "Title",
+  category_id: "Category",
+  price: "Price",
+  location: "Location",
+  images: "At least one image",
+  item_condition: "Item condition",
+  item_quantity: "Item quantity",
+  service_duration_minutes: "Service duration",
+};
+
+function getMissingPublishFields(
+  listing: ListingWithDetails,
+  updates: UpdateListingInput = {},
+): PublishMissingField[] {
+  const title = updates.title ?? listing.title;
+  const categoryId = updates.category_id !== undefined ? updates.category_id : listing.category_id;
+  const price = updates.price !== undefined ? updates.price : listing.price;
+  const location = updates.location !== undefined ? updates.location : listing.location;
+
+  const missingFields: PublishMissingField[] = [];
+
+  if (!title.trim()) {
+    missingFields.push("title");
+  }
+
+  if (!categoryId) {
+    missingFields.push("category_id");
+  }
+
+  if (price === null) {
+    missingFields.push("price");
+  }
+
+  if (!location || !location.trim()) {
+    missingFields.push("location");
+  }
+
+  if (listing.images.length < 1) {
+    missingFields.push("images");
+  }
+
+  if (listing.type === "item") {
+    if (!listing.item_details?.condition) {
+      missingFields.push("item_condition");
+    }
+    if (!listing.item_details || listing.item_details.quantity < 1) {
+      missingFields.push("item_quantity");
+    }
+  }
+
+  if (listing.type === "service") {
+    if (!listing.service_details || listing.service_details.duration_minutes <= 0) {
+      missingFields.push("service_duration_minutes");
+    }
+  }
+
+  return missingFields;
+}
+
+/** Error thrown when attempting to publish an incomplete listing. */
+export class ListingPublishValidationError extends Error {
+  readonly code = "LISTING_PUBLISH_VALIDATION_FAILED";
+  readonly missingFields: PublishMissingField[];
+
+  constructor(missingFields: PublishMissingField[]) {
+    const labels = missingFields.map((field) => publishFieldLabels[field]);
+    super(`Cannot publish listing. Missing required fields: ${labels.join(", ")}`);
+    this.name = "ListingPublishValidationError";
+    this.missingFields = missingFields;
+  }
 }
 
 // Verifies that a listing exists, is not soft-deleted, and belongs to the given user.
@@ -256,6 +331,13 @@ export async function updateListing(id: string, userId: string, updates: UpdateL
     throw new Error("No fields provided to update");
   }
 
+  if (updates.status === "active") {
+    const readiness = await getListingPublishReadiness(id, userId, updates);
+    if (!readiness.isPublishable) {
+      throw new ListingPublishValidationError(readiness.missingFields);
+    }
+  }
+
   const { data, error } = await supabase
     .from("listings")
     .update(payload)
@@ -277,6 +359,53 @@ export async function updateListing(id: string, userId: string, updates: UpdateL
   }
 
   return mapListingRow(data);
+}
+
+/**
+ * Checks whether a listing is complete enough to be published.
+ *
+ * param id - UUID of the listing to evaluate.
+ * param userId - UUID of the authenticated user who must own the listing.
+ * param updates - Optional partial listing updates to include in the readiness evaluation.
+ */
+export async function getListingPublishReadiness(
+  id: string,
+  userId: string,
+  updates: UpdateListingInput = {},
+): Promise<ListingPublishReadiness> {
+  if (!id.trim()) {
+    throw new Error("Listing ID is required");
+  }
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+
+  const listing = await getListingWithDetails(id);
+
+  if (listing.user_id !== userId) {
+    throw new Error("Listing not found or you do not have permission to update it");
+  }
+
+  const missingFields = getMissingPublishFields(listing, updates);
+
+  return {
+    isPublishable: missingFields.length === 0,
+    missingFields,
+  };
+}
+
+/**
+ * Publishes a listing by setting status to active after readiness validation.
+ */
+export async function publishListing(id: string, userId: string): Promise<Listing> {
+  return updateListing(id, userId, { status: "active" });
+}
+
+/**
+ * Unpublishes a listing by setting status back to draft.
+ */
+export async function unpublishListing(id: string, userId: string): Promise<Listing> {
+  return updateListing(id, userId, { status: "draft" });
 }
 
 /**
