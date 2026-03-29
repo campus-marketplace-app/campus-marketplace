@@ -15,6 +15,7 @@ export default function Listing() {
     const [publishLoading, setPublishLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [unavailableMessage, setUnavailableMessage] = useState<string | null>(null);
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -167,18 +168,45 @@ export default function Listing() {
             try {
                 const listing = await getListingWithDetails(id as string);
 
+                if (listing.status !== "active" && (!user || user.id !== listing.user_id)) {
+                    setUnavailableMessage("This listing is no longer avaible");
+                    return;
+                }
+
                 console.log("Listing details:", listing);
 
+                setUnavailableMessage(null);
                 setListingData(listing);
                 let account = await getProfile(listing.user_id);
                 setDisplayName(account.display_name);
             } catch (error) {
                 console.error("Error fetching listing details:", error);
-                navigate("/", { replace: true });
+                setUnavailableMessage("This listing is no longer avaible");
             }
         };
         callback();
-    }, [id, navigate]);
+    }, [id, navigate, user]);
+
+    if (unavailableMessage) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
+
+                <section className="relative z-10 w-full max-w-xl p-6 sm:p-8">
+                    <div className="rounded-sm bg-[#a50f1a] p-8 text-center shadow-lg sm:p-10">
+                        <p className="text-2xl font-semibold text-white">{unavailableMessage}</p>
+                        <button
+                            type="button"
+                            className="mt-6 bg-[#f1b7be] px-8 py-2 text-xl text-black transition hover:bg-white"
+                            onClick={() => navigate("/", { replace: true })}
+                        >
+                            Back to marketplace
+                        </button>
+                    </div>
+                </section>
+            </div>
+        );
+    }
 
     if (!listingData) {
         return <div className="flex h-screen items-center justify-center text-white">Loading...</div>;
