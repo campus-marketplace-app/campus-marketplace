@@ -193,11 +193,11 @@ export default function Listing() {
                 <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
 
                 <section className="relative z-10 w-full max-w-xl p-6 sm:p-8">
-                    <div className="rounded-sm bg-[#a50f1a] p-8 text-center shadow-lg sm:p-10">
-                        <p className="text-2xl font-semibold text-white">{unavailableMessage}</p>
+                    <div className="rounded-sm bg-[var(--color-primary)] p-8 text-center shadow-lg sm:p-10">
+                        <p className="text-2xl font-semibold text-[var(--color-text-on-primary)]">{unavailableMessage}</p>
                         <button
                             type="button"
-                            className="mt-6 bg-[#f1b7be] px-8 py-2 text-xl text-black transition hover:bg-white"
+                            className="mt-6 bg-[var(--color-accent)] px-8 py-2 text-xl text-black transition hover:bg-white"
                             onClick={() => navigate("/", { replace: true })}
                         >
                             Back to marketplace
@@ -263,13 +263,13 @@ export default function Listing() {
                                 {user && listingData.user_id === user.id ? (
                                     <div className="mt-4 flex flex-col items-start gap-2">
                                         <button
-                                            className="inline-flex rounded-xl bg-[#f1b7be] px-4 py-2 text-sm text-black transition hover:bg-white"
+                                            className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white"
                                             type="button"
                                             onClick={editListing}
                                         >
                                             Edit Listing
                                         </button>
-                                        <button className="inline-flex rounded-xl bg-[#f1b7be] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                        <button className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                                             type="button"
                                             disabled={publishLoading}
                                             onClick={handlePublish}

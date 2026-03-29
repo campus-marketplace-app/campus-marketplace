@@ -28,7 +28,7 @@ export default function PageHeader({
     const { schoolName, logoUrl } = useTheme();
 
     return (
-        <nav className="bg-[var(--color-primary)] p-4 w-full relative">
+        <nav className="bg-[var(--color-primary)] p-4 w-full">
             <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
                 <Link to="/" className="text-[var(--color-text-on-primary)] font-bold text-xl flex items-center gap-2">
                     {logoUrl && <img src={logoUrl} alt={schoolName} className="h-8 w-auto" />}
@@ -81,12 +81,9 @@ export default function PageHeader({
                         </svg>
                     </button>
                 ) : null}
+
+                {isRegistering && <ThemeModeToggle />}
             </div>
-            {isRegistering && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                    <ThemeModeToggle />
-                </div>
-            )}
         </nav>
     );
 }
