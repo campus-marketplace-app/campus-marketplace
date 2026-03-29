@@ -1,4 +1,5 @@
 import type { Session, User } from "@supabase/supabase-js";
+export type { Session, User };
 import { supabase } from "../supabase-client.js";
 import { upsertProfile, type AccountType, type UpsertProfileInput } from "./profile.js";
 

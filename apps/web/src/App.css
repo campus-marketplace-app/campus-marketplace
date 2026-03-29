@@ -1,3 +1,7 @@
 #root {
   min-height: 100vh;
+  background-image: var(--background-image-url);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }

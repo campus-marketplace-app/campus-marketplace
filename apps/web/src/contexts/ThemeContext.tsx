@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getThemeBySchoolCode, type SchoolTheme } from '@campus-marketplace/backend';
+import { useAuth } from './AuthContext';
 
 const THEME_MODE_STORAGE_KEY = 'campus-marketplace-theme-mode';
 const LIGHT_THEME_BACKGROUND = '#ececec';
 const DARK_THEME_BACKGROUND = '#111318';
+const DEFAULT_SCHOOL_CODE = 186131; // NJIT's OPE ID as fallback
 
 export type ThemeModePreference = 'system' | 'light' | 'dark';
 export type ResolvedThemeMode = 'light' | 'dark';
@@ -180,6 +182,13 @@ function deriveThemeVars(theme: SchoolTheme, resolvedMode: ResolvedThemeMode) {
 
     // Font
     '--font-family': theme.font_family ?? 'Arial, Helvetica, sans-serif',
+
+    // Background Image
+    '--background-image-url': isDarkMode && theme.background_image_url_dark
+      ? `url(${theme.background_image_url_dark})`
+      : theme.background_image_url
+        ? `url(${theme.background_image_url})`
+        : 'none',
   };
 }
 
@@ -201,140 +210,83 @@ type ThemeContextValue = {
   logoUrl: string | null;
 };
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
-
-// Validate env var once at module level
-const schoolCode = Number(import.meta.env.VITE_SCHOOL_CODE);
-const schoolCodeValid = !isNaN(schoolCode) && schoolCode > 0;
+const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { user, profile } = useAuth();
   const [theme, setTheme] = useState<SchoolTheme | null>(null);
-  const [themeModePreference, setThemeModePreference] = useState<ThemeModePreference>(() => getStoredThemeMode());
-  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => getSystemPrefersDark());
-  const [loading, setLoading] = useState(schoolCodeValid);
-  const [error, setError] = useState<string | null>(
-    schoolCodeValid ? null : 'VITE_SCHOOL_CODE is not set or invalid',
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [themeModePreference, setThemeModePreference] = useState<ThemeModePreference>(getStoredThemeMode);
+
+  const systemPrefersDark = getSystemPrefersDark();
   const darkModeAvailable = hasDarkTheme(theme);
   const resolvedThemeMode = resolveThemeMode(themeModePreference, systemPrefersDark, darkModeAvailable);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeModePreference);
-    } catch {
-      // Ignore storage failures and keep the in-memory preference.
-    }
-  }, [themeModePreference]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (event: MediaQueryListEvent) => {
-      setSystemPrefersDark(event.matches);
-    };
-
-    setSystemPrefersDark(mediaQuery.matches);
-
-    if (typeof mediaQuery.addEventListener === 'function') {
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-
-    mediaQuery.addListener(handleChange);
-    return () => mediaQuery.removeListener(handleChange);
-  }, []);
-
-  const themeVars = useMemo(() => {
-    if (!theme) {
-      return null;
-    }
-
-    return deriveThemeVars(theme, resolvedThemeMode);
-  }, [theme, resolvedThemeMode]);
-
-  useEffect(() => {
-    if (!schoolCodeValid) return;
-
-    getThemeBySchoolCode(schoolCode)
-      .then((data) => {
-        setTheme(data);
-      })
-      .catch((err) => {
-        console.error('Failed to load theme:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load theme');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
     const root = document.documentElement;
-    root.dataset.themeMode = resolvedThemeMode;
-    root.style.colorScheme = resolvedThemeMode;
+    root.classList.toggle('dark', resolvedThemeMode === 'dark');
+  }, [resolvedThemeMode]);
 
-    if (!themeVars) {
-      return;
+  useEffect(() => {
+    const schoolCode = profile?.school_code ?? DEFAULT_SCHOOL_CODE;
+
+    async function loadTheme() {
+      setLoading(true);
+      setError(null);
+      try {
+        const fetchedTheme = await getThemeBySchoolCode(schoolCode);
+        setTheme(fetchedTheme);
+      } catch (err) {
+        setError((err as Error).message);
+        console.error('Failed to load theme, loading default');
+        try {
+          const fallbackTheme = await getThemeBySchoolCode(DEFAULT_SCHOOL_CODE);
+          setTheme(fallbackTheme);
+        } catch (fallbackErr) {
+          setError(`Failed to load theme for school ${schoolCode} and could not load fallback theme either. ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`);
+        }
+      } finally {
+        setLoading(false);
+      }
     }
 
-    for (const [key, value] of Object.entries(themeVars)) {
+    void loadTheme();
+  }, [profile, user]);
+
+  useEffect(() => {
+    if (!theme) return;
+
+    const cssVars = deriveThemeVars(theme, resolvedThemeMode);
+    const root = document.documentElement;
+
+    for (const [key, value] of Object.entries(cssVars)) {
       root.style.setProperty(key, value);
     }
-  }, [resolvedThemeMode, themeVars]);
+  }, [theme, resolvedThemeMode]);
 
-  const value: ThemeContextValue = {
+  const setThemeMode = (mode: ThemeModePreference) => {
+    setThemeModePreference(mode);
+    window.localStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
+  };
+
+  const value = useMemo<ThemeContextValue>(() => ({
     theme,
     loading,
     error,
     themeModePreference,
     resolvedThemeMode,
     darkModeAvailable,
-    setThemeMode: setThemeModePreference,
-    schoolName: theme?.school_name ?? 'Campus',
-    emailDomain: theme?.email_domain ?? 'university.edu',
+    setThemeMode,
+    schoolName: theme?.school_name ?? 'Campus Marketplace',
+    emailDomain: theme?.email_domain ?? '',
     logoUrl: theme?.logo_url ?? null,
-  };
+  }), [theme, loading, error, themeModePreference, resolvedThemeMode, darkModeAvailable]);
 
-  // Show a minimal loading state to prevent flash of wrong colors
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'var(--color-background)',
-      }}>
-        <div style={{
-          width: 32,
-          height: 32,
-          border: '3px solid #b9b9b9',
-          borderTopColor: '#B81C24',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-// Hook for components that need theme data (school name, email domain, etc.)
-// eslint-disable-next-line react-refresh/only-export-components
-export function useTheme(): ThemeContextValue {
+export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     throw new Error('useTheme must be used within a ThemeProvider');
