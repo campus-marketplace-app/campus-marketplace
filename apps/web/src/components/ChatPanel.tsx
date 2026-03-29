@@ -46,9 +46,9 @@ export default function ChatPanel({
     }
 
     return (
-        <div className="flex h-full w-full flex-col border-l border-[#b9b9b9]">
+        <div className="flex h-full w-full flex-col border-l border-[var(--color-border)]">
             {/* Header */}
-            <div className="flex items-center gap-2 border-b border-[#b9b9b9] bg-[#ececec] px-4 py-3">
+            <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3">
                 {/* Back button — only visible on mobile */}
                 {onBack && (
                     <button
@@ -86,7 +86,7 @@ export default function ChatPanel({
                                 <div
                                     className={`max-w-[75%] rounded-lg px-3 py-2 text-sm font-medium break-words ${
                                         isMine
-                                            ? "bg-[#8f0010] text-white drop-shadow-sm"
+                                            ? "bg-[var(--color-primary)] text-[var(--color-text-on-primary)] drop-shadow-sm"
                                             : "bg-white text-black shadow-sm"
                                     }`}
                                 >
@@ -104,7 +104,7 @@ export default function ChatPanel({
             </div>
 
             {/* Message input */}
-            <div className="m-2 mt-0 flex items-center gap-2 bg-[#ececec] p-2">
+            <div className="m-2 mt-0 flex items-center gap-2 bg-[var(--color-background)] p-2">
                 <input
                     type="text"
                     placeholder="Type a message..."
@@ -117,7 +117,7 @@ export default function ChatPanel({
                     type="button"
                     onClick={onSend}
                     disabled={!messageInput.trim()}
-                    className="rounded bg-[#8f0010] px-4 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-40"
+                    className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-primary)] transition-opacity disabled:opacity-40"
                 >
                     Send
                 </button>

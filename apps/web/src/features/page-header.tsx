@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { getAvatarUrl } from '@campus-marketplace/backend';
+import { useTheme } from '../contexts/ThemeContext';
+import ThemeModeToggle from './theme-mode-toggle';
 import type { UserProfile } from "./types";
 
 type HeaderProps = {
@@ -23,12 +25,14 @@ export default function PageHeader({
     const profileAvatarSrc = profile?.avatar_path
         ? `${getAvatarUrl(profile.avatar_path)}?t=${avatarCacheBust ?? 0}`
         : '/default-avatar.png';
+    const { schoolName, logoUrl } = useTheme();
 
     return (
-        <nav className="bg-red-700 p-4 w-full">
+        <nav className="bg-[var(--color-primary)] p-4 w-full relative">
             <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
-                <Link to="/" className="text-white font-bold text-xl">
-                    Campus Marketplace
+                <Link to="/" className="text-[var(--color-text-on-primary)] font-bold text-xl flex items-center gap-2">
+                    {logoUrl && <img src={logoUrl} alt={schoolName} className="h-8 w-auto" />}
+                    {schoolName} Marketplace
                 </Link>
 
                 {isRegistering ? (
@@ -37,7 +41,7 @@ export default function PageHeader({
                         name='search'
                         type="text"
                         placeholder="Search..."
-                        className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-700"
+                        className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-500"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery?.(e.target.value)}
                     />
@@ -45,12 +49,12 @@ export default function PageHeader({
 
                 {isRegistering ? (
                     isLoggedIn ? (
-                        <Link to="/profile" className="flex items-center gap-2 text-white hover:text-gray-200">
+                        <Link to="/profile" className="flex items-center gap-2 text-[var(--color-text-on-primary)] hover:opacity-80">
                             <img src={profileAvatarSrc} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
-                            <p className="text-white">{profile?.display_name || 'Profile'}</p>
+                            <p className="text-[var(--color-text-on-primary)]">{profile?.display_name || 'Profile'}</p>
                         </Link> //placeholder for profile img
                     ) : (
-                        <Link to="/login" className="text-white hover:text-gray-200">
+                        <Link to="/login" className="text-[var(--color-text-on-primary)] hover:opacity-80">
                             Login
                         </Link>
                     )
@@ -61,7 +65,7 @@ export default function PageHeader({
                         type="button"
                         aria-label="Cart"
                         onClick={() => {}}
-                        className="text-white p-1 cursor-pointer hover:text-gray-200"
+                        className="text-[var(--color-text-on-primary)] p-1 cursor-pointer hover:opacity-80"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -78,6 +82,11 @@ export default function PageHeader({
                     </button>
                 ) : null}
             </div>
+            {isRegistering && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <ThemeModeToggle />
+                </div>
+            )}
         </nav>
     );
 }

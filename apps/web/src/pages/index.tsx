@@ -108,7 +108,7 @@ export default function Index() {
                             className="block rounded-lg p-2 text-center transition hover:bg-white/50 hover:shadow-md focus:outline-color=none focus-visible:ring-2 focus-visible:ring-black"
                         >
                             <article className="rounded-lg border border-black bg-white p-4 text-center text-black">
-                                <div className="mx-auto mb-2 flex h-32 w-32 items-center justify-center bg-[#cc7f84] text-[10px] text-black">
+                                <div className="mx-auto mb-2 flex h-32 w-32 items-center justify-center bg-[var(--color-accent-muted)] text-[10px] text-black">
                                     'img'
                                 </div>
                                 <p className="text-3xl leading-none">{listing.title}</p>
