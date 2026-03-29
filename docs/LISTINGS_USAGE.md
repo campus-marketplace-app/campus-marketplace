@@ -16,10 +16,21 @@ import {
   unpublishListing,
   updateListing,
   deleteListing,
+  uploadListingImage,
+  deleteListingImage,
+  getListingImageUrl,
   upsertItemDetails,
   upsertServiceDetails,
 } from "@campus-marketplace/backend";
-import type { Listing, ListingWithDetails, ItemDetails, ServiceDetails } from "@campus-marketplace/backend";
+import type {
+  Listing,
+  ListingWithDetails,
+  ListingImage,
+  ItemDetails,
+  ServiceDetails,
+  ListingImageContentType,
+  UploadListingImageOptions,
+} from "@campus-marketplace/backend";
 ```
 
 ## Types
@@ -266,6 +277,84 @@ await deleteListing(listing.id, session.user.id);
 
 ---
 
+## uploadListingImage(listingId, userId, file, contentType, options?) — upload one listing image
+
+Uploads an image object to Supabase Storage and creates the corresponding `listing_images` metadata row.
+Only the listing owner can upload images.
+
+```ts
+const file = fileInput.files?.[0];
+if (!file) throw new Error("No file selected");
+
+const image = await uploadListingImage(
+  listing.id,
+  session.user.id,
+  file,
+  file.type as ListingImageContentType,
+  {
+    alt_text: "Front cover",
+    filename: "cover",
+    // optional: order_no: 0,
+  } satisfies UploadListingImageOptions,
+);
+
+console.log(image.path);
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `listingId` | `string` | yes | listing UUID |
+| `userId` | `string` | yes | must own the listing |
+| `file` | `Blob \| ArrayBuffer \| Uint8Array` | yes | browser `File` is accepted (`File` extends `Blob`) |
+| `contentType` | `"image/jpeg" \| "image/png" \| "image/webp"` | yes | only these MIME types are allowed |
+| `options.alt_text` | `string \| null` | no | defaults to `null` |
+| `options.order_no` | `number` | no | non-negative integer; auto-assigned to next order when omitted |
+| `options.filename` | `string` | no | used as filename prefix; extension comes from `contentType` |
+
+**Returns:** `ListingImage`
+
+**Validation and behavior:**
+- rejects unsupported content type
+- rejects files larger than 5 MB
+- verifies listing ownership before upload
+- if metadata insert fails after storage upload, uploaded object is cleaned up
+
+---
+
+## deleteListingImage(imageId, userId) — delete one listing image
+
+Deletes listing image metadata and removes the underlying storage object.
+Only the listing owner can delete images.
+
+```ts
+await deleteListingImage(imageId, session.user.id);
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `imageId` | `string` | yes | listing image UUID |
+| `userId` | `string` | yes | must own the parent listing |
+
+**Returns:** `void`
+
+---
+
+## getListingImageUrl(imagePath) — build public URL for an image path
+
+Converts a stored image path from `listing_images.path` into a public URL.
+
+```ts
+const publicUrl = getListingImageUrl(listing.images[0].path);
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `imagePath` | `string` | yes | relative storage path, for example `listingId/image-uuid.jpg` |
+
+**Returns:** `string` — public URL
+
+---
+
 ## upsertItemDetails(listingId, userId, details) — save item-specific details
 
 Call after `createListing` for `type: "item"` listings. Safe to call again to update.
@@ -335,6 +424,10 @@ Common errors:
 | `"Listing ID is required"` | empty string passed |
 | `"No fields provided to update"` | `updateListing` called with `{}` |
 | `"Item quantity must be at least 1"` | `quantity: 0` passed |
+| `"Unsupported image content type. Allowed types: image/jpeg, image/png, image/webp"` | invalid `contentType` sent to `uploadListingImage` |
+| `"Listing image exceeds max size of 5 MB"` | uploaded file is too large |
+| `"Listing image ID is required"` | empty `imageId` passed to `deleteListingImage` |
+| `"Listing image not found or you do not have permission to delete it"` | image doesn't exist, is deleted, or listing ownership check fails |
 
 ## Source
 
