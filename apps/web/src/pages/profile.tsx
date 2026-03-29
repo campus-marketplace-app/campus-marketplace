@@ -198,7 +198,7 @@ export default function Profile() {
             <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
 
             <section className="relative z-10 w-full p-6 sm:p-8">
-                <div className="overflow-y-auto mx-auto w-full max-w-3xl rounded-sm bg-[#a50f1a] p-6 shadow-lg sm:p-10">
+                <div className="overflow-y-auto mx-auto w-full max-w-3xl rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
                     <div className="space-y-8">
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Profile</p>
@@ -213,7 +213,7 @@ export default function Profile() {
                         <div className="grid gap-8 md:grid-cols-[1fr_1.3fr]">
                             <div>
                                 <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Avatar</p>
-                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#f1b7be] text-center text-sm uppercase text-black">
+                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--color-accent)] text-center text-sm uppercase text-black">
                                     <img src={avatarUrl || undefined} alt="Avatar" className="h-full w-full object-cover" />
                                     {isEditing && (
                                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
@@ -278,7 +278,7 @@ export default function Profile() {
                         <div className="flex items-center justify-between pt-4">
                             <button
                                 type="button"
-                                className="bg-[#f1b7be] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
                                 onClick={() => navigate(-1)}
                             >
                                 back
@@ -290,7 +290,7 @@ export default function Profile() {
                                     disabled={isSaveDisabled}
                                     className={`px-8 py-2 text-2xl text-black transition ${isSaveDisabled
                                             ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
-                                            : "bg-[#f1b7be] hover:bg-white"
+                                            : "bg-[var(--color-accent)] hover:bg-white"
                                         }`}
                                 >
                                     {isEditing ? "save" : "edit"}

@@ -1,13 +1,34 @@
 @import "tailwindcss";
 
+/* Fallback CSS variables — ThemeProvider overwrites these at runtime */
 :root {
-  font-family: Arial, Helvetica, sans-serif;
+  --color-primary: #B81C24;
+  --color-secondary: #FFFFFF;
+  --color-accent: #f1b7be;
+  --color-background: #ececec;
+  --color-text-on-primary: #FFFFFF;
+  --color-button-style: #000000;
+  --color-primary-hover: #d42230;
+  --color-primary-dark: #8c0010;
+  --color-accent-light: #f6d3d6;
+  --color-accent-muted: #cc7f84;
+  --color-secondary-muted: #c86d72;
+  --color-background-alt: #dddddd;
+  --color-border: #b9b9b9;
+  --color-surface: #d8d8d8;
+  --color-surface-alt: #d0d0d0;
+  --font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-family);
+}
+
+:root.dark {
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
   min-width: 320px;
-  background: #ececec;
+  background-color: var(--color-background);
 }
 
 button {

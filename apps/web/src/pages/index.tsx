@@ -149,7 +149,7 @@ export default function Index() {
                                 </div>
 
                                 <div
-                                    className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-white"
+                                    className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-[var(--color-text-on-primary)]"
                                     style={{ backgroundColor: "var(--color-primary)" }}
                                 >
                                     {listing.status === "active" ? "✓ PUBLISHED" : "📝 DRAFT"}

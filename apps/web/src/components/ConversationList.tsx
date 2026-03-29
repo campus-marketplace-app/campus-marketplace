@@ -25,14 +25,14 @@ export default function ConversationList({
     );
 
     return (
-        <aside className="flex flex-col border-r border-[#b9b9b9] bg-[#ececec] p-4">
+        <aside className="flex flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] p-4">
             {/* Search bar */}
             <input
                 type="text"
                 placeholder="Search contacts"
                 value={searchFilter}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="mb-4 rounded bg-[#d0d0d0] px-3 py-2 text-sm text-black outline-none placeholder:text-black"
+                className="mb-4 rounded bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-black outline-none placeholder:text-black"
             />
 
             {/* Conversation list */}
@@ -42,7 +42,7 @@ export default function ConversationList({
                 )}
 
                 {!loading && filtered.length === 0 && (
-                    <div className="rounded bg-[#d8d8d8] p-3 text-sm text-black">
+                    <div className="rounded bg-[var(--color-surface)] p-3 text-sm text-black">
                         {searchFilter ? "No matching contacts." : "No conversations yet."}
                     </div>
                 )}
@@ -55,8 +55,8 @@ export default function ConversationList({
                             onClick={() => onSelect(convo.id)}
                             className={`mb-1 flex w-full cursor-pointer flex-col rounded px-3 py-2 text-left transition-colors ${
                                 convo.id === activeId
-                                    ? "bg-[#8f0010] text-white"
-                                    : "text-black hover:bg-[#d8d8d8]"
+                                    ? "bg-[var(--color-primary)] text-[var(--color-text-on-primary)]"
+                                    : "text-black hover:bg-[var(--color-surface)]"
                             }`}
                         >
                             <div className="flex items-center justify-between">
@@ -66,7 +66,7 @@ export default function ConversationList({
 
                                 {/* Unread badge */}
                                 {(convo.unread_count ?? 0) > 0 && convo.id !== activeId && (
-                                    <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#8f0010] px-1.5 text-xs font-bold text-white">
+                                    <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-xs font-bold text-[var(--color-text-on-primary)]">
                                         {convo.unread_count}
                                     </span>
                                 )}
