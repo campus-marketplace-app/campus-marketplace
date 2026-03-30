@@ -1,11 +1,3 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
+// Tailwind v4: theme tokens are defined in src/index.css via @theme inline.
+// This file is kept for tooling compatibility but is not used by the build.
+export default {}

@@ -28,9 +28,9 @@ export default function PageHeader({
     const { schoolName, logoUrl } = useTheme();
 
     return (
-        <nav className="bg-[var(--color-primary)] p-4 w-full">
+        <nav className="bg-primary p-4 w-full">
             <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
-                <Link to="/" className="text-[var(--color-text-on-primary)] font-bold text-xl flex items-center gap-2">
+                <Link to="/" className="text-on-primary font-bold text-xl flex items-center gap-2">
                     {logoUrl && <img src={logoUrl} alt={schoolName} className="h-8 w-auto" />}
                     {schoolName} Marketplace
                 </Link>
@@ -49,12 +49,12 @@ export default function PageHeader({
 
                 {isRegistering ? (
                     isLoggedIn ? (
-                        <Link to="/profile" className="flex items-center gap-2 text-[var(--color-text-on-primary)] hover:opacity-80">
+                        <Link to="/profile" className="flex items-center gap-2 text-on-primary hover:opacity-80">
                             <img src={profileAvatarSrc} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
-                            <p className="text-[var(--color-text-on-primary)]">{profile?.display_name || 'Profile'}</p>
+                            <p className="text-on-primary">{profile?.display_name || 'Profile'}</p>
                         </Link> //placeholder for profile img
                     ) : (
-                        <Link to="/login" className="text-[var(--color-text-on-primary)] hover:opacity-80">
+                        <Link to="/login" className="text-on-primary hover:opacity-80">
                             Login
                         </Link>
                     )
@@ -65,7 +65,7 @@ export default function PageHeader({
                         type="button"
                         aria-label="Cart"
                         onClick={() => {}}
-                        className="text-[var(--color-text-on-primary)] p-1 cursor-pointer hover:opacity-80"
+                        className="text-on-primary p-1 cursor-pointer hover:opacity-80"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"

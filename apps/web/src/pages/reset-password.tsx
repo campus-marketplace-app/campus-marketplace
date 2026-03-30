@@ -70,9 +70,9 @@ export default function ResetPassword() {
     }, []);
 
     return (
-        <section className="flex min-h-[calc(100vh-64px)] w-full items-center justify-center bg-[var(--color-background-alt)] px-4 py-10 sm:px-8">
-            <div className="w-full max-w-md border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:p-8">
-                <h1 className="bg-[var(--color-primary-dark)] py-2 text-center text-3xl font-semibold uppercase tracking-wide text-black">
+        <section className="flex min-h-[calc(100vh-64px)] w-full items-center justify-center bg-background-alt px-4 py-10 sm:px-8">
+            <div className="card-form max-w-md p-6 sm:p-8">
+                <h1 className="bg-primary-dark py-2 text-center text-3xl font-semibold uppercase tracking-wide text-black">
                     Reset Password
                 </h1>
 
@@ -115,7 +115,7 @@ export default function ResetPassword() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="mt-2 bg-[var(--color-primary-dark)] py-3 text-base font-semibold text-black transition hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-2 bg-primary-dark py-3 text-base font-semibold text-black transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {loading ? 'Updating...' : 'Reset Password'}
                     </button>
@@ -123,7 +123,7 @@ export default function ResetPassword() {
 
                 <Link
                     to="/login"
-                    className="mx-auto mt-5 block w-fit bg-[var(--color-primary-dark)] px-6 py-2 text-center text-sm font-medium text-black transition hover:bg-[var(--color-primary-hover)]"
+                    className="mx-auto mt-5 block w-fit bg-primary-dark px-6 py-2 text-center text-sm font-medium text-black transition hover:bg-primary-hover"
                 >
                     Back to login
                 </Link>

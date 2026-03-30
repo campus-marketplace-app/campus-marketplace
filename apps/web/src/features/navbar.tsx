@@ -23,7 +23,7 @@ export default function Navbar({
             <button
                 type="button"
                 onClick={toggleSidebar}
-                className="absolute right-2 top-2 rounded border border-black bg-[var(--color-accent-light)] px-2 py-1 text-sm font-semibold text-black hover:bg-white"
+                className="absolute right-2 top-2 rounded border border-black bg-accent-light px-2 py-1 text-sm font-semibold text-black hover:bg-white"
                 aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
                 {isSidebarOpen ? '<' : '>'}
@@ -37,10 +37,7 @@ export default function Navbar({
                                 to="/"
                                 end
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
-                                        ? 'bg-white/25 text-[var(--color-text-on-primary)] shadow-sm'
-                                        : 'text-[var(--color-text-on-primary)] hover:bg-white/15'
-                                    }`
+                                    `nav-link ${isActive ? 'nav-link-active' : 'nav-link-inactive'}`
                                 }
                             >
                                 Home
@@ -51,10 +48,7 @@ export default function Navbar({
                                 to="/profile"
                                 state={{ backgroundLocation: location }}
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
-                                        ? 'bg-white/25 text-[var(--color-text-on-primary)] shadow-sm'
-                                        : 'text-[var(--color-text-on-primary)] hover:bg-white/15'
-                                    }`
+                                    `nav-link ${isActive ? 'nav-link-active' : 'nav-link-inactive'}`
                                 }
                             >
                                 Profile
@@ -64,10 +58,7 @@ export default function Navbar({
                             <NavLink
                                 to="/messages"
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
-                                        ? 'bg-white/25 text-[var(--color-text-on-primary)] shadow-sm'
-                                        : 'text-[var(--color-text-on-primary)] hover:bg-white/15'
-                                    }`
+                                    `nav-link ${isActive ? 'nav-link-active' : 'nav-link-inactive'}`
                                 }
                             >
                                 Messages
@@ -77,10 +68,7 @@ export default function Navbar({
                             <NavLink
                                 to="/my-listings"
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
-                                        ? 'bg-white/25 text-[var(--color-text-on-primary)] shadow-sm'
-                                        : 'text-[var(--color-text-on-primary)] hover:bg-white/15'
-                                    }`
+                                    `nav-link ${isActive ? 'nav-link-active' : 'nav-link-inactive'}`
                                 }
                             >
                                 My Listings
@@ -90,10 +78,7 @@ export default function Navbar({
                             <NavLink
                                 to="/login"
                                 className={({ isActive }) =>
-                                    `block rounded-lg px-4 py-2 font-semibold transition ${isActive
-                                        ? 'bg-white/25 text-[var(--color-text-on-primary)] shadow-sm'
-                                        : 'text-[var(--color-text-on-primary)] hover:bg-white/15'
-                                    }`
+                                    `nav-link ${isActive ? 'nav-link-active' : 'nav-link-inactive'}`
                                 }
                                 onClick={logout}
                             >
@@ -109,8 +94,7 @@ export default function Navbar({
                         <button
                             type="button"
                             onClick={openPostForm}
-                            className={`rounded-xl border-2 border-black bg-[var(--color-accent-light)] text-xl font-semibold text-black shadow-[4px_4px_0_#000] transition hover:-translate-y-0.5 hover:bg-white ${isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'
-                                }`}
+                            className={`btn-post ${isSidebarOpen ? 'px-7 py-3' : 'px-3 py-2'}`}
                         >
                             {isSidebarOpen ? 'Post' : '+'}
                         </button>

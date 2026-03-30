@@ -282,9 +282,9 @@ export default function Form({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="modal-root">
             <div
-                className="absolute inset-0 bg-black/50"
+                className="modal-backdrop"
                 onClick={() => {
                     if (!isSubmitting) {
                         onClose();
@@ -292,27 +292,25 @@ export default function Form({
                 }}
             />
 
-            <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
+            <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto card-primary p-6 shadow-lg sm:p-10">
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="mx-auto w-full max-w-sm">
                         <label htmlFor="title" className="mb-2 block text-center text-sm font-semibold uppercase tracking-wide text-white">
                             Title
                         </label>
-                        <div className="rounded-2xl bg-white px-4 py-3 text-center text-3xl">
-                            <input
-                                id="title"
-                                type="text"
-                                value={listingTitle}
-                                onChange={(e) => setListingTitle(e.target.value)}
-                                className="w-full bg-transparent text-center text-3xl outline-none placeholder:text-black"
-                            />
-                        </div>
+                        <input
+                            id="title"
+                            type="text"
+                            value={listingTitle}
+                            onChange={(e) => setListingTitle(e.target.value)}
+                            className="input-title placeholder:text-black"
+                        />
                     </div>
 
                     <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
                         <div>
                             <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
-                            <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
+                            <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-accent p-6 text-center text-sm uppercase text-black">
                                 {imagePreviewUrl ? (
                                     <img
                                         src={imagePreviewUrl}
@@ -392,7 +390,7 @@ export default function Form({
                                         id="category"
                                         value={listingCategory}
                                         onChange={(e) => setListingCategory(e.target.value)}
-                                        className="w-full overflow-y-auto rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                        className="input-field overflow-y-auto"
                                         size={1}
                                     >
                                         <option value="">-- Select --</option>
@@ -420,7 +418,7 @@ export default function Form({
                                                 id="condition"
                                                 value={listingCondition}
                                                 onChange={(e) => setListingCondition(e.target.value as ItemCondition)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
+                                                className="input-field placeholder:text-black"
                                             >
                                                 <option value="new">New</option>
                                                 <option value="like_new">Like New</option>
@@ -438,7 +436,7 @@ export default function Form({
                                                 type="number"
                                                 value={listingQuantity}
                                                 onChange={(e) => setListingQuantity(parseInt(e.target.value, 10))}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
+                                                className="input-field placeholder:text-black"
                                                 min={1}
                                                 max={99}
                                             />
@@ -456,7 +454,7 @@ export default function Form({
                                                 min={1}
                                                 value={durationMinutes}
                                                 onChange={(e) => setDurationMinutes(parseInt(e.target.value, 10) || 0)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                                className="input-field"
                                             />
                                         </div>
                                         <div>
@@ -468,7 +466,7 @@ export default function Form({
                                                 type="time"
                                                 value={availableFrom}
                                                 onChange={(e) => setAvailableFrom(e.target.value)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                                className="input-field"
                                             />
                                         </div>
                                         <div className="col-span-2">
@@ -480,7 +478,7 @@ export default function Form({
                                                 type="time"
                                                 value={availableTo}
                                                 onChange={(e) => setAvailableTo(e.target.value)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                                className="input-field"
                                             />
                                         </div>
                                     </>
@@ -496,7 +494,7 @@ export default function Form({
                                     type="datetime-local"
                                     readOnly={true}
                                     value={listingDate}
-                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                    className="input-field"
                                 />
                             </div>
 
@@ -510,7 +508,7 @@ export default function Form({
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                     placeholder="e.g. Campus Center, Building A"
-                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-gray-400"
+                                    className="input-field placeholder:text-gray-400"
                                 />
                             </div>
 
@@ -533,7 +531,7 @@ export default function Form({
                         <button
                             type="button"
                             disabled={isSubmitting}
-                            className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
+                            className="btn-accent disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
                             onClick={onClose}
                         >
                             back
@@ -541,7 +539,7 @@ export default function Form({
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
+                            className="btn-accent disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
                         >
                             Save draft
                         </button>

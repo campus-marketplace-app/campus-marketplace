@@ -107,7 +107,7 @@ export default function Signup() {
 
     return (
         <section
-            className="flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-[var(--color-background-alt)] px-4 py-8 sm:px-8"
+            className="flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-background-alt px-4 py-8 sm:px-8"
             style={signupBgUrl ? { backgroundImage: `url(${signupBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
         >
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
@@ -118,8 +118,8 @@ export default function Signup() {
                     </p>
                 </div>
 
-                <div className="mx-auto w-full max-w-[380px] overflow-hidden border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] shadow-[0_2px_8px_rgba(0,0,0,0.22)]">
-                    <h1 className="mb-8 bg-[var(--color-primary-dark)] py-3 text-center text-3xl uppercase tracking-wide text-[var(--color-text-on-primary)] shadow-sm">
+                <div className="card-form max-w-[380px]">
+                    <h1 className="card-form-header mb-8">
                         Signup
                     </h1>
 
@@ -128,7 +128,7 @@ export default function Signup() {
                         <input
                             type="text"
                             placeholder="Username"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            className="input-underline"
                             value={displayName}
                             onChange={(e) => {
                                 setDisplayName(e.target.value);
@@ -141,7 +141,7 @@ export default function Signup() {
                         <input
                             type="email"
                             placeholder="Email"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            className="input-underline"
                             value={email}
                             onChange={(e) => {
                                 setEmail(e.target.value);
@@ -156,7 +156,7 @@ export default function Signup() {
                         <input
                             type="password"
                             placeholder="Password"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={password}
+                            className="input-underline" value={password}
                             onChange={(e) => {
                                 setPassword(e.target.value);
                                 checkPassword(e.target.value);
@@ -170,7 +170,7 @@ export default function Signup() {
                         <input
                             type="password"
                             placeholder="Re-enter Password"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={rePassword}
+                            className="input-underline" value={rePassword}
                             onChange={(e) => {
                                 const nextRePassword = e.target.value;
                                 setRePassword(nextRePassword);
@@ -187,7 +187,7 @@ export default function Signup() {
                                 <label
                                     className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
                                         accountType === 'student'
-                                            ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary-dark)] text-[var(--color-text-on-primary)]'
+                                            ? 'border-primary-dark bg-primary-dark text-on-primary'
                                             : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
                                     }`}
                                 >
@@ -205,7 +205,7 @@ export default function Signup() {
                                 <label
                                     className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
                                         accountType === 'business'
-                                            ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary-dark)] text-[var(--color-text-on-primary)]'
+                                            ? 'border-primary-dark bg-primary-dark text-on-primary'
                                             : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
                                     }`}
                                 >
@@ -227,7 +227,7 @@ export default function Signup() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="bg-[var(--color-primary-dark)] py-2 text-lg text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
+                            className="btn-primary w-full text-lg py-2"
                         >
                             {loading ? 'Signing up...' : 'Submit'}
                         </button>
@@ -235,7 +235,7 @@ export default function Signup() {
 
                     <Link
                         to="/login"
-                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-black transition hover:bg-[var(--color-primary-hover)]"
+                        className="mx-auto mt-4 block w-fit bg-primary-dark px-8 py-2 text-center text-sm text-black transition hover:bg-primary-hover"
                     >
                         Back to login
                     </Link>

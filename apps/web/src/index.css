@@ -1,7 +1,38 @@
 @import "tailwindcss";
 
-/* Fallback CSS variables — ThemeProvider overwrites these at runtime */
+/* ─── Tailwind v4 theme tokens ───────────────────────────────────────────────
+   @theme inline maps Tailwind utility names to the app's runtime CSS variables.
+   "inline" means Tailwind does NOT generate new CSS variables — it inlines
+   var(--color-*) directly into each utility class, so colors always resolve
+   through ThemeContext at runtime without any circularity.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  --color-primary:          var(--color-primary);
+  --color-primary-hover:    var(--color-primary-hover);
+  --color-primary-dark:     var(--color-primary-dark);
+  --color-secondary:        var(--color-secondary);
+  --color-secondary-muted:  var(--color-secondary-muted);
+  --color-accent:           var(--color-accent);
+  --color-accent-light:     var(--color-accent-light);
+  --color-accent-muted:     var(--color-accent-muted);
+  --color-background:       var(--color-background);
+  --color-background-alt:   var(--color-background-alt);
+  --color-surface:          var(--color-surface);
+  --color-surface-alt:      var(--color-surface-alt);
+  --color-border:           var(--color-border);
+  --color-on-primary:       var(--color-text-on-primary);
+  --font-family-school:     var(--font-family);
+}
+
+/* Dark mode via .dark class on <html> — matches ThemeContext behavior */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Design tokens ──────────────────────────────────────────────────────────
+   Change a value here and it updates every component that uses it.
+   Colors live above in @theme inline. These cover shape and spacing.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
+  /* Color fallbacks — ThemeContext overwrites these at runtime */
   --color-primary: #B81C24;
   --color-secondary: #FFFFFF;
   --color-accent: #f1b7be;
@@ -19,6 +50,23 @@
   --color-surface-alt: #d0d0d0;
   --font-family: Arial, Helvetica, sans-serif;
   font-family: var(--font-family);
+
+  /* Shape — change these to round/square the whole app at once */
+  --radius-sm:   0.25rem;   /* cards, subtle rounding */
+  --radius-md:   0.75rem;   /* inputs, small buttons, nav pills */
+  --radius-lg:   1rem;      /* large title inputs */
+  --radius-full: 9999px;    /* badges */
+
+  /* Button sizing */
+  --btn-px-lg:   2rem;      /* horizontal padding on large accent buttons */
+  --btn-py:      0.5rem;    /* vertical padding on all buttons */
+  --btn-px-sm:   1rem;      /* horizontal padding on primary/small buttons */
+  --btn-text-lg: 1.5rem;    /* font size on large accent buttons */
+  --btn-text-sm: 0.875rem;  /* font size on small accent buttons */
+
+  /* Input / field sizing */
+  --input-px:    1rem;      /* horizontal padding on all inputs and fields */
+  --input-py:    0.75rem;   /* vertical padding on all inputs and fields */
 }
 
 :root.dark {
@@ -33,4 +81,194 @@ body {
 
 button {
   font-family: inherit;
+}
+
+/* ─── Component classes ─────────────────────────────────────────────────────
+   One class = one named UI pattern. Sizing and shape use the tokens above,
+   colors use the ThemeContext CSS variables. Change a token here and every
+   component that uses the class updates automatically.
+   ────────────────────────────────────────────────────────────────────────── */
+
+@layer components {
+
+  /* ── Buttons ── */
+
+  /* Primary action (auth forms, confirmations) */
+  .btn-primary {
+    @apply bg-primary-dark text-on-primary hover:bg-primary-hover
+           disabled:opacity-60 font-semibold transition-colors cursor-pointer;
+    padding: var(--btn-py) var(--btn-px-sm);
+  }
+
+  /* Accent CTA — large (listing contact/offer buttons) */
+  .btn-accent {
+    @apply bg-accent text-black hover:bg-white transition-colors cursor-pointer;
+    padding: var(--btn-py) var(--btn-px-lg);
+    font-size: var(--btn-text-lg);
+  }
+
+  /* Accent CTA — small inline (listing action buttons) */
+  .btn-accent-sm {
+    @apply inline-flex bg-accent text-black hover:bg-white transition-colors cursor-pointer;
+    border-radius: var(--radius-md);
+    padding: var(--btn-py) var(--btn-px-sm);
+    font-size: var(--btn-text-sm);
+  }
+
+  /* Ghost / subtle (secondary actions) */
+  .btn-ghost {
+    @apply text-primary hover:bg-accent-light transition-colors cursor-pointer;
+    padding: var(--btn-py) var(--btn-px-sm);
+    border-radius: var(--radius-sm);
+  }
+
+  /* Post listing CTA in navbar */
+  .btn-post {
+    @apply border-2 border-black bg-accent-light text-black font-semibold
+           shadow-[4px_4px_0_#000] hover:-translate-y-0.5 hover:bg-white
+           transition-all cursor-pointer;
+    border-radius: var(--radius-md);
+  }
+
+
+  /* ── Cards & Containers ── */
+
+  /* Primary-colored modal/panel (listing detail, form sections) */
+  .card-primary {
+    @apply bg-primary shadow-lg;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Auth form card (signup, login, reset pages) */
+  .card-form {
+    @apply mx-auto w-full overflow-hidden border border-primary-dark
+           bg-secondary-muted shadow-[0_2px_8px_rgba(0,0,0,0.22)];
+  }
+
+  /* Auth form header bar */
+  .card-form-header {
+    @apply bg-primary-dark py-3 text-center text-3xl uppercase
+           tracking-wide text-on-primary shadow-sm;
+  }
+
+  /* General surface card */
+  .card {
+    @apply bg-surface border border-border p-4 shadow-sm;
+    border-radius: var(--radius-md);
+  }
+
+
+  /* ── Inputs & Form Fields ── */
+
+  /* Standard form input (text, number, etc.) */
+  .input-field {
+    @apply w-full bg-white text-sm text-black outline-none;
+    border-radius: var(--radius-md);
+    padding: var(--input-py) var(--input-px);
+  }
+
+  /* Auth form underline input (login, signup) */
+  .input-underline {
+    @apply w-full border-b border-black bg-transparent text-center text-base
+           text-black outline-none placeholder:text-black/90;
+    padding-bottom: 0.25rem;
+  }
+
+  /* Read-only display field (listing detail page values) */
+  .display-field {
+    @apply bg-white text-sm text-black;
+    border-radius: var(--radius-md);
+    padding: var(--input-py) var(--input-px);
+  }
+
+  /* Large centered title input/display */
+  .input-title {
+    @apply w-full bg-white text-center text-3xl text-black outline-none;
+    border-radius: var(--radius-lg);
+    padding: var(--input-py) var(--input-px);
+  }
+
+  /* Styled select / dropdown */
+  .input-select {
+    @apply w-full bg-white text-lg text-black outline-none
+           border border-black/15 shadow-sm transition
+           focus:border-black/30 focus:ring-2 focus:ring-black/10;
+    border-radius: var(--radius-lg);
+    padding: var(--input-py) var(--input-px);
+  }
+
+
+  /* ── Modals & Overlays ── */
+
+  /* Outermost wrapper — full screen, content centered */
+  .modal-root {
+    @apply fixed inset-0 z-50 flex items-center justify-center;
+  }
+
+  /* Dim backdrop behind the modal panel */
+  .modal-backdrop {
+    @apply absolute inset-0 bg-gray-600/55;
+  }
+
+  /* Scrollable content area */
+  .modal-panel {
+    @apply relative z-10 w-full p-6 sm:p-8;
+  }
+
+
+  /* ── Auth Guard Prompt ── */
+
+  /* Full-page "sign in required" overlay */
+  .auth-prompt {
+    @apply flex h-full min-h-[calc(100vh-64px)] w-full
+           items-center justify-center bg-black/50;
+  }
+
+  /* White card inside the auth prompt */
+  .auth-prompt-card {
+    @apply mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg;
+  }
+
+
+  /* ── Badges ── */
+
+  /* Status badge (PUBLISHED / DRAFT) */
+  .badge {
+    @apply inline-block px-3 py-1 text-xs font-bold;
+    border-radius: var(--radius-full);
+  }
+
+
+  /* ── Navigation ── */
+
+  /* Base nav link — pair with .nav-link-active or .nav-link-inactive */
+  .nav-link {
+    @apply block rounded-lg px-4 py-2 font-semibold transition-colors text-on-primary;
+  }
+  .nav-link-active {
+    @apply bg-white/25 shadow-sm;
+  }
+  .nav-link-inactive {
+    @apply hover:bg-white/15;
+  }
+
+
+  /* ── Labels & Text ── */
+
+  /* Small field label (listing detail: "PRICE", "CATEGORY", etc.) */
+  .label-field {
+    @apply mb-2 text-xs font-semibold uppercase tracking-wide text-on-primary;
+  }
+
+
+  /* ── Page Layout ── */
+
+  .page-bg {
+    @apply bg-background min-h-screen;
+  }
+
+  .page-bg-alt {
+    @apply bg-background-alt min-h-screen;
+  }
+
 }

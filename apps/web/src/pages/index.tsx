@@ -63,7 +63,7 @@ export default function Index() {
                     </label>
                     <select
                         id="listing-type-filter"
-                        className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-lg text-black shadow-sm outline-none transition focus:border-black/30 focus:ring-2 focus:ring-black/10"
+                        className="input-select"
                         value={listingType}
                         onChange={(e) => setListingType(e.target.value as "" | "item" | "service")}
                     >
@@ -79,7 +79,7 @@ export default function Index() {
                     </label>
                     <select
                         id="category-filter"
-                        className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-lg text-black shadow-sm outline-none transition focus:border-black/30 focus:ring-2 focus:ring-black/10"
+                        className="input-select"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
                     >
@@ -115,7 +115,7 @@ export default function Index() {
                                     borderColor: "color-mix(in srgb, var(--color-primary) 30%, white)",
                                 }}
                             >
-                                <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-[var(--color-secondary)] text-xs text-black">
+                                <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-secondary text-xs text-black">
                                     {listing.images?.[0]?.path ? (
                                         <img
                                             src={getListingImageUrl(listing.images[0].path)}
@@ -149,8 +149,7 @@ export default function Index() {
                                 </div>
 
                                 <div
-                                    className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-[var(--color-text-on-primary)]"
-                                    style={{ backgroundColor: "var(--color-primary)" }}
+                                    className="badge mt-3 bg-primary text-on-primary"
                                 >
                                     {listing.status === "active" ? "✓ PUBLISHED" : "📝 DRAFT"}
                                 </div>

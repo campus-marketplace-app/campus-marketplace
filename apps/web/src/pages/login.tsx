@@ -66,7 +66,7 @@ export default function Login() {
 
     return (
         <section
-            className="flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[var(--color-background-alt)] px-4 py-8 sm:px-8"
+            className="flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-background-alt px-4 py-8 sm:px-8"
             style={loginBgUrl ? { backgroundImage: `url(${loginBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
         >
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
@@ -83,8 +83,8 @@ export default function Login() {
                     </p>
                 </div>
 
-                <div className="mx-auto w-full max-w-[380px] border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] px-5 pb-6 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:px-7">
-                    <h1 className="mb-8 bg-[var(--color-primary-dark)] py-2 text-center text-3xl uppercase tracking-wide text-black">
+                <div className="card-form max-w-[380px] px-5 pb-6 pt-4 sm:px-7">
+                    <h1 className="mb-8 bg-primary-dark py-2 text-center text-3xl uppercase tracking-wide text-black">
                         Login
                     </h1>
 
@@ -92,7 +92,7 @@ export default function Login() {
                         <input
                             type="email"
                             placeholder="Njit Email"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            className="input-underline"
                             value={email}
                             onChange={
                                 (e) => {
@@ -106,7 +106,7 @@ export default function Login() {
                         <input
                             type="password"
                             placeholder="Password"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
+                            className="input-underline"
                             value={password}
                             onChange={
                                 (e) => {
@@ -124,7 +124,7 @@ export default function Login() {
 
                         <button
                             type="submit"
-                            className="bg-[var(--color-primary-dark)] py-2 text-lg text-black transition hover:bg-[var(--color-primary-hover)]"
+                            className="bg-primary-dark py-2 text-lg text-black transition hover:bg-primary-hover"
                         >
                             Submit
                         </button>
@@ -132,7 +132,7 @@ export default function Login() {
 
                     <Link
                         to="/signup"
-                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-black transition hover:bg-[var(--color-primary-hover)]"
+                        className="mx-auto mt-4 block w-fit bg-primary-dark px-8 py-2 text-center text-sm text-black transition hover:bg-primary-hover"
                     >
                         create new account
                     </Link>

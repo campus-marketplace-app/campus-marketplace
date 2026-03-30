@@ -169,8 +169,8 @@ export default function Messages() {
     // --- auth guard ---
     if (!user) {
         return (
-            <div className="flex h-full min-h-[calc(100vh-64px)] w-full items-center justify-center bg-black/50">
-                <div className="mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+            <div className="auth-prompt">
+                <div className="auth-prompt-card">
                     <h2 className="mb-4 text-center text-2xl font-bold text-black">
                         Sign in required
                     </h2>
@@ -179,7 +179,7 @@ export default function Messages() {
                     </p>
                     <Link
                         to="/login"
-                        className="block rounded bg-[var(--color-primary)] px-4 py-2 text-center font-semibold text-[var(--color-text-on-primary)]"
+                        className="block rounded bg-primary px-4 py-2 text-center font-semibold text-on-primary"
                     >
                         Go to Login
                     </Link>
@@ -206,7 +206,7 @@ export default function Messages() {
         <section className="h-full w-full">
             {errorBanner}
 
-            <div className="grid h-full w-full grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_1fr]">
+            <div className="grid h-full w-full grid-cols-1 overflow-hidden border border-border bg-surface-alt sm:grid-cols-[230px_1fr]">
                 {/* Sidebar — hidden on mobile when viewing a chat */}
                 <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"}`}>
                     <ConversationList
@@ -233,8 +233,8 @@ export default function Messages() {
                             onBack={() => setMobileView("list")}
                         />
                     ) : (
-                        <div className="flex h-full w-full flex-col border-l border-[var(--color-border)]">
-                            <div className="mx-auto mt-3 w-[55%] bg-[var(--color-background)] py-3 text-center text-2xl text-black">
+                        <div className="flex h-full w-full flex-col border-l border-border">
+                            <div className="mx-auto mt-3 w-[55%] bg-background py-3 text-center text-2xl text-black">
                                 Messages
                             </div>
                             <div className="flex flex-1 items-center justify-center px-4 pb-4 pt-6 sm:px-8">

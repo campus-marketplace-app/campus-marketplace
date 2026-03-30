@@ -175,8 +175,8 @@ export default function Profile() {
     // Show sign-in prompt if user is not logged in.
     if (!user) {
         return (
-            <div className="flex h-full min-h-[calc(100vh-64px)] w-full items-center justify-center bg-black/50">
-                <div className="mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+            <div className="auth-prompt">
+                <div className="auth-prompt-card">
                     <h2 className="mb-4 text-2xl font-bold text-black">Sign In Required</h2>
                     <p className="mb-6 text-gray-700">
                         Please sign in to view and edit your profile.
@@ -194,17 +194,17 @@ export default function Profile() {
 
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
+        <div className="modal-root">
+            <div className="modal-backdrop" onClick={() => navigate(-1)} />
 
-            <section className="relative z-10 w-full p-6 sm:p-8">
-                <div className="overflow-y-auto mx-auto w-full max-w-3xl rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
+            <section className="modal-panel">
+                <div className="card-primary overflow-y-auto mx-auto w-full max-w-3xl p-6 sm:p-10">
                     <div className="space-y-8">
                         <div className="mx-auto w-full max-w-sm">
                             <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Profile</p>
                             <p
                                 id="accountTitle"
-                                className="w-full rounded-2xl bg-white px-4 py-3 text-center text-3xl text-black outline-none"
+                                className="input-title"
                             >
                                 {accountTitle}
                             </p>
@@ -213,7 +213,7 @@ export default function Profile() {
                         <div className="grid gap-8 md:grid-cols-[1fr_1.3fr]">
                             <div>
                                 <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Avatar</p>
-                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--color-accent)] text-center text-sm uppercase text-black">
+                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-accent text-center text-sm uppercase text-black">
                                     <img src={avatarUrl || undefined} alt="Avatar" className="h-full w-full object-cover" />
                                     {isEditing && (
                                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
@@ -238,7 +238,7 @@ export default function Profile() {
                                             setName(e.target.value);
                                             validateName(e.target.value);
                                         }}
-                                        className="w-full rounded-xl bg-white px-4 py-3 text-sm text-black outline-none"
+                                        className="input-field"
                                     />
                                     {nameError ? <p className="mt-2 text-xs text-white">{nameError}</p> : null}
                                 </div>
@@ -251,7 +251,7 @@ export default function Profile() {
                                         value={email}
                                         readOnly={!isEditing}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full rounded-xl bg-white px-4 py-3 text-sm text-black outline-none"
+                                        className="input-field"
                                     />
                                 </div>
 
@@ -278,7 +278,7 @@ export default function Profile() {
                         <div className="flex items-center justify-between pt-4">
                             <button
                                 type="button"
-                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                className="btn-accent"
                                 onClick={() => navigate(-1)}
                             >
                                 back
@@ -290,7 +290,7 @@ export default function Profile() {
                                     disabled={isSaveDisabled}
                                     className={`px-8 py-2 text-2xl text-black transition ${isSaveDisabled
                                             ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
-                                            : "bg-[var(--color-accent)] hover:bg-white"
+                                            : "bg-accent hover:bg-white"
                                         }`}
                                 >
                                     {isEditing ? "save" : "edit"}

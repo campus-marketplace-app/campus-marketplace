@@ -25,8 +25,8 @@ export default function ThemeModeToggle() {
             className={[
               'rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition',
               active
-                ? 'bg-white text-[var(--color-primary)] shadow-sm'
-                : 'text-[var(--color-text-on-primary)] hover:bg-white/20',
+                ? 'bg-white text-primary shadow-sm'
+                : 'text-on-primary hover:bg-white/20',
               disabled ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : '',
             ].join(' ')}
           >

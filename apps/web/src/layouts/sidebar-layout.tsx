@@ -79,9 +79,9 @@ export default function SidebarLayout() {
                 setSearchQuery={setSearchQuery}
             />
 
-            <div className="flex flex-1 overflow-hidden bg-[var(--color-background)]">
+            <div className="flex flex-1 overflow-hidden bg-background">
                 {isRegistering ? <aside
-                    className={`relative shrink-0 bg-[var(--color-primary)] text-[var(--color-text-on-primary)] transition-all duration-300 ${isSidebarOpen ? 'w-36 sm:w-40' : 'w-16'
+                    className={`relative shrink-0 bg-primary text-on-primary transition-all duration-300 ${isSidebarOpen ? 'w-36 sm:w-40' : 'w-16'
                         }`}
                 >
                     <Navbar

@@ -189,15 +189,15 @@ export default function Listing() {
 
     if (unavailableMessage) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
+            <div className="modal-root">
+                <div className="modal-backdrop" onClick={() => navigate(-1)} />
 
-                <section className="relative z-10 w-full max-w-xl p-6 sm:p-8">
-                    <div className="rounded-sm bg-[var(--color-primary)] p-8 text-center shadow-lg sm:p-10">
-                        <p className="text-2xl font-semibold text-[var(--color-text-on-primary)]">{unavailableMessage}</p>
+                <section className="modal-panel max-w-xl">
+                    <div className="card-primary p-8 text-center sm:p-10">
+                        <p className="text-2xl font-semibold text-on-primary">{unavailableMessage}</p>
                         <button
                             type="button"
-                            className="mt-6 bg-[var(--color-accent)] px-8 py-2 text-xl text-black transition hover:bg-white"
+                            className="mt-6 bg-accent px-8 py-2 text-xl text-black transition hover:bg-white"
                             onClick={() => navigate("/", { replace: true })}
                         >
                             Back to marketplace
@@ -209,7 +209,7 @@ export default function Listing() {
     }
 
     if (!listingData) {
-        return <div className="flex h-screen items-center justify-center text-[var(--color-text-on-primary)]">Loading...</div>;
+        return <div className="flex h-screen items-center justify-center text-on-primary">Loading...</div>;
     }
 
     if (showForm) {
@@ -227,23 +227,23 @@ export default function Listing() {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
+        <div className="modal-root">
+            <div className="modal-backdrop" onClick={() => navigate(-1)} />
 
-            <section className="relative z-10 w-full p-6 sm:p-8">
-                <div className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
+            <section className="modal-panel">
+                <div className="card-primary mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto p-6 sm:p-10">
                     <div className="space-y-8">
                         <div className="mx-auto w-full max-w-sm">
-                            <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Title</p>
-                            <div className="rounded-2xl bg-white px-4 py-3 text-center text-3xl text-black">
+                            <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-on-primary">Title</p>
+                            <div className="input-title">
                                 {listingData?.title ?? "Untitled listing"}
                             </div>
                         </div>
 
                         <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
                             <div>
-                                <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Product Image</p>
-                                <div className="flex min-h-72 items-center justify-center rounded-xl bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
+                                <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-on-primary">Product Image</p>
+                                <div className="flex min-h-72 items-center justify-center rounded-xl bg-accent p-6 text-center text-sm uppercase text-black">
                                     {listingData?.images?.[0]?.path ? (
                                         <img
                                             src={getListingImageUrl(listingData.images[0].path)}
@@ -263,13 +263,13 @@ export default function Listing() {
                                 {user && listingData.user_id === user.id ? (
                                     <div className="mt-4 flex flex-col items-start gap-2">
                                         <button
-                                            className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white"
+                                            className="btn-accent-sm"
                                             type="button"
                                             onClick={editListing}
                                         >
                                             Edit Listing
                                         </button>
-                                        <button className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                        <button className="btn-accent-sm disabled:cursor-not-allowed disabled:opacity-50"
                                             type="button"
                                             disabled={publishLoading}
                                             onClick={handlePublish}
@@ -290,15 +290,15 @@ export default function Listing() {
                             <div className="space-y-5">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Price</p>
-                                        <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                        <p className="label-field">Price</p>
+                                        <div className="display-field">
                                             {listingData?.price_unit ?? "$"}
                                             {listingData?.price ?? "0"}
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Category</p>
-                                        <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                        <p className="label-field">Category</p>
+                                        <div className="display-field">
                                             {listingData?.category_name ?? "Uncategorized"}
                                         </div>
                                     </div>
@@ -308,14 +308,14 @@ export default function Listing() {
                                     {listingData.type === "item" ? (
                                         <>
                                             <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Condition</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                                <p className="label-field">Condition</p>
+                                                <div className="display-field">
                                                     {listingData.item_details?.condition ?? "N/A"}
                                                 </div>
                                             </div>
                                             <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Quantity</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                                <p className="label-field">Quantity</p>
+                                                <div className="display-field">
                                                     {listingData.item_details?.quantity ?? "N/A"}
                                                 </div>
                                             </div>
@@ -323,14 +323,14 @@ export default function Listing() {
                                     ) : (
                                         <>
                                             <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Duration (minutes)</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                                <p className="label-field">Duration (minutes)</p>
+                                                <div className="display-field">
                                                     {listingData.service_details?.duration_minutes ?? "N/A"}
                                                 </div>
                                             </div>
                                             <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Available From</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                                <p className="label-field">Available From</p>
+                                                <div className="display-field">
                                                     {listingData.service_details?.available_from ?? "N/A"}
                                                 </div>
                                             </div>
@@ -341,37 +341,37 @@ export default function Listing() {
                                 <div className="grid grid-cols-2 gap-4">
                                     {listingData.type === "service" ? (
                                         <div>
-                                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Available To</p>
-                                            <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                            <p className="label-field">Available To</p>
+                                            <div className="display-field">
                                                 {listingData.service_details?.available_to ?? "N/A"}
                                             </div>
                                         </div>
                                     ) : (
                                         <div>
-                                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Type</p>
-                                            <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                            <p className="label-field">Type</p>
+                                            <div className="display-field">
                                                 {listingData.type}
                                             </div>
                                         </div>
                                     )}
 
                                     <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Date Posted</p>
-                                        <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                        <p className="label-field">Date Posted</p>
+                                        <div className="display-field">
                                             {formatDateTime(listingData.created_at)}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Location</p>
-                                    <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
+                                    <p className="label-field">Location</p>
+                                    <div className="display-field">
                                         {listingData?.location ?? "N/A"}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Description</p>
+                                    <p className="label-field">Description</p>
                                     <div className="min-h-36 rounded-2xl bg-white px-4 py-4 text-sm text-black">
                                         {listingData?.description ?? "No description provided."}
                                     </div>
@@ -382,7 +382,7 @@ export default function Listing() {
                         <div className="flex items-center justify-between pt-8">
                             <button
                                 type="button"
-                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                className="btn-accent"
                                 onClick={() => navigate(-1)}
                             >
                                 back
@@ -393,7 +393,7 @@ export default function Listing() {
                                 <button
                                     type="button"
                                     disabled={messagingLoading}
-                                    className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="btn-accent disabled:cursor-not-allowed disabled:opacity-50"
                                     onClick={async () => {
                                         setMessagingLoading(true);
                                         try {
@@ -424,7 +424,7 @@ export default function Listing() {
 
                             <button
                                 type="button"
-                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                className="btn-accent"
                             >
                                 cart
                             </button>

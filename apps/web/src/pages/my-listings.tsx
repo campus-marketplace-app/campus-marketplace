@@ -55,8 +55,8 @@ const MyListings = () => {
     // Show sign-in prompt if user is not logged in.
     if (!user) {
         return (
-            <div className="flex h-full min-h-[calc(100vh-64px)] w-full items-center justify-center bg-black/50">
-                <div className="mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+            <div className="auth-prompt">
+                <div className="auth-prompt-card">
                     <h2 className="mb-4 text-2xl font-bold text-black">Sign In Required</h2>
                     <p className="mb-6 text-gray-700">
                         Please sign in to view and edit your profile.
@@ -128,7 +128,7 @@ const MyListings = () => {
                         {/* Edit Profile button - navigates to profile page */}
                         <button
                             onClick={() => navigate("/profile")}
-                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-2 font-semibold text-black transition hover:bg-white"
+                            className="rounded-lg bg-secondary px-6 py-2 font-semibold text-black transition hover:bg-white"
                         >
                             Edit Profile
                         </button>
@@ -140,7 +140,7 @@ const MyListings = () => {
             <div className="flex gap-4">
                 <button
                     onClick={openPostForm}
-                    className="rounded-lg border border-white/40 bg-[var(--color-secondary)] px-6 py-3 font-bold text-black shadow-sm transition hover:brightness-110"
+                    className="rounded-lg border border-white/40 bg-secondary px-6 py-3 font-bold text-black shadow-sm transition hover:brightness-110"
                 >
                     + Create draft listing
                 </button>
@@ -191,7 +191,7 @@ const MyListings = () => {
                                         borderColor: "color-mix(in srgb, var(--color-primary) 30%, white)",
                                     }}
                                 >
-                                    <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-[var(--color-secondary)] text-xs text-black">
+                                    <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-secondary text-xs text-black">
                                         {listing.images?.[0]?.path ? (
                                             <img
                                                 src={getListingImageUrl(listing.images[0].path)}
@@ -229,9 +229,7 @@ const MyListings = () => {
                                     </div>
 
                                     {/* Status badge - shows Published or Draft with icon */}
-                                    <div className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-white"
-                                        style={{ backgroundColor: "var(--color-primary)" }}
-                                    >
+                                    <div className="badge mt-3 bg-primary text-white">
                                         {listing.status === "active" ? "✓ PUBLISHED" : "📝 DRAFT"}
                                     </div>
                                 </div>
@@ -263,7 +261,7 @@ const MyListings = () => {
                     <div className="mt-8 flex justify-center gap-4">
                         <button
                             onClick={openPostForm}
-                            className="rounded-lg bg-[var(--color-secondary)] px-6 py-3 font-bold text-black transition hover:brightness-110"
+                            className="rounded-lg bg-secondary px-6 py-3 font-bold text-black transition hover:brightness-110"
                         >
                             + Create draft listing
                         </button>
