@@ -90,7 +90,7 @@ export default function Login() {
                 </div>
 
                 <div className="mx-auto w-full max-w-[380px] border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] px-5 pb-6 pt-4 shadow-[0_2px_8px_rgba(0,0,0,0.22)] sm:px-7">
-                    <h1 className="mb-8 bg-[var(--color-primary-dark)] py-2 text-center text-3xl uppercase tracking-wide text-black">
+                    <h1 className="mb-8 bg-[var(--color-primary-dark)] py-2 text-center text-3xl uppercase tracking-wide text-white">
                         Login
                     </h1>
 
@@ -130,7 +130,7 @@ export default function Login() {
 
                         <button
                             type="submit"
-                            className="bg-[var(--color-primary-dark)] py-2 text-lg text-black transition hover:bg-[var(--color-primary-hover)]"
+                            className="bg-[var(--color-primary-dark)] py-2 text-lg text-white transition hover:bg-[var(--color-primary-hover)]"
                         >
                             Submit
                         </button>
@@ -138,7 +138,7 @@ export default function Login() {
 
                     <Link
                         to="/signup"
-                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-black transition hover:bg-[var(--color-primary-hover)]"
+                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-white transition hover:bg-[var(--color-primary-hover)]"
                     >
                         create new account
                     </Link>

@@ -241,7 +241,7 @@ export default function Signup() {
 
                     <Link
                         to="/login"
-                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-black transition hover:bg-[var(--color-primary-hover)]"
+                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-white transition hover:bg-[var(--color-primary-hover)]"
                     >
                         Back to login
                     </Link>
