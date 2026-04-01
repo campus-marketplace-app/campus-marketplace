@@ -1,5 +1,5 @@
 import { getListingImageUrl, getListingWithDetails, searchListings } from "@campus-marketplace/backend";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useLocation, useOutletContext } from "react-router-dom";
 import { useState } from "react";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
@@ -9,24 +9,52 @@ type OutletContext = {
     listingsRefreshKey: number;
 };
 
+const PAGE_SIZE = 12;
+
 export default function Index() {
     const location = useLocation();
     const { searchQuery, listingsRefreshKey } = useOutletContext<OutletContext>();
     const [listingsData, setListingsData] = useState<Array<ListingWithDetails>>([]);
-    const [isloading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const [category, setCategory] = useState<string>("");
     const [listingType, setListingType] = useState<"" | "item" | "service">("");
+    const [hasMore, setHasMore] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [offset, setOffset] = useState(0);
+    const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        // Reset pagination when filters/search change.
+        setOffset(0);
+        setHasMore(true);
+        setListingsData([]);
+    }, [category, listingType, searchQuery, listingsRefreshKey]);
 
     useEffect(() => {
         const fetchListings = async () => {
-            setIsLoading(true);
+            if (!hasMore && offset > 0) {
+                return;
+            }
+
+            if (offset === 0) {
+                setIsLoading(true);
+            }
+            else {
+                setIsFetchingMore(true);
+            }
+
             try {
                 const searchTrimmed = searchQuery.trim();
                 const options: {
                     query?: string;
                     category_id?: string;
                     type?: "item" | "service";
-                } = {};
+                    limit: number;
+                    offset: number;
+                } = {
+                    limit: PAGE_SIZE,
+                    offset,
+                };
 
                 if (searchTrimmed !== "") {
                     options.query = searchTrimmed;
@@ -43,16 +71,52 @@ export default function Index() {
                     data.map((listing) => getListingWithDetails(listing.id)),
                 );
 
-                setListingsData(detailedListings);
+                setListingsData((prev) => (offset === 0 ? detailedListings : [...prev, ...detailedListings]));
+                setHasMore(data.length === PAGE_SIZE);
             } catch (error) {
                 console.error("Error fetching listings:", error);
             }
             finally {
                 setIsLoading(false);
+                setIsFetchingMore(false);
             }
         };
-        fetchListings();
-    }, [category, listingType, searchQuery, listingsRefreshKey]);
+
+        void fetchListings();
+    }, [offset, category, listingType, searchQuery, listingsRefreshKey, hasMore]);
+
+    useEffect(() => {
+        const target = loadMoreRef.current;
+        if (!target) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (!entry?.isIntersecting) {
+                    return;
+                }
+
+                if (isLoading || isFetchingMore || !hasMore) {
+                    return;
+                }
+
+                setOffset((prev) => prev + PAGE_SIZE);
+            },
+            {
+                root: null,
+                rootMargin: "220px",
+                threshold: 0,
+            },
+        );
+
+        observer.observe(target);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [isLoading, isFetchingMore, hasMore]);
 
     return (
         <section className="p-6 sm:p-8">
@@ -99,7 +163,7 @@ export default function Index() {
             </div>
 
             <p className="mb-10 text-3xl">CATEGORIES</p>
-            {isloading ? (<h2 >Loading...</h2>) : (
+            {isLoading ? (<h2>Loading...</h2>) : (
                 <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
                     {listingsData.map((listing) => (
                         <Link
@@ -158,6 +222,16 @@ export default function Index() {
                         </Link>
                     ))}
                 </div>)}
+
+            {!isLoading && (
+                <>
+                    <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
+                    {isFetchingMore && <p className="mt-6 text-sm text-black/70">Loading more listings...</p>}
+                    {!hasMore && listingsData.length > 0 && (
+                        <p className="mt-6 text-sm text-black/70">You&apos;ve reached the end.</p>
+                    )}
+                </>
+            )}
         </section>
     );
 }

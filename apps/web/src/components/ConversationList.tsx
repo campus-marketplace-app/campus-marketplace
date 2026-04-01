@@ -25,18 +25,18 @@ export default function ConversationList({
     );
 
     return (
-        <aside className="flex flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] p-4">
+        <aside className="flex h-full min-h-0 w-full flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] p-4">
             {/* Search bar */}
             <input
                 type="text"
                 placeholder="Search contacts"
                 value={searchFilter}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="mb-4 rounded bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-black outline-none placeholder:text-black"
+                className="mb-4 rounded border border-[var(--color-border)] bg-[var(--color-surface-alt)] px-3 py-2 text-sm text-black outline-none placeholder:text-black"
             />
 
             {/* Conversation list */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto">
                 {loading && (
                     <p className="p-3 text-sm text-gray-500">Loading conversations...</p>
                 )}
@@ -75,7 +75,7 @@ export default function ConversationList({
                             {/* Last message preview */}
                             {convo.last_message && (
                                 <span
-                                    className={`mt-0.5 truncate text-xs ${
+                                    className={`mt-0.5 block w-full truncate text-xs ${
                                         convo.id === activeId ? "text-white/80" : "text-gray-500"
                                     }`}
                                 >

@@ -70,7 +70,13 @@ export default function Login() {
             style={loginBgUrl ? { backgroundImage: `url(${loginBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
         >
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
-                <div className="px-2 text-black sm:px-6">
+                <div
+                    className="px-2 font-semibold text-white sm:px-6"
+                    style={{
+                        WebkitTextStroke: "0.6px rgba(0, 0, 0, 0.9)",
+                        textShadow: "0 4px 8px rgba(0, 0, 0, 0.65)",
+                    }}
+                >
                     <p className="text-2xl font-normal tracking-tight sm:text-4xl">
                         Welcome to {schoolName} Marketplace!
                     </p>

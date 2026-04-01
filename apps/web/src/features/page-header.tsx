@@ -28,11 +28,11 @@ export default function PageHeader({
     const { schoolName, logoUrl } = useTheme();
 
     return (
-        <nav className="bg-[var(--color-primary)] p-4 w-full">
-            <div className={`flex items-center gap-8 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
-                <Link to="/" className="text-[var(--color-text-on-primary)] font-bold text-xl flex items-center gap-2">
+        <nav className="w-full bg-[var(--color-primary)] p-3 sm:p-4">
+            <div className={`flex min-w-0 flex-wrap items-center gap-3 sm:gap-6 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
+                <Link to="/" className="flex min-w-0 items-center gap-2 text-lg font-bold text-[var(--color-text-on-primary)] sm:text-xl">
                     {logoUrl && <img src={logoUrl} alt={schoolName} className="h-8 w-auto" />}
-                    {schoolName} Marketplace
+                    <span className="truncate">{schoolName} Marketplace</span>
                 </Link>
 
                 {isRegistering ? (
@@ -41,7 +41,7 @@ export default function PageHeader({
                         name='search'
                         type="text"
                         placeholder="Search..."
-                        className="flex-1 max-w-md rounded bg-white px-4 py-2 text-black placeholder:text-gray-500"
+                        className="w-full min-w-[10rem] flex-1 rounded bg-white px-4 py-2 text-black placeholder:text-gray-500 sm:max-w-md"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery?.(e.target.value)}
                     />
@@ -51,7 +51,7 @@ export default function PageHeader({
                     isLoggedIn ? (
                         <Link to="/profile" className="flex items-center gap-2 text-[var(--color-text-on-primary)] hover:opacity-80">
                             <img src={profileAvatarSrc} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
-                            <p className="text-[var(--color-text-on-primary)]">{profile?.display_name || 'Profile'}</p>
+                            <p className="max-w-24 truncate text-[var(--color-text-on-primary)] sm:max-w-32">{profile?.display_name || 'Profile'}</p>
                         </Link> //placeholder for profile img
                     ) : (
                         <Link to="/login" className="text-[var(--color-text-on-primary)] hover:opacity-80">
