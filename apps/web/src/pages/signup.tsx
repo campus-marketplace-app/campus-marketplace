@@ -111,8 +111,14 @@ export default function Signup() {
             style={signupBgUrl ? { backgroundImage: `url(${signupBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
         >
             <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
-                <div className="px-1 text-black sm:px-6">
-                    <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
+                <div
+                    className="px-1 text-white sm:px-6"
+                    style={{
+                        WebkitTextStroke: "0.6px rgba(0, 0, 0, 0.9)",
+                        textShadow: "0 4px 8px rgba(0, 0, 0, 0.65)",
+                    }}
+                >
+                    <p className="mt-4 text-base font-semibold sm:mt-6 sm:text-2xl">
                         Create your account to start buying and selling with other students on campus.
                         Join the marketplace and connect with your campus community.
                     </p>
@@ -235,7 +241,7 @@ export default function Signup() {
 
                     <Link
                         to="/login"
-                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-black transition hover:bg-[var(--color-primary-hover)]"
+                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-white transition hover:bg-[var(--color-primary-hover)]"
                     >
                         Back to login
                     </Link>

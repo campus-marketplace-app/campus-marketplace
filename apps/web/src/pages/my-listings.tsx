@@ -57,15 +57,15 @@ const MyListings = () => {
         return (
             <div className="flex h-full min-h-[calc(100vh-64px)] w-full items-center justify-center bg-black/50">
                 <div className="mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-                    <h2 className="mb-4 text-2xl font-bold text-black">Sign In Required</h2>
-                    <p className="mb-6 text-gray-700">
-                        Please sign in to view and edit your profile.
+                    <h2 className="mb-4 text-center text-2xl font-bold text-black">Sign in required</h2>
+                    <p className="mb-6 text-center text-gray-600">
+                        Please sign in to view and edit your listings.
                     </p>
                     <Link
                         to="/login"
-                        className="inline-block w-full rounded bg-blue-600 px-4 py-2 text-center text-white hover:bg-blue-700 font-semibold"
+                        className="block rounded bg-[var(--color-primary)] px-4 py-2 text-center font-semibold text-[var(--color-text-on-primary)]"
                     >
-                        Go to Log In
+                        Go to Login
                     </Link>
                 </div>
             </div>
@@ -91,10 +91,15 @@ const MyListings = () => {
     }
 
     return (
-        <section className="space-y-8 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.14),transparent_42%),linear-gradient(180deg,var(--color-primary),color-mix(in_srgb,var(--color-primary)_80%,black))] p-6 sm:p-8">
+        <section className="space-y-8 bg-[var(--color-background)] p-6 sm:p-8">
             {/* User Profile Header - Shows avatar, name, bio, and stats */}
             {profileData && (
-                <div className="rounded-2xl border border-gray-400 bg-gray-300 p-6 shadow-lg">
+                <div className="rounded-2xl border p-6 shadow-lg"
+                    style={{
+                        borderColor: "color-mix(in srgb, var(--color-primary) 40%, white)",
+                        backgroundColor: "var(--color-primary)",
+                    }}
+                >
                     <div className="flex items-center gap-6">
                         {/* Avatar - shows first letter of name in a colored circle */}
                         <div className="flex h-24 w-24 items-center justify-center rounded-full border text-4xl font-extrabold text-black shadow-inner"
@@ -108,11 +113,11 @@ const MyListings = () => {
 
                         {/* User info section - name, bio, and stats */}
                         <div className="flex-1">
-                            <h1 className="text-3xl font-bold text-black">
+                            <h1 className="text-3xl font-bold text-[var(--color-text-on-primary)]">
                                 {profileData.display_name}
                             </h1>
                             {profileData.bio && (
-                                <p className="mt-2 text-sm text-black/80">{profileData.bio}</p>
+                                <p className="mt-2 text-sm text-[var(--color-text-on-primary)]/85">{profileData.bio}</p>
                             )}
                             {/* Display count of published and draft listings */}
                             <div className="mt-4 flex flex-wrap gap-3 text-sm">
@@ -151,16 +156,16 @@ const MyListings = () => {
                 <div
                     className="flex w-fit items-center gap-3 rounded-xl px-3 py-2"
                     style={{
-                        backgroundColor: "color-mix(in srgb, var(--color-primary) 50%, white)",
+                        backgroundColor: "var(--color-primary)",
                     }}
                 >
-                    <label className="font-semibold uppercase text-black">Filter:</label>
+                    <label className="font-semibold uppercase text-[var(--color-text-on-primary)]">Filter:</label>
                     <select 
                         value={filterStatus}
                         onChange={(e) => 
                             setFilterStatus(e.target.value as "published" | "draft")
                         }
-                        className="rounded-lg border border-white/40 bg-white px-4 py-2 font-semibold text-black shadow-sm"
+                        className="rounded-lg border border-white/40 bg-[var(--color-primary)] px-4 py-2 font-semibold text-[var(--color-text-on-primary)] shadow-sm"
                     >
                         <option value="published">Published</option> 
                         <option value="draft">Draft</option>

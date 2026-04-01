@@ -13,7 +13,12 @@ export default function SidebarLayout() {
     const [profileRefreshKey, setProfileRefreshKey] = useState(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        if (typeof window === "undefined") {
+            return true;
+        }
+        return window.innerWidth >= 640;
+    });
     const location = useLocation();
     const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
     const [user, setUser] = useState<SessionUser | null>(null);
@@ -69,7 +74,7 @@ export default function SidebarLayout() {
     }, [location.pathname, profileRefreshKey]);
 
     return (
-        <div className="flex flex-col h-screen">
+        <div className="flex h-screen flex-col overflow-x-hidden">
             <PageHeader
                 isLoggedIn={isLoggedIn}
                 isRegistering={isRegistering}
@@ -79,9 +84,9 @@ export default function SidebarLayout() {
                 setSearchQuery={setSearchQuery}
             />
 
-            <div className="flex flex-1 overflow-hidden bg-[var(--color-background)]">
+            <div className="flex min-w-0 flex-1 overflow-hidden bg-[var(--color-background)]">
                 {isRegistering ? <aside
-                    className={`relative shrink-0 bg-[var(--color-primary)] text-[var(--color-text-on-primary)] transition-all duration-300 ${isSidebarOpen ? 'w-36 sm:w-40' : 'w-16'
+                    className={`relative shrink-0 bg-[var(--color-primary)] text-[var(--color-text-on-primary)] transition-all duration-300 ${isSidebarOpen ? 'w-16 sm:w-40' : 'w-12 sm:w-16'
                         }`}
                 >
                     <Navbar
@@ -95,7 +100,7 @@ export default function SidebarLayout() {
                     />
                 </aside> : null}
 
-                <main className="flex-1 overflow-auto">
+                <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
                     <Outlet
                         context={{
                             user,

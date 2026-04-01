@@ -203,12 +203,12 @@ export default function Messages() {
     );
 
     return (
-        <section className="h-full w-full">
+        <section className="h-full w-full min-w-0 overflow-hidden">
             {errorBanner}
 
-            <div className="grid h-full w-full grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_1fr]">
+            <div className="grid h-full w-full min-w-0 grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_minmax(0,1fr)]">
                 {/* Sidebar — hidden on mobile when viewing a chat */}
-                <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"}`}>
+                <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"} min-w-0`}>
                     <ConversationList
                         conversations={conversations}
                         activeId={activeConversationId}
@@ -220,7 +220,7 @@ export default function Messages() {
                 </div>
 
                 {/* Chat panel — hidden on mobile when viewing the list */}
-                <div className={`${mobileView === "list" ? "hidden sm:flex" : "flex"} h-full`}>
+                <div className={`${mobileView === "list" ? "hidden sm:flex" : "flex"} h-full min-w-0`}>
                     {activeConvo ? (
                         <ChatPanel
                             messages={messages}
