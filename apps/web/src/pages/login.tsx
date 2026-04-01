@@ -77,14 +77,14 @@ export default function Login() {
                         textShadow: "0 4px 8px rgba(0, 0, 0, 0.65)",
                     }}
                 >
-                    <p className="text-2xl font-normal tracking-tight sm:text-4xl">
+                    <p className="text-2xl font-semibold tracking-tight sm:text-4xl">
                         Welcome to {schoolName} Marketplace!
                     </p>
-                    <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
+                    <p className="mt-4 text-base font-semibold sm:mt-6 sm:text-2xl">
                         Your one-stop shop for buying and selling items on campus!
                         Join our community today and start trading with your fellow students!
                     </p>
-                    <p className="mt-12 text-xl font-normal sm:mt-16 sm:text-3xl">
+                    <p className="mt-12 text-xl font-semibold sm:mt-16 sm:text-3xl">
                         Follow us on our social media:
                     </p>
                 </div>

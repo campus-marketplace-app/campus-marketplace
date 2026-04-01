@@ -118,7 +118,7 @@ export default function Signup() {
                         textShadow: "0 4px 8px rgba(0, 0, 0, 0.65)",
                     }}
                 >
-                    <p className="mt-4 text-base font-normal sm:mt-6 sm:text-2xl">
+                    <p className="mt-4 text-base font-semibold sm:mt-6 sm:text-2xl">
                         Create your account to start buying and selling with other students on campus.
                         Join the marketplace and connect with your campus community.
                     </p>
