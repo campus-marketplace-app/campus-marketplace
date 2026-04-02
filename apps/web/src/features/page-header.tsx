@@ -21,18 +21,37 @@ export default function PageHeader({
     searchQuery,
     setSearchQuery,
 }: HeaderProps) {
-    const shouldCenterTitle = !isLoggedIn && !isRegistering;
     const profileAvatarSrc = profile?.avatar_path
         ? `${getAvatarUrl(profile.avatar_path)}?t=${avatarCacheBust ?? 0}`
         : '/default-avatar.png';
     const { schoolName, logoUrl } = useTheme();
 
     return (
-        <nav className="w-full bg-[var(--color-primary)] p-3 sm:p-4">
-            <div className={`flex min-w-0 flex-wrap items-center gap-3 sm:gap-6 ${shouldCenterTitle ? 'justify-center' : 'justify-between'}`}>
-                <Link to="/" className="flex min-w-0 items-center gap-2 text-lg font-bold text-[var(--color-text-on-primary)] sm:text-xl">
-                    {logoUrl && <img src={logoUrl} alt={schoolName} className="h-8 w-auto" />}
-                    <span className="truncate">{schoolName} Marketplace</span>
+        <nav
+            className="w-full bg-[var(--color-primary)] border-b border-white/10 shadow-[0px_10px_15px_0px_rgba(0,0,0,0.1),0px_4px_6px_0px_rgba(0,0,0,0.1)]"
+            style={{ fontFamily: "'Inter', sans-serif" }}
+        >
+            <div className="mx-auto flex max-w-screen-xl items-center justify-between px-6 py-4">
+                <Link to="/" className="flex items-center gap-4 text-[var(--color-text-on-primary)]">
+                    {/* White rounded logo box with school initial or logo image */}
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[14px] bg-white shadow-[0px_4px_6px_0px_rgba(0,0,0,0.1),0px_2px_4px_0px_rgba(0,0,0,0.1)]">
+                        {logoUrl
+                            ? <img src={logoUrl} alt={schoolName} className="h-8 w-auto" />
+                            : <span className="text-2xl font-bold text-[var(--color-primary-dark)]" style={{ fontFamily: "'Inter', sans-serif" }}>
+                                {schoolName.charAt(0)}
+                              </span>
+                        }
+                    </div>
+                    <div>
+                        <p className="text-2xl font-bold leading-8 tracking-[-0.6px]" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            {schoolName} Marketplace
+                        </p>
+                        {!isRegistering && (
+                            <p className="text-sm font-medium text-white/80" style={{ fontFamily: "'Inter', sans-serif" }}>
+                                Campus Trading Platform
+                            </p>
+                        )}
+                    </div>
                 </Link>
 
                 {isRegistering ? (
@@ -58,7 +77,20 @@ export default function PageHeader({
                             Login
                         </Link>
                     )
-                ) : null}
+                ) : (
+                    /* Login/signup pages: show nav links instead of auth controls */
+                    <div className="flex items-center gap-8">
+                        <a href="#" className="text-sm font-semibold uppercase tracking-[0.35px] text-white hover:opacity-80" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            About
+                        </a>
+                        <a href="#" className="text-sm font-semibold uppercase tracking-[0.35px] text-white hover:opacity-80" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            Help
+                        </a>
+                        <a href="#" className="text-sm font-semibold uppercase tracking-[0.35px] text-white hover:opacity-80" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            Contact
+                        </a>
+                    </div>
+                )}
 
                 {isRegistering && isLoggedIn ? (
                     <button

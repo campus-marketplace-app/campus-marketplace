@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getThemeBySchoolCode, type SchoolTheme } from '@campus-marketplace/backend';
+import type { SchoolTheme } from '@campus-marketplace/backend';
+import { NJIT_THEME } from '../config/njit-theme';
 
 const THEME_MODE_KEY = 'campus-marketplace-theme-mode';
 const LIGHT_BG = '#ececec';
 const DARK_BG = '#111318';
-const SCHOOL_CODE = Number(import.meta.env.VITE_SCHOOL_CODE);
 
 export type ThemeModePreference = 'system' | 'light' | 'dark';
 export type ResolvedThemeMode = 'light' | 'dark';
@@ -87,8 +87,8 @@ function systemPrefersDark(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-function hasDarkColors(theme: SchoolTheme | null): boolean {
-  return Boolean(theme?.primary_color_dark && theme.secondary_color_dark && theme.accent_color_dark);
+function hasDarkColors(theme: SchoolTheme): boolean {
+  return Boolean(theme.primary_color_dark && theme.secondary_color_dark && theme.accent_color_dark);
 }
 
 function resolveMode(
@@ -142,7 +142,7 @@ function buildCssVars(theme: SchoolTheme, mode: ResolvedThemeMode): Record<strin
 // --- Context ---
 
 type ThemeContextValue = {
-  theme: SchoolTheme | null;
+  theme: SchoolTheme;
   loading: boolean;
   themeModePreference: ThemeModePreference;
   resolvedThemeMode: ResolvedThemeMode;
@@ -157,8 +157,9 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<SchoolTheme | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Static theme — no DB fetch needed
+  const theme: SchoolTheme = NJIT_THEME;
+  const loading = false;
   const [pref, setPref] = useState<ThemeModePreference>(getStoredMode);
   const [sysDark, setSysDark] = useState(systemPrefersDark);
 
@@ -168,16 +169,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const handler = (e: MediaQueryListEvent) => setSysDark(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  // Fetch theme from DB on mount
-  useEffect(() => {
-    if (!SCHOOL_CODE) return;
-    setLoading(true);
-    getThemeBySchoolCode(SCHOOL_CODE)
-      .then(setTheme)
-      .catch((err) => console.error('Failed to load theme:', err))
-      .finally(() => setLoading(false));
   }, []);
 
   const darkModeAvailable = hasDarkColors(theme);
@@ -190,7 +181,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Apply CSS variables
   useEffect(() => {
-    if (!theme) return;
     const vars = buildCssVars(theme, resolvedThemeMode);
     for (const [k, v] of Object.entries(vars)) {
       document.documentElement.style.setProperty(k, v);
@@ -209,11 +199,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     resolvedThemeMode,
     darkModeAvailable,
     setThemeMode,
-    schoolName: theme?.school_name ?? 'Campus Marketplace',
-    logoUrl: theme?.logo_url ?? null,
-    loginBgUrl: theme?.login_background_url ?? null,
-    signupBgUrl: theme?.signup_background_url ?? null,
-  }), [theme, loading, pref, resolvedThemeMode, darkModeAvailable, setThemeMode]);
+    schoolName: theme.school_name,
+    logoUrl: theme.logo_url ?? null,
+    loginBgUrl: theme.login_background_url ?? null,
+    signupBgUrl: theme.signup_background_url ?? null,
+  }), [pref, resolvedThemeMode, darkModeAvailable, setThemeMode]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
