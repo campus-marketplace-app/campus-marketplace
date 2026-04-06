@@ -24,6 +24,15 @@ export default function Listing() {
         return date.toLocaleString();
     };
 
+    const addToCart = () => { //needs to chnge lter
+        if (!listingData) return;
+        // Store only the ID
+        const cart: string[] = JSON.parse(localStorage.getItem("cart") ?? "[]");
+        if (!cart.includes(listingData.id)) cart.push(listingData.id);
+        localStorage.setItem("cart", JSON.stringify(cart));
+    };
+
+
     const formatMissingPublishFields = (fields: string[]) => {
         const labels: Record<string, string> = {
             title: "Title",
@@ -422,12 +431,14 @@ export default function Listing() {
                                 </button>
                             )}
 
-                            <button
+                            {user && listingData.user_id !== user.id ? (<button
                                 type="button"
                                 className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                onClick={addToCart}
                             >
                                 cart
                             </button>
+                            ) : null}
                         </div>
                     </div>
                 </div>

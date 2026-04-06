@@ -20,7 +20,7 @@ export default function SidebarLayout() {
         return window.innerWidth >= 640;
     });
     const location = useLocation();
-    const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
+    const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password', '/cart'].includes(location.pathname);
     const [user, setUser] = useState<SessionUser | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const navigate = useNavigate();

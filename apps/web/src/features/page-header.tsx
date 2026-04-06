@@ -93,10 +93,9 @@ export default function PageHeader({
                 )}
 
                 {isRegistering && isLoggedIn ? (
-                    <button
-                        type="button"
+                    <Link
+                        to="/cart"
                         aria-label="Cart"
-                        onClick={() => {}}
                         className="text-[var(--color-text-on-primary)] p-1 cursor-pointer hover:opacity-80"
                     >
                         <svg
@@ -111,7 +110,7 @@ export default function PageHeader({
                             <circle cx="17" cy="20" r="1" />
                             <path d="M3 4h2l2.6 10.4A2 2 0 0 0 9.5 16H17a2 2 0 0 0 1.9-1.4L21 7H7" />
                         </svg>
-                    </button>
+                    </Link>
                 ) : null}
 
                 {isRegistering && <ThemeModeToggle />}
