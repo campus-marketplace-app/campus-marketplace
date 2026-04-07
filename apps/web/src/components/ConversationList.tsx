@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search, ArchiveX, ChevronDown, ShoppingBag } from 'lucide-react';
 import { getAvatarUrl } from '@campus-marketplace/backend';
 import type { Conversation } from "@campus-marketplace/backend";
+import { useConfirm } from '../contexts/ConfirmContext';
 
 type ConversationListProps = {
     conversations: Conversation[];
@@ -55,6 +56,7 @@ export default function ConversationList({
     loading,
 }: ConversationListProps) {
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const { confirm } = useConfirm();
 
     // Filter by display name, then group by other_user_id.
     const groups = useMemo<ConversationGroup[]>(() => {
@@ -101,11 +103,13 @@ export default function ConversationList({
         }
     }
 
-    function handleArchiveClick(e: React.MouseEvent, id: string) {
+    async function handleArchiveClick(e: React.MouseEvent, id: string) {
         e.stopPropagation();
-        if (window.confirm('Archive this conversation? It will be removed from your list.')) {
-            onArchive(id);
-        }
+        const confirmed = await confirm(
+            'Archive conversation',
+            'Archive this conversation? It will be removed from your list.'
+        );
+        if (confirmed) onArchive(id);
     }
 
     return (
