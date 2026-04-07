@@ -1,169 +1,148 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { SchoolTheme } from '@campus-marketplace/backend';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import { adjustLightness, blendColors, desaturate } from '../lib/color-utils';
+import {
+  LocalStoragePreferences,
+  type PreferencesStorage,
+  type StoredThemePrefs,
+} from '../lib/theme-storage';
+import {
+  DEFAULT_FONT_ID,
+  DEFAULT_PRESET_ID,
+  DEFAULT_RADIUS_ID,
+  FONT_OPTIONS,
+  PRESETS,
+  RADIUS_OPTIONS,
+  type ThemePreset,
+} from '../config/presets';
 import { NJIT_THEME } from '../config/njit-theme';
-
-const THEME_MODE_KEY = 'campus-marketplace-theme-mode';
-const LIGHT_BG = '#ececec';
-const DARK_BG = '#111318';
 
 export type ThemeModePreference = 'system' | 'light' | 'dark';
 export type ResolvedThemeMode = 'light' | 'dark';
 
-// --- Hex <-> HSL color helpers ---
-
-function hexToHsl(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  let h = 0, s = 0;
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-    else if (max === g) h = ((b - r) / d + 2) / 6;
-    else h = ((r - g) / d + 4) / 6;
-  }
-  return [h * 360, s * 100, l * 100];
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  h /= 360; s /= 100; l /= 100;
-  const hue = (p: number, q: number, t: number) => {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
-  };
-  let r: number, g: number, b: number;
-  if (s === 0) {
-    r = g = b = l;
-  } else {
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue(p, q, h + 1 / 3);
-    g = hue(p, q, h);
-    b = hue(p, q, h - 1 / 3);
-  }
-  const hex = (c: number) => Math.round(c * 255).toString(16).padStart(2, '0');
-  return `#${hex(r)}${hex(g)}${hex(b)}`;
-}
-
-function adjustLightness(hex: string, delta: number): string {
-  const [h, s, l] = hexToHsl(hex);
-  return hslToHex(h, s, Math.max(0, Math.min(100, l + delta)));
-}
-
-function desaturate(hex: string, amount: number): string {
-  const [h, s, l] = hexToHsl(hex);
-  return hslToHex(h, Math.max(0, s - amount), l);
-}
-
-function blendColors(a: string, b: string, ratio: number): string {
-  const rA = parseInt(a.slice(1, 3), 16), gA = parseInt(a.slice(3, 5), 16), bA = parseInt(a.slice(5, 7), 16);
-  const rB = parseInt(b.slice(1, 3), 16), gB = parseInt(b.slice(3, 5), 16), bB = parseInt(b.slice(5, 7), 16);
-  const r = Math.round(rA + (rB - rA) * ratio);
-  const g = Math.round(gA + (gB - gA) * ratio);
-  const bl = Math.round(bA + (bB - bA) * ratio);
-  const hex = (c: number) => c.toString(16).padStart(2, '0');
-  return `#${hex(r)}${hex(g)}${hex(bl)}`;
-}
-
-// --- Theme mode helpers ---
-
-function getStoredMode(): ThemeModePreference {
-  try {
-    const v = localStorage.getItem(THEME_MODE_KEY);
-    if (v === 'light' || v === 'dark' || v === 'system') return v;
-  } catch { /* ignore */ }
-  return 'system';
-}
+// --- Helpers ---
 
 function systemPrefersDark(): boolean {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-function hasDarkColors(theme: SchoolTheme): boolean {
-  return Boolean(theme.primary_color_dark && theme.secondary_color_dark && theme.accent_color_dark);
-}
-
-function resolveMode(
-  pref: ThemeModePreference,
-  sysDark: boolean,
-  darkAvail: boolean,
-): ResolvedThemeMode {
+function resolveMode(pref: ThemeModePreference, sysDark: boolean): ResolvedThemeMode {
   if (pref === 'light') return 'light';
-  if (pref === 'dark') return darkAvail ? 'dark' : 'light';
-  return sysDark && darkAvail ? 'dark' : 'light';
+  if (pref === 'dark') return 'dark';
+  return sysDark ? 'dark' : 'light';
 }
 
-// --- Derive all CSS variables from theme + resolved mode ---
+function loadInitialPrefs(storage: PreferencesStorage): StoredThemePrefs {
+  return storage.load() ?? {
+    presetId: DEFAULT_PRESET_ID,
+    mode: 'system',
+    radius: DEFAULT_RADIUS_ID,
+    fontId: DEFAULT_FONT_ID,
+  };
+}
 
-function buildCssVars(theme: SchoolTheme, mode: ResolvedThemeMode): Record<string, string> {
+function findPreset(id: string): ThemePreset {
+  return PRESETS.find(p => p.id === id) ?? PRESETS[0];
+}
+
+/** Inject a Google Fonts <link> tag if the font has a URL and isn't already loaded. */
+function ensureFontLoaded(fontId: string): void {
+  const font = FONT_OPTIONS.find(f => f.id === fontId);
+  if (!font?.url) return;
+  const linkId = `gfont-${fontId}`;
+  if (document.getElementById(linkId)) return;
+  const link = document.createElement('link');
+  link.id = linkId;
+  link.rel = 'stylesheet';
+  link.href = font.url;
+  document.head.appendChild(link);
+}
+
+/** Compute all CSS variables from the active preset, mode, radius, and font. */
+function buildCssVars(
+  preset: ThemePreset,
+  mode: ResolvedThemeMode,
+  radiusId: string,
+  fontId: string,
+): Record<string, string> {
   const dark = mode === 'dark';
-  const primary = dark ? theme.primary_color_dark ?? theme.primary_color : theme.primary_color;
-  const secondary = dark ? theme.secondary_color_dark ?? theme.secondary_color : theme.secondary_color;
-  const accent = dark
-    ? theme.accent_color_dark ?? theme.accent_color ?? '#f1b7be'
-    : theme.accent_color ?? '#f1b7be';
-  const bg = dark
-    ? theme.background_color ? adjustLightness(theme.background_color, -72) : DARK_BG
-    : theme.background_color ?? LIGHT_BG;
-  const textOnPrimary = theme.text_on_primary ?? '#FFFFFF';
-  const buttonStyle = theme.button_style ?? '#000000';
+  const colors = dark ? preset.dark : preset.light;
+  const { primary, secondary, accent, background, textOnPrimary } = colors;
 
   const hoverDelta = dark ? 10 : 12;
   const darkDelta = dark ? -10 : -15;
 
+  const radiusOption = RADIUS_OPTIONS.find(r => r.id === radiusId) ?? RADIUS_OPTIONS[1];
+  const fontOption = FONT_OPTIONS.find(f => f.id === fontId) ?? FONT_OPTIONS[0];
+
   return {
     '--color-primary': primary,
-    '--color-secondary': secondary,
-    '--color-accent': accent,
-    '--color-background': bg,
-    '--color-text-on-primary': textOnPrimary,
-    '--color-button-style': buttonStyle,
     '--color-primary-hover': adjustLightness(primary, hoverDelta),
     '--color-primary-dark': adjustLightness(primary, darkDelta),
+    '--color-secondary': secondary,
+    '--color-accent': accent,
     '--color-accent-light': adjustLightness(accent, dark ? 6 : 10),
     '--color-accent-muted': desaturate(accent, 30),
     '--color-secondary-muted': blendColors(primary, accent, 0.5),
-    '--color-background-alt': adjustLightness(bg, dark ? 6 : -6),
-    '--color-border': adjustLightness(bg, dark ? 14 : -22),
-    '--color-surface': adjustLightness(bg, dark ? 10 : -10),
-    '--color-surface-alt': adjustLightness(bg, dark ? 14 : -15),
-    '--font-family': theme.font_family ?? 'Arial, Helvetica, sans-serif',
+    '--color-background': background,
+    '--color-background-alt': adjustLightness(background, dark ? 6 : -6),
+    '--color-surface': adjustLightness(background, dark ? 10 : -10),
+    '--color-surface-alt': adjustLightness(background, dark ? 14 : -15),
+    '--color-border': adjustLightness(background, dark ? 14 : -22),
+    '--color-text-on-primary': textOnPrimary,
+    '--color-text-muted': dark ? '#9ca3af' : '#6b7280',
+    '--color-button-style': adjustLightness(primary, darkDelta),
+    '--font-family': fontOption.value,
+    ...radiusOption.vars,
   };
 }
 
 // --- Context ---
 
 type ThemeContextValue = {
-  theme: SchoolTheme;
-  loading: boolean;
-  themeModePreference: ThemeModePreference;
-  resolvedThemeMode: ResolvedThemeMode;
-  darkModeAvailable: boolean;
-  setThemeMode: (mode: ThemeModePreference) => void;
+  // School identity (static, from NJIT_THEME)
   schoolName: string;
   logoUrl: string | null;
   loginBgUrl: string | null;
   signupBgUrl: string | null;
+
+  // Mode
+  themeModePreference: ThemeModePreference;
+  resolvedThemeMode: ResolvedThemeMode;
+  /** All presets have dark colors, so this is always true. Kept for toggle compatibility. */
+  darkModeAvailable: boolean;
+  setThemeMode: (mode: ThemeModePreference) => void;
+
+  // Preset
+  activePresetId: string;
+  presets: ThemePreset[];
+  setPreset: (id: string) => void;
+
+  // Style controls
+  radiusId: string;
+  setRadius: (id: string) => void;
+  fontId: string;
+  setFont: (id: string) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+const storage: PreferencesStorage = new LocalStoragePreferences();
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Static theme — no DB fetch needed
-  const theme: SchoolTheme = NJIT_THEME;
-  const loading = false;
-  const [pref, setPref] = useState<ThemeModePreference>(getStoredMode);
+  // Read prefs synchronously so useState is initialized with the right values —
+  // prevents a flash of the default theme on load.
+  const [prefs, setPrefs] = useState<StoredThemePrefs>(() => loadInitialPrefs(storage));
   const [sysDark, setSysDark] = useState(systemPrefersDark);
 
-  // Listen for OS-level dark mode changes
+  // Listen for OS dark mode changes.
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => setSysDark(e.matches);
@@ -171,39 +150,54 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  const darkModeAvailable = hasDarkColors(theme);
-  const resolvedThemeMode = resolveMode(pref, sysDark, darkModeAvailable);
+  const resolvedThemeMode = resolveMode(prefs.mode, sysDark);
+  const activePreset = findPreset(prefs.presetId);
 
-  // Apply dark class to <html>
+  // Apply dark class to <html>.
   useEffect(() => {
     document.documentElement.classList.toggle('dark', resolvedThemeMode === 'dark');
   }, [resolvedThemeMode]);
 
-  // Apply CSS variables
+  // Apply all CSS variables.
   useEffect(() => {
-    const vars = buildCssVars(theme, resolvedThemeMode);
+    ensureFontLoaded(prefs.fontId);
+    const vars = buildCssVars(activePreset, resolvedThemeMode, prefs.radius, prefs.fontId);
     for (const [k, v] of Object.entries(vars)) {
       document.documentElement.style.setProperty(k, v);
     }
-  }, [theme, resolvedThemeMode]);
+  }, [activePreset, resolvedThemeMode, prefs.radius, prefs.fontId]);
 
-  const setThemeMode = useCallback((mode: ThemeModePreference) => {
-    setPref(mode);
-    try { localStorage.setItem(THEME_MODE_KEY, mode); } catch { /* ignore */ }
+  /** Persist a partial prefs update and re-render. */
+  const updatePrefs = useCallback((patch: Partial<StoredThemePrefs>) => {
+    setPrefs(prev => {
+      const next = { ...prev, ...patch };
+      storage.save(next);
+      return next;
+    });
   }, []);
 
+  const setThemeMode = useCallback((mode: ThemeModePreference) => updatePrefs({ mode }), [updatePrefs]);
+  const setPreset = useCallback((presetId: string) => updatePrefs({ presetId }), [updatePrefs]);
+  const setRadius = useCallback((radius: StoredThemePrefs['radius']) => updatePrefs({ radius }), [updatePrefs]);
+  const setFont = useCallback((fontId: string) => updatePrefs({ fontId }), [updatePrefs]);
+
   const value = useMemo<ThemeContextValue>(() => ({
-    theme,
-    loading,
-    themeModePreference: pref,
+    schoolName: NJIT_THEME.school_name,
+    logoUrl: NJIT_THEME.logo_url ?? null,
+    loginBgUrl: NJIT_THEME.login_background_url ?? null,
+    signupBgUrl: NJIT_THEME.signup_background_url ?? null,
+    themeModePreference: prefs.mode,
     resolvedThemeMode,
-    darkModeAvailable,
+    darkModeAvailable: true,
     setThemeMode,
-    schoolName: theme.school_name,
-    logoUrl: theme.logo_url ?? null,
-    loginBgUrl: theme.login_background_url ?? null,
-    signupBgUrl: theme.signup_background_url ?? null,
-  }), [pref, resolvedThemeMode, darkModeAvailable, setThemeMode]);
+    activePresetId: prefs.presetId,
+    presets: PRESETS,
+    setPreset,
+    radiusId: prefs.radius,
+    setRadius,
+    fontId: prefs.fontId,
+    setFont,
+  }), [prefs, resolvedThemeMode, setThemeMode, setPreset, setRadius, setFont]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

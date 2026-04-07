@@ -169,20 +169,20 @@ export default function Login() {
                     >
                         Login
                     </h1>
-                    <p className="mt-2 text-center text-sm text-[#4a5565]">
+                    <p className="mt-2 text-center text-sm text-gray-600">
                         Sign in to access the marketplace
                     </p>
 
                     <form className="mt-8 flex flex-col gap-5" onSubmit={handleSubmit}>
                         {/* Email field */}
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-[#364153]">
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">
                                 NJIT Email Address
                             </label>
                             <input
                                 type="email"
                                 placeholder="e.g., jdoe@njit.edu"
-                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-[#99a1af] focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
                                 style={interFont}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -190,19 +190,19 @@ export default function Login() {
                             {submitted && emailMessage ? (
                                 <p className="mt-1 text-xs text-red-600">{emailMessage}</p>
                             ) : (
-                                <p className="mt-1 text-xs text-[#6a7282]">Use your verified @njit.edu email</p>
+                                <p className="mt-1 text-xs text-gray-500">Use your verified @njit.edu email</p>
                             )}
                         </div>
 
                         {/* Password field */}
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-[#364153]">
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">
                                 Password
                             </label>
                             <input
                                 type="password"
                                 placeholder="Enter your password"
-                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-[#99a1af] focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
                                 style={interFont}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -210,7 +210,7 @@ export default function Login() {
                             {submitted && passwordMessage ? (
                                 <p className="mt-1 text-xs text-red-600">{passwordMessage}</p>
                             ) : (
-                                <p className="mt-1 text-xs text-[#6a7282]">Minimum 8 characters</p>
+                                <p className="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
                             )}
                             {/* Forgot password — tight below helper text */}
                             <div className="mt-2 flex justify-end">
@@ -240,7 +240,7 @@ export default function Login() {
                     {/* "Don't have an account?" — horizontal divider with text overlay */}
                     <div className="relative my-5 flex items-center">
                         <div className="flex-1 border-t border-gray-200" />
-                        <span className="px-4 text-sm text-[#6a7282]" style={{ ...interFont, background: 'linear-gradient(126deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)' }}>
+                        <span className="px-4 text-sm text-gray-500" style={{ ...interFont, background: 'linear-gradient(126deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)' }}>
                             Don't have an account?
                         </span>
                         <div className="flex-1 border-t border-gray-200" />

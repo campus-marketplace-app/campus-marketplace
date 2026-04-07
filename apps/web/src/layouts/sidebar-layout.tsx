@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import PageHeader from '../features/page-header';
 import Navbar from '../features/navbar';
 import Form from '../features/form';
+import ThemeCustomizer from '../features/theme-customizer';
 import { getSessionFromTokens, getProfile } from "@campus-marketplace/backend";
 import type { SessionUser, UserProfile } from "../features/types";
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +14,7 @@ export default function SidebarLayout() {
     const [profileRefreshKey, setProfileRefreshKey] = useState(0);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [showCustomizer, setShowCustomizer] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
         if (typeof window === "undefined") {
             return true;
@@ -86,14 +88,14 @@ export default function SidebarLayout() {
 
             <div className="flex min-w-0 flex-1 overflow-hidden bg-[var(--color-background)]">
                 {isRegistering ? <aside
-                    className={`relative shrink-0 bg-[var(--color-primary)] text-[var(--color-text-on-primary)] transition-all duration-300 ${isSidebarOpen ? 'w-16 sm:w-40' : 'w-12 sm:w-16'
-                        }`}
+                    className={`relative shrink-0 bg-[var(--color-primary)] text-[var(--color-text-on-primary)] transition-all duration-300 shadow-lg border-r-2 border-white/10 ${isSidebarOpen ? 'w-48 sm:w-64' : 'w-14 sm:w-[72px]'}`}
                 >
                     <Navbar
                         isSidebarOpen={isSidebarOpen}
                         isloggedIn={isLoggedIn}
                         toggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
                         openPostForm={() => setShowForm(true)}
+                        openCustomizer={() => setShowCustomizer(true)}
                         location={location}
                         user={user}
                         logout={logout}
@@ -118,6 +120,11 @@ export default function SidebarLayout() {
                 user={user}
                 onClose={() => setShowForm(false)}
                 onSubmitSuccess={() => setListingsRefreshKey((prev) => prev + 1)}
+            />
+
+            <ThemeCustomizer
+                open={showCustomizer}
+                onClose={() => setShowCustomizer(false)}
             />
         </div>
     );

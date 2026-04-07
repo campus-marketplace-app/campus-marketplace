@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { MoreVertical, Send } from "lucide-react";
 import type { Message } from "@campus-marketplace/backend";
 
 type ChatPanelProps = {
@@ -60,17 +61,31 @@ export default function ChatPanel({
                         ←
                     </button>
                 )}
-                <span className="text-lg font-semibold text-black">{otherUserName}</span>
+
+                {/* Contact name + status */}
+                <div className="flex-1">
+                    <span className="text-base font-semibold text-gray-900">{otherUserName}</span>
+                    <p className="text-xs text-[var(--color-text-muted)]">Active now</p>
+                </div>
+
+                {/* Options button */}
+                <button
+                    type="button"
+                    className="p-2 hover:bg-[var(--color-surface)] rounded-lg transition-colors"
+                    aria-label="More options"
+                >
+                    <MoreVertical size={18} className="text-[var(--color-text-muted)]" />
+                </button>
             </div>
 
             {/* Message area */}
             <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-4 sm:px-8">
                 {loading && (
-                    <p className="self-center text-sm text-gray-500">Loading messages...</p>
+                    <p className="self-center text-sm text-[var(--color-text-muted)]">Loading messages...</p>
                 )}
 
                 {!loading && messages.length === 0 && (
-                    <p className="self-center text-sm text-gray-500">
+                    <p className="self-center text-sm text-[var(--color-text-muted)]">
                         No messages yet — say hello!
                     </p>
                 )}
@@ -84,15 +99,15 @@ export default function ChatPanel({
                                 className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
                             >
                                 <div
-                                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm font-medium break-words ${
+                                    className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm font-medium break-words ${
                                         isMine
-                                            ? "bg-[var(--color-primary)] text-[var(--color-text-on-primary)] drop-shadow-sm"
-                                            : "bg-white text-black shadow-sm"
+                                            ? "bg-[var(--color-surface)] text-gray-900"
+                                            : "bg-[var(--color-primary)] text-[var(--color-text-on-primary)]"
                                     }`}
                                 >
                                     {msg.content}
                                 </div>
-                                <span className="mt-0.5 text-[10px] text-gray-400">
+                                <span className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
                                     {formatTime(msg.created_at)}
                                 </span>
                             </div>
@@ -104,21 +119,22 @@ export default function ChatPanel({
             </div>
 
             {/* Message input */}
-            <div className="m-2 mt-0 flex items-center gap-2 bg-[var(--color-background)] p-2">
+            <div className="m-2 mt-0 flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-background)] p-3">
                 <input
                     type="text"
                     placeholder="Type a message..."
                     value={messageInput}
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 bg-transparent px-2 py-2 text-lg text-black outline-none placeholder:text-black"
+                    className="flex-1 rounded-lg border border-[var(--color-border)] bg-transparent px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all placeholder:text-[var(--color-text-muted)]"
                 />
                 <button
                     type="button"
                     onClick={onSend}
                     disabled={!messageInput.trim()}
-                    className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-primary)] transition-opacity disabled:opacity-40"
+                    className="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-on-primary)] disabled:opacity-40 hover:opacity-90 transition-opacity"
                 >
+                    <Send size={16} />
                     Send
                 </button>
             </div>
