@@ -20,6 +20,12 @@ export interface Conversation {
   last_message?: string;
   // Number of unread messages in this conversation (for the badge).
   unread_count?: number;
+  // Title of the linked listing (if listing_id is set).
+  listing_title?: string;
+  // True if the requesting user owns the listing (i.e. they are the seller).
+  is_seller?: boolean;
+  // Storage path of the other user's avatar (pass to getAvatarUrl to get a URL).
+  other_user_avatar_path?: string | null;
 }
 
 export interface Message {
@@ -49,15 +55,18 @@ async function getOtherParticipantId(conversationId: string, userId: string): Pr
   return data?.[0]?.user_id ?? null;
 }
 
-// Look up a user's display_name from profiles.
-async function getDisplayName(userId: string): Promise<string | undefined> {
+// Look up a user's display_name and avatar_path from profiles.
+async function getOtherUserInfo(userId: string): Promise<{ displayName?: string; avatarPath?: string | null }> {
   const { data } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name,avatar_path")
     .eq("user_id", userId)
     .single();
 
-  return data?.display_name ?? undefined;
+  return {
+    displayName: data?.display_name ?? undefined,
+    avatarPath: data?.avatar_path ?? null,
+  };
 }
 
 // Check if userId is an active participant in the conversation.
@@ -71,6 +80,17 @@ async function isParticipant(conversationId: string, userId: string): Promise<bo
     .limit(1);
 
   return (data ?? []).length > 0;
+}
+
+// Fetch listing title and owner for a given listing_id.
+async function getListingInfo(listingId: string): Promise<{ title: string; user_id: string } | null> {
+  const { data } = await supabase
+    .from("listings")
+    .select("title,user_id")
+    .eq("id", listingId)
+    .single();
+
+  return data ?? null;
 }
 
 // Find an existing conversation between two users for the same listing (or no listing).
@@ -219,7 +239,7 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
     const otherId = await getOtherParticipantId(convo.id, userId);
     if (!otherId) continue; // skip if no other participant found
 
-    const displayName = await getDisplayName(otherId);
+    const { displayName, avatarPath } = await getOtherUserInfo(otherId);
 
     // Get the latest message for preview.
     const { data: lastMsg } = await supabase
@@ -239,6 +259,8 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
       .eq("is_read", false)
       .is("deleted_at", null);
 
+    const listingInfo = convo.listing_id ? await getListingInfo(convo.listing_id) : null;
+
     results.push({
       id: convo.id,
       listing_id: convo.listing_id,
@@ -246,8 +268,11 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
       updated_at: convo.updated_at,
       other_user_id: otherId,
       other_user_display_name: displayName,
+      other_user_avatar_path: avatarPath,
       last_message: lastMsg?.[0]?.content,
       unread_count: count ?? 0,
+      listing_title: listingInfo?.title,
+      is_seller: listingInfo ? listingInfo.user_id === userId : undefined,
     });
   }
 
@@ -276,7 +301,7 @@ export async function getConversation(conversationId: string, userId: string): P
     throw new Error("Could not find the other participant in this conversation");
   }
 
-  const displayName = await getDisplayName(otherId);
+  const { displayName, avatarPath } = await getOtherUserInfo(otherId);
 
   // Get latest message for preview.
   const { data: lastMsg } = await supabase
@@ -296,6 +321,8 @@ export async function getConversation(conversationId: string, userId: string): P
     .eq("is_read", false)
     .is("deleted_at", null);
 
+  const listingInfo = convo.listing_id ? await getListingInfo(convo.listing_id) : null;
+
   return {
     id: convo.id,
     listing_id: convo.listing_id,
@@ -303,8 +330,11 @@ export async function getConversation(conversationId: string, userId: string): P
     updated_at: convo.updated_at,
     other_user_id: otherId,
     other_user_display_name: displayName,
+    other_user_avatar_path: avatarPath,
     last_message: lastMsg?.[0]?.content,
     unread_count: count ?? 0,
+    listing_title: listingInfo?.title,
+    is_seller: listingInfo ? listingInfo.user_id === userId : undefined,
   };
 }
 
@@ -426,4 +456,21 @@ export function subscribeToMessages(
       supabase.removeChannel(channel);
     },
   };
+}
+
+// Soft-delete a conversation for the given user (sets deleted_at).
+// The conversation must exist and the user must be an active participant.
+export async function archiveConversation(conversationId: string, userId: string): Promise<void> {
+  if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!userId.trim()) throw new Error("User ID is required");
+
+  const ok = await isParticipant(conversationId, userId);
+  if (!ok) throw new Error("Not a participant in this conversation");
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", conversationId);
+
+  if (error) throw new Error(`Failed to archive conversation: ${error.message}`);
 }

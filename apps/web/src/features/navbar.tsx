@@ -40,18 +40,20 @@ export default function Navbar({
 }: NavbarProps) {
     return (
         <div className="flex h-full flex-col">
-            {/* Round white toggle button — top-right corner */}
-            <button
-                type="button"
-                onClick={toggleSidebar}
-                className="absolute right-3 top-3 rounded-full bg-white p-1.5 shadow-lg text-[var(--color-primary)] hover:bg-gray-100 transition-colors z-10"
-                aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-            >
-                {isSidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-            </button>
+            {/* Toggle strip — in-flow so it aligns with icons below */}
+            <div className={`flex pt-3 px-3 pb-1 ${isSidebarOpen ? 'justify-end' : 'justify-center'}`}>
+                <button
+                    type="button"
+                    onClick={toggleSidebar}
+                    className="rounded-full bg-white p-1.5 shadow-lg text-[var(--color-primary)] hover:bg-gray-100 transition-colors"
+                    aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                >
+                    {isSidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                </button>
+            </div>
 
             {/* Nav items */}
-            <nav className="flex flex-1 flex-col gap-1 px-3 pt-14 pb-4">
+            <nav className="flex flex-1 flex-col gap-1 px-3 pt-2 pb-4">
                 {NAV_ITEMS.map(({ to, icon: Icon, label, end }) => (
                     <NavLink
                         key={to}

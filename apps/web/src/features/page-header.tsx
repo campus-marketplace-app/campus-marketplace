@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { User, ShoppingCart } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { getAvatarUrl } from '@campus-marketplace/backend';
 import ThemeModeToggle from './theme-mode-toggle';
 import type { UserProfile } from "./types";
 
@@ -9,20 +10,23 @@ type HeaderProps = {
     isRegistering: boolean;
     profile?: UserProfile | null;
     avatarCacheBust?: number;
+    showSearch?: boolean;
     searchQuery?: string;
     setSearchQuery?: (query: string) => void;
 };
-
-// avatarCacheBust kept in props for future use (avatar re-fetch logic)
 
 export default function PageHeader({
     isLoggedIn,
     isRegistering,
     profile,
+    avatarCacheBust = 0,
+    showSearch,
     searchQuery,
     setSearchQuery,
 }: HeaderProps) {
     const { schoolName, logoUrl } = useTheme();
+
+    const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path) : null;
 
     return (
         <nav
@@ -33,7 +37,12 @@ export default function PageHeader({
 
                 {/* Left — logo + school name */}
                 <Link to="/" className="flex items-center gap-3 shrink-0 text-[var(--color-text-on-primary)] hover:opacity-90 transition-opacity">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white shadow-md">
+                    <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center bg-white shadow-md"
+                        style={{ borderRadius: '8px' }}
+                    >
+                        {/* borderRadius hardcoded — logo box must always be a rounded square
+                            regardless of the user's chosen theme radius setting */}
                         {logoUrl
                             ? <img src={logoUrl} alt={schoolName} className="h-6 w-auto" />
                             : <span className="text-base font-bold text-[var(--color-primary-dark)]">
@@ -46,8 +55,8 @@ export default function PageHeader({
                     </span>
                 </Link>
 
-                {/* Center — search bar (app pages only) */}
-                {isRegistering && (
+                {/* Center — search bar (homepage only) */}
+                {showSearch && (
                     <div className="flex-1 max-w-lg mx-2">
                         <input
                             id="search"
@@ -69,7 +78,17 @@ export default function PageHeader({
                                 to="/profile"
                                 className="flex items-center gap-1.5 text-[var(--color-text-on-primary)] hover:opacity-80 transition-opacity"
                             >
-                                <User size={15} className="shrink-0" />
+                                {avatarUrl ? (
+                                    <img
+                                        key={avatarCacheBust}
+                                        src={`${avatarUrl}?v=${avatarCacheBust}`}
+                                        alt="avatar"
+                                        className="h-7 w-7 object-cover"
+                                        style={{ borderRadius: '9999px' }}
+                                    />
+                                ) : (
+                                    <User size={15} className="shrink-0" />
+                                )}
                                 <span className="hidden sm:block max-w-24 truncate text-sm">
                                     {profile?.display_name || 'Profile'}
                                 </span>

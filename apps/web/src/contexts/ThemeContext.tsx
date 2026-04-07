@@ -97,6 +97,7 @@ function buildCssVars(
     '--color-surface-alt': adjustLightness(background, dark ? 14 : -15),
     '--color-border': adjustLightness(background, dark ? 14 : -22),
     '--color-text-on-primary': textOnPrimary,
+    '--color-text': dark ? '#f3f4f6' : '#111827',
     '--color-text-muted': dark ? '#9ca3af' : '#6b7280',
     '--color-button-style': adjustLightness(primary, darkDelta),
     '--font-family': fontOption.value,

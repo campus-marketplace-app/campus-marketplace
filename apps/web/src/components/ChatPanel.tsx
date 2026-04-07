@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { MoreVertical, Send } from "lucide-react";
+import { MoreVertical, Send, ShoppingBag, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { Message } from "@campus-marketplace/backend";
 
 type ChatPanelProps = {
@@ -11,6 +12,9 @@ type ChatPanelProps = {
     onSend: () => void;
     loading: boolean;
     onBack?: () => void;
+    listingId?: string | null;
+    listingTitle?: string;
+    isSeller?: boolean;
 };
 
 // Format a timestamp like "3:42 PM".
@@ -30,6 +34,9 @@ export default function ChatPanel({
     onSend,
     loading,
     onBack,
+    listingId,
+    listingTitle,
+    isSeller,
 }: ChatPanelProps) {
     // Auto-scroll to the bottom when new messages arrive.
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -49,33 +56,53 @@ export default function ChatPanel({
     return (
         <div className="flex h-full w-full flex-col border-l border-[var(--color-border)]">
             {/* Header */}
-            <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3">
-                {/* Back button — only visible on mobile */}
-                {onBack && (
+            <div className="border-b border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3">
+                <div className="flex items-center gap-2">
+                    {/* Back button — only visible on mobile */}
+                    {onBack && (
+                        <button
+                            type="button"
+                            onClick={onBack}
+                            className="mr-1 text-lg sm:hidden"
+                            aria-label="Back to conversations"
+                        >
+                            ←
+                        </button>
+                    )}
+
+                    {/* Contact name + role label */}
+                    <div className="flex-1">
+                        <span className="text-base font-semibold text-[var(--color-text)]">{otherUserName}</span>
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                            {listingId
+                                ? (isSeller ? "Selling to" : "Buying from") + " " + otherUserName
+                                : "Active now"}
+                        </p>
+                    </div>
+
+                    {/* Options button */}
                     <button
                         type="button"
-                        onClick={onBack}
-                        className="mr-1 text-lg sm:hidden"
-                        aria-label="Back to conversations"
+                        className="p-2 hover:bg-[var(--color-surface)] rounded-lg transition-colors"
+                        aria-label="More options"
                     >
-                        ←
+                        <MoreVertical size={18} className="text-[var(--color-text-muted)]" />
                     </button>
-                )}
-
-                {/* Contact name + status */}
-                <div className="flex-1">
-                    <span className="text-base font-semibold text-gray-900">{otherUserName}</span>
-                    <p className="text-xs text-[var(--color-text-muted)]">Active now</p>
                 </div>
 
-                {/* Options button */}
-                <button
-                    type="button"
-                    className="p-2 hover:bg-[var(--color-surface)] rounded-lg transition-colors"
-                    aria-label="More options"
-                >
-                    <MoreVertical size={18} className="text-[var(--color-text-muted)]" />
-                </button>
+                {/* Listing card — shown when conversation is linked to a listing */}
+                {listingId && listingTitle && (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2">
+                        <ShoppingBag size={14} className="shrink-0 text-[var(--color-text-muted)]" />
+                        <span className="flex-1 truncate text-xs text-[var(--color-text)]">{listingTitle}</span>
+                        <Link
+                            to={`/listing/${listingId}`}
+                            className="flex items-center gap-1 text-xs font-semibold text-[var(--color-primary)] hover:opacity-80 transition-opacity shrink-0"
+                        >
+                            View <ArrowRight size={12} />
+                        </Link>
+                    </div>
+                )}
             </div>
 
             {/* Message area */}
@@ -101,7 +128,7 @@ export default function ChatPanel({
                                 <div
                                     className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm font-medium break-words ${
                                         isMine
-                                            ? "bg-[var(--color-surface)] text-gray-900"
+                                            ? "bg-[var(--color-surface)] text-[var(--color-text)]"
                                             : "bg-[var(--color-primary)] text-[var(--color-text-on-primary)]"
                                     }`}
                                 >

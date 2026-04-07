@@ -23,6 +23,7 @@ export default function SidebarLayout() {
     });
     const location = useLocation();
     const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
+    const isHomePage = location.pathname === '/' || location.pathname === '/home';
     const [user, setUser] = useState<SessionUser | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const navigate = useNavigate();
@@ -82,6 +83,7 @@ export default function SidebarLayout() {
                 isRegistering={isRegistering}
                 profile={profile}
                 avatarCacheBust={profileRefreshKey}
+                showSearch={isHomePage}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
             />
