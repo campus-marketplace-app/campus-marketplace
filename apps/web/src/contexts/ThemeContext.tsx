@@ -128,7 +128,7 @@ type ThemeContextValue = {
 
   // Style controls
   radiusId: string;
-  setRadius: (id: string) => void;
+  setRadius: (radius: 'sharp' | 'default' | 'rounded' | 'pill') => void;
   fontId: string;
   setFont: (id: string) => void;
 };

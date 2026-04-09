@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { User, ShoppingCart } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { getAvatarUrl } from '@campus-marketplace/backend';
+import { getAvatarUrl, type Notification } from '@campus-marketplace/backend';
 import ThemeModeToggle from './theme-mode-toggle';
+import NotificationBell from './notification-bell';
 import type { UserProfile } from "./types";
 
 type HeaderProps = {
@@ -13,6 +14,9 @@ type HeaderProps = {
     showSearch?: boolean;
     searchQuery?: string;
     setSearchQuery?: (query: string) => void;
+    notifications?: Notification[];
+    onMarkAllRead?: () => void;
+    onNotificationClick?: (n: Notification) => void;
 };
 
 export default function PageHeader({
@@ -23,6 +27,9 @@ export default function PageHeader({
     showSearch,
     searchQuery,
     setSearchQuery,
+    notifications = [],
+    onMarkAllRead,
+    onNotificationClick,
 }: HeaderProps) {
     const { schoolName, logoUrl } = useTheme();
 
@@ -108,14 +115,11 @@ export default function PageHeader({
                     )}
 
                     {isRegistering && isLoggedIn && (
-                        <button
-                            type="button"
-                            aria-label="Cart"
-                            onClick={() => {}}
-                            className="text-[var(--color-text-on-primary)] p-1 hover:opacity-80 transition-opacity"
-                        >
-                            <ShoppingCart size={18} />
-                        </button>
+                        <NotificationBell
+                            notifications={notifications}
+                            onMarkAllRead={onMarkAllRead || (() => {})}
+                            onNotificationClick={onNotificationClick || (() => {})}
+                        />
                     )}
 
                     {isRegistering && <ThemeModeToggle />}
