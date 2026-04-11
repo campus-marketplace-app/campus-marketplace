@@ -15,7 +15,6 @@ export default function Wishlist() {
     const navigate = useNavigate();
     const { user } = useOutletContext<OutletContext>();
     const wishlistItems = localStorage.getItem("wishlist") ? JSON.parse(localStorage.getItem("wishlist")!) : [];
-    const totalPrice = wishlistItems.reduce((sum: number, item: any) => sum + Number(item?.price || 0), 0);
     const [loading, setLoading] = useState(false);
     const [hasitems, setHasItems] = useState(wishlistItems.length > 0);
 
@@ -71,18 +70,6 @@ export default function Wishlist() {
                             <p>Your wishlist is empty.</p>
                         )}
                     </section>
-
-                    <aside className="h-fit rounded bg-white p-4 shadow-sm lg:sticky lg:top-4">
-                        <h2 className="mb-4 text-xl font-bold">Order Summary</h2>
-                        <p className="mb-4 text-lg">Total: ${totalPrice.toFixed(2)}</p>
-                        <button
-                            className="w-full rounded bg-green-500 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
-                            onClick={() => alert("Checkout functionality not implemented yet.")}
-                            disabled={wishlistItems.length === 0}
-                        >
-                            Checkout
-                        </button>
-                    </aside>
                 </div>
             </div>
         </div>
