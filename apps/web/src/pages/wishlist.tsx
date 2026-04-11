@@ -7,17 +7,17 @@ type OutletContext = {
     openPostForm: () => void;
 };
 
-const deleteCartItem = (id: string, items: any[]) => { // delete cart item by id from user cart
-    return items.filter((cartItem: any) => cartItem.id !== id);
+const deleteWishlistItem = (id: string, items: any[]) => { // delete wishlist item by id from user wishlist
+    return items.filter((wishlistItem: any) => wishlistItem.id !== id);
 };
 
-export default function Cart() {
+export default function Wishlist() {
     const navigate = useNavigate();
     const { user } = useOutletContext<OutletContext>();
-    const cartItems = localStorage.getItem("cart") ? JSON.parse(localStorage.getItem("cart")!) : [];
-    const totalPrice = cartItems.reduce((sum: number, item: any) => sum + Number(item?.price || 0), 0);
+    const wishlistItems = localStorage.getItem("wishlist") ? JSON.parse(localStorage.getItem("wishlist")!) : [];
+    const totalPrice = wishlistItems.reduce((sum: number, item: any) => sum + Number(item?.price || 0), 0);
     const [loading, setLoading] = useState(false);
-    const [hasitems, setHasItems] = useState(cartItems.length > 0);
+    const [hasitems, setHasItems] = useState(wishlistItems.length > 0);
 
     useEffect(() => {
         setLoading(true);
@@ -27,15 +27,15 @@ export default function Cart() {
             navigate("/login");
             return;
         }
-        setHasItems(cartItems.length > 0);
+        setHasItems(wishlistItems.length > 0);
         setLoading(false);
 
-    }, [user, cartItems.length]);
+    }, [user, wishlistItems.length]);
 
     return (
         <div className="min-h-screen p-4">
             <div className="mx-auto max-w-6xl">
-                <h1 className="mb-6 text-2xl font-bold">Your Cart</h1>
+                <h1 className="mb-6 text-2xl font-bold">Your Wishlist</h1>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
                     <section>
@@ -43,15 +43,15 @@ export default function Cart() {
                             <p>Loading...</p>
                         ) : hasitems ? (
                             <div className="space-y-4">
-                                {cartItems.map((item: any, index: number) => (
+                                {wishlistItems.map((item: any, index: number) => (
                                     <div key={index} className="flex items-center justify-between rounded bg-white p-4 shadow-sm">
                                         <button
                                             aria-label="Remove item"
                                             className="rounded bg-red-500 p-2 text-white"
                                             onClick={() => {
-                                                const updatedCart = deleteCartItem(item.id, cartItems);
-                                                localStorage.setItem("cart", JSON.stringify(updatedCart));
-                                                setHasItems(updatedCart.length > 0);
+                                                const updatedWishlist = deleteWishlistItem(item.id, wishlistItems);
+                                                localStorage.setItem("wishlist", JSON.stringify(updatedWishlist));
+                                                setHasItems(updatedWishlist.length > 0);
                                             }}
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
@@ -68,7 +68,7 @@ export default function Cart() {
                                 ))}
                             </div>
                         ) : (
-                            <p>Your cart is empty.</p>
+                            <p>Your wishlist is empty.</p>
                         )}
                     </section>
 
@@ -78,7 +78,7 @@ export default function Cart() {
                         <button
                             className="w-full rounded bg-green-500 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
                             onClick={() => alert("Checkout functionality not implemented yet.")}
-                            disabled={cartItems.length === 0}
+                            disabled={wishlistItems.length === 0}
                         >
                             Checkout
                         </button>

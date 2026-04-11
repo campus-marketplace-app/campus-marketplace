@@ -24,12 +24,12 @@ export default function Listing() {
         return date.toLocaleString();
     };
 
-    const addToCart = () => { //needs to chnge lter
+    const addToWishlist = () => { //needs to chnge lter
         if (!listingData) return;
         // Store only the ID
-        const cart: string[] = JSON.parse(localStorage.getItem("cart") ?? "[]");
-        if (!cart.includes(listingData.id)) cart.push(listingData.id);
-        localStorage.setItem("cart", JSON.stringify(cart));
+        const wishlist: string[] = JSON.parse(localStorage.getItem("wishlist") ?? "[]");
+        if (!wishlist.includes(listingData.id)) wishlist.push(listingData.id);
+        localStorage.setItem("wishlist", JSON.stringify(wishlist));
     };
 
 
@@ -434,9 +434,9 @@ export default function Listing() {
                             {user && listingData.user_id !== user.id ? (<button
                                 type="button"
                                 className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
-                                onClick={addToCart}
+                                onClick={addToWishlist}
                             >
-                                cart
+                                Wishlist
                             </button>
                             ) : null}
                         </div>

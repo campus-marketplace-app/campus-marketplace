@@ -10,7 +10,7 @@ import './App.css'
 import ResetEmail from './pages/reset-email.tsx'
 import ResetPassword from './pages/reset-password.tsx'
 import MyListings from './pages/my-listings.tsx'
-import Cart from './pages/cart.tsx'
+import Cart from './pages/wishlist.tsx'
 
 function App() {
   return (
