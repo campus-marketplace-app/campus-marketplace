@@ -90,10 +90,18 @@ export default function Wishlist() {
             <div className="mx-auto max-w-7xl">
                 <h1 className="mb-6 text-2xl font-bold">Your Wishlist</h1>
 
-                {loading ? (
-                    <p>Loading...</p>
+                {loading && listingsData.length > 0 && (
+                    <p className="mb-4 text-sm font-medium text-black/70">Updating wishlist...</p>
+                )}
+
+                {!loading && listingsData.length === 0 ? (
+                    <p>Your wishlist is empty.</p>
                 ) : listingsData.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
+                        {loading && listingsData.length > 0 && (
+                            <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/20" aria-hidden="true" />
+                        )}
+
                         {listingsData.map((listing) => (
                             <div key={listing.id} className="relative">
                                 <button
@@ -162,7 +170,7 @@ export default function Wishlist() {
                         ))}
                     </div>
                 ) : (
-                    <p>Your wishlist is empty.</p>
+                    <p>Loading...</p>
                 )}
             </div>
         </section>

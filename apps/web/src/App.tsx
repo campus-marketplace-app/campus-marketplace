@@ -10,7 +10,7 @@ import './App.css'
 import ResetEmail from './pages/reset-email.tsx'
 import ResetPassword from './pages/reset-password.tsx'
 import MyListings from './pages/my-listings.tsx'
-import Cart from './pages/wishlist.tsx'
+import Wishlist from './pages/wishlist.tsx'
 
 function App() {
   return (
@@ -31,7 +31,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path='/my-listings' element={<MyListings />} />
             <Route path='/profile/:userId' element={<Profile />} />
-            <Route path='/cart' element={<Cart />} />
+            <Route path='/wishlist' element={<Wishlist />} />
           </Route>
         </Routes>
         </div>
