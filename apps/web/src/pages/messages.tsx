@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useOutletContext, useParams, Link } from "react-router-dom";
 import {
     getConversationsByUser,
+    getListingWithDetails,
     getMessages,
     sendMessage,
     markMessagesRead,
@@ -29,6 +30,7 @@ export default function Messages() {
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+    const [listingTitlesById, setListingTitlesById] = useState<Record<string, string>>({});
 
     // --- restore Supabase session so RLS recognizes the user ---
     useEffect(() => {
@@ -122,6 +124,56 @@ export default function Messages() {
         };
     }, [activeConversationId, user?.id]);
 
+    // --- fetch listing titles for conversations so similar contacts are distinguishable ---
+    useEffect(() => {
+        const listingIds = Array.from(
+            new Set(
+                conversations
+                    .map((conversation) => conversation.listing_id)
+                    .filter((id): id is string => Boolean(id && id.trim())),
+            ),
+        );
+
+        const missingListingIds = listingIds.filter((id) => !listingTitlesById[id]);
+        if (missingListingIds.length === 0) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadListingTitles = async () => {
+            const entries = await Promise.all(
+                missingListingIds.map(async (listingId) => {
+                    try {
+                        const listing = await getListingWithDetails(listingId);
+                        return [listingId, listing.title ?? "Untitled listing"] as const;
+                    }
+                    catch {
+                        return [listingId, "Unknown listing"] as const;
+                    }
+                }),
+            );
+
+            if (cancelled) {
+                return;
+            }
+
+            setListingTitlesById((prev) => {
+                const next = { ...prev };
+                for (const [listingId, title] of entries) {
+                    next[listingId] = title;
+                }
+                return next;
+            });
+        };
+
+        void loadListingTitles();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [conversations, listingTitlesById]);
+
     // --- send a message ---
     async function handleSend() {
         if (!activeConversationId || !user || !messageInput.trim()) return;
@@ -203,15 +255,16 @@ export default function Messages() {
     );
 
     return (
-        <section className="h-full w-full min-w-0 overflow-hidden">
+        <section className="h-full min-h-0 w-full min-w-0 overflow-hidden">
             {errorBanner}
 
-            <div className="grid h-full w-full min-w-0 grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_minmax(0,1fr)]">
+            <div className="grid h-full min-h-0 w-full min-w-0 grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_minmax(0,1fr)]">
                 {/* Sidebar — hidden on mobile when viewing a chat */}
-                <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"} min-w-0`}>
+                <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"} min-h-0 min-w-0`}>
                     <ConversationList
                         conversations={conversations}
                         activeId={activeConversationId}
+                        listingTitlesById={listingTitlesById}
                         searchFilter={searchFilter}
                         onSearchChange={setSearchFilter}
                         onSelect={handleSelectConversation}
@@ -220,7 +273,7 @@ export default function Messages() {
                 </div>
 
                 {/* Chat panel — hidden on mobile when viewing the list */}
-                <div className={`${mobileView === "list" ? "hidden sm:flex" : "flex"} h-full min-w-0`}>
+                <div className={`${mobileView === "list" ? "hidden sm:flex" : "flex"} h-full min-h-0 min-w-0`}>
                     {activeConvo ? (
                         <ChatPanel
                             messages={messages}
