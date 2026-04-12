@@ -94,6 +94,7 @@ This will:
 
 - **[SETUP.md](SETUP.md)** — How to run the app locally (3 options)
 - **[SUPABASE_CONNECT.md](SUPABASE_CONNECT.md)** — Connect Supabase (credentials, auth, push migrations)
+- **[SMTP_SETUP.md](docs/SMTP_SETUP.md)** — Configure custom SMTP for Supabase Auth email delivery
 - **[MIGRATIONS.md](MIGRATIONS.md)** — Create & manage database migrations
 
 ---

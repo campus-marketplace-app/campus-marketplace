@@ -103,6 +103,22 @@ When prompted, enter `Y` to confirm.
 
 ---
 
+## Step 7: Configure Custom SMTP for Auth Emails
+
+Supabase's built-in email provider is limited (for example, 2 emails/hour) and only intended for non-production testing.
+
+To enable production-ready email delivery for signup confirmations and password reset links:
+
+1. Open Supabase Dashboard
+2. Go to **Authentication -> Email -> SMTP Settings**
+3. Enable custom SMTP and provide your SMTP host, port, username, password, sender email, and sender name
+4. Save settings
+5. Go to **Authentication -> Rate Limits** and increase `rate_limit_email_sent` as needed
+
+For a full checklist, follow [SMTP_SETUP.md](SMTP_SETUP.md).
+
+---
+
 ## Verify Connection
 
 ### Check Tables in Dashboard

@@ -2,6 +2,14 @@
 
 > **Rule:** Never import `@supabase/supabase-js` in the frontend. Use `@campus-marketplace/backend`.
 
+## Auth Email Delivery Requirement
+
+`signUpWithEmail` and `sendPasswordResetEmail` rely on Supabase Auth email delivery.
+
+For development, Supabase's built-in email provider is very limited. For production or realistic testing, configure custom SMTP for the Supabase project.
+
+See [SMTP_SETUP.md](SMTP_SETUP.md) for setup and verification.
+
 ## Import
 
 ```ts
@@ -162,6 +170,10 @@ await sendPasswordResetEmail(email, "https://yourapp.com/reset-password");
 **Input:** `email: string`, `redirectTo?: string` — where Supabase redirects after the link is clicked (falls back to the URL configured in the Supabase dashboard)
 **Returns:** `void`
 **Throws:** if `email` is empty
+
+Operational note:
+- if SMTP is misconfigured or rate limited, this call throws with Supabase's provider/rate-limit error
+- validate SMTP and `rate_limit_email_sent` in Supabase dashboard if deliveries fail
 
 ---
 
