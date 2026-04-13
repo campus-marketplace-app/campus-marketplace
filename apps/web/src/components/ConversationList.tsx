@@ -3,6 +3,7 @@ import type { Conversation } from "@campus-marketplace/backend";
 type ConversationListProps = {
     conversations: Conversation[];
     activeId: string | null;
+    listingTitlesById: Record<string, string>;
     searchFilter: string;
     onSearchChange: (value: string) => void;
     onSelect: (id: string) => void;
@@ -12,6 +13,7 @@ type ConversationListProps = {
 export default function ConversationList({
     conversations,
     activeId,
+    listingTitlesById,
     searchFilter,
     onSearchChange,
     onSelect,
@@ -25,7 +27,7 @@ export default function ConversationList({
     );
 
     return (
-        <aside className="flex h-full min-h-0 w-full flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] p-4">
+        <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-background)] p-4">
             {/* Search bar */}
             <input
                 type="text"
@@ -59,6 +61,16 @@ export default function ConversationList({
                                     : "text-black hover:bg-[var(--color-surface)]"
                             }`}
                         >
+                            {convo.listing_id && (
+                                <span
+                                    className={`mb-0.5 block w-full truncate text-[11px] font-medium ${
+                                        convo.id === activeId ? "text-white/80" : "text-black/70"
+                                    }`}
+                                >
+                                    Listing: {listingTitlesById[convo.listing_id] ?? "Loading listing..."}
+                                </span>
+                            )}
+
                             <div className="flex items-center justify-between">
                                 <span className="truncate text-sm font-semibold">
                                     {convo.other_user_display_name ?? "Unknown User"}

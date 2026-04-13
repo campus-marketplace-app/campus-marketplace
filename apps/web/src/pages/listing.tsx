@@ -16,6 +16,7 @@ export default function Listing() {
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [unavailableMessage, setUnavailableMessage] = useState<string | null>(null);
+    const [isInWishlist, setIsInWishlist] = useState(false);
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -23,6 +24,27 @@ export default function Listing() {
         if (Number.isNaN(date.getTime())) return value;
         return date.toLocaleString();
     };
+
+    const addToWishlist = () => {
+        if (!listingData) return;
+
+        const wishlist: string[] = JSON.parse(localStorage.getItem("wishlist") ?? "[]");
+
+        if (wishlist.includes(listingData.id)) {
+            setIsInWishlist(true);
+            return;
+        }
+
+        wishlist.push(listingData.id);
+        localStorage.setItem("wishlist", JSON.stringify(wishlist));
+        setIsInWishlist(true);
+        navigate("/", {
+            state: {
+                wishlistToast: "Added to your wishlist.",
+            },
+        });
+    };
+
 
     const formatMissingPublishFields = (fields: string[]) => {
         const labels: Record<string, string> = {
@@ -177,6 +199,8 @@ export default function Listing() {
 
                 setUnavailableMessage(null);
                 setListingData(listing);
+                const wishlist: string[] = JSON.parse(localStorage.getItem("wishlist") ?? "[]");
+                setIsInWishlist(wishlist.includes(listing.id));
                 let account = await getProfile(listing.user_id);
                 setDisplayName(account.display_name);
             } catch (error) {
@@ -422,12 +446,15 @@ export default function Listing() {
                                 </button>
                             )}
 
-                            <button
+                            {user && listingData.user_id !== user.id ? (<button
                                 type="button"
-                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                disabled={isInWishlist}
+                                className={`px-8 py-2 text-2xl text-black transition ${isInWishlist ? "cursor-not-allowed bg-gray-400" : "bg-[var(--color-accent)] hover:bg-white"}`}
+                                onClick={addToWishlist}
                             >
-                                cart
+                                {isInWishlist ? "Wishlisted" : "Wishlist"}
                             </button>
+                            ) : null}
                         </div>
                     </div>
                 </div>

@@ -93,10 +93,9 @@ export default function PageHeader({
                 )}
 
                 {isRegistering && isLoggedIn ? (
-                    <button
-                        type="button"
-                        aria-label="Cart"
-                        onClick={() => {}}
+                    <Link
+                        to="/wishlist"
+                        aria-label="Wishlist"
                         className="text-[var(--color-text-on-primary)] p-1 cursor-pointer hover:opacity-80"
                     >
                         <svg
@@ -105,13 +104,16 @@ export default function PageHeader({
                             fill="none"
                             stroke="currentColor"
                             strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
                             className="h-6 w-6"
                         >
-                            <circle cx="9" cy="20" r="1" />
-                            <circle cx="17" cy="20" r="1" />
-                            <path d="M3 4h2l2.6 10.4A2 2 0 0 0 9.5 16H17a2 2 0 0 0 1.9-1.4L21 7H7" />
+                            <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="9" y1="13" x2="15" y2="13" />
+                            <line x1="9" y1="17" x2="15" y2="17" />
                         </svg>
-                    </button>
+                    </Link>
                 ) : null}
 
                 {isRegistering && <ThemeModeToggle />}

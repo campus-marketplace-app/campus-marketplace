@@ -46,7 +46,7 @@ export default function ChatPanel({
     }
 
     return (
-        <div className="flex h-full w-full flex-col border-l border-[var(--color-border)]">
+        <div className="flex h-full min-h-0 w-full flex-col border-l border-[var(--color-border)]">
             {/* Header */}
             <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-background)] px-4 py-3">
                 {/* Back button — only visible on mobile */}
@@ -64,7 +64,7 @@ export default function ChatPanel({
             </div>
 
             {/* Message area */}
-            <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-4 sm:px-8">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 py-4 sm:px-8">
                 {loading && (
                     <p className="self-center text-sm text-gray-500">Loading messages...</p>
                 )}
