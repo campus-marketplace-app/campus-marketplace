@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useOutletContext, useParams, Link } from "react-router-dom";
 import {
     getConversationsByUser,
+    getListingWithDetails,
     getMessages,
     sendMessage,
     markMessagesRead,
@@ -30,6 +31,7 @@ export default function Messages() {
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+    const [listingTitlesById, setListingTitlesById] = useState<Record<string, string>>({});
 
     // --- restore Supabase session so RLS recognizes the user ---
     useEffect(() => {
@@ -133,6 +135,56 @@ export default function Messages() {
             unsubscribe();
         };
     }, [activeConversationId, user?.id]);
+
+    // --- fetch listing titles for conversations so similar contacts are distinguishable ---
+    useEffect(() => {
+        const listingIds = Array.from(
+            new Set(
+                conversations
+                    .map((conversation) => conversation.listing_id)
+                    .filter((id): id is string => Boolean(id && id.trim())),
+            ),
+        );
+
+        const missingListingIds = listingIds.filter((id) => !listingTitlesById[id]);
+        if (missingListingIds.length === 0) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadListingTitles = async () => {
+            const entries = await Promise.all(
+                missingListingIds.map(async (listingId) => {
+                    try {
+                        const listing = await getListingWithDetails(listingId);
+                        return [listingId, listing.title ?? "Untitled listing"] as const;
+                    }
+                    catch {
+                        return [listingId, "Unknown listing"] as const;
+                    }
+                }),
+            );
+
+            if (cancelled) {
+                return;
+            }
+
+            setListingTitlesById((prev) => {
+                const next = { ...prev };
+                for (const [listingId, title] of entries) {
+                    next[listingId] = title;
+                }
+                return next;
+            });
+        };
+
+        void loadListingTitles();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [conversations, listingTitlesById]);
 
     // --- send a message ---
     async function handleSend() {
@@ -250,6 +302,7 @@ export default function Messages() {
                     <ConversationList
                         conversations={conversations}
                         activeId={activeConversationId}
+                        listingTitlesById={listingTitlesById}
                         searchFilter={searchFilter}
                         onSearchChange={setSearchFilter}
                         onSelect={handleSelectConversation}
