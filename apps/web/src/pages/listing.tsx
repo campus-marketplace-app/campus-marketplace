@@ -3,12 +3,14 @@ import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom
 import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
+import { useConfirm } from "../contexts/ConfirmContext";
 
 
 export default function Listing() {
     const navigate = useNavigate();
     const { id } = useParams();
     const { user, listingsRefreshKey } = useOutletContext<OutletContext>();
+    const { confirm, alert: showAlert } = useConfirm();
     const [listingData, setListingData] = useState<any>(null);
     const [messagingLoading, setMessagingLoading] = useState(false);
     const [displayName, setDisplayName] = useState<string>("");
@@ -100,13 +102,13 @@ export default function Listing() {
     const handlePublish = async () => {
         if (!listingData) return;
         if (!user) {
-            alert("You must be logged in to publish a listing.");
+            await showAlert("Login required", "You must be logged in to publish a listing.");
             navigate("/login");
             return;
         }
         await refreshTokens();
         if (listingData.user_id !== user.id) {
-            alert("You can only publish your own listings.");
+            await showAlert("Not allowed", "You can only publish your own listings.");
             return;
         }
         setPublishLoading(true);
@@ -118,7 +120,7 @@ export default function Listing() {
 
                 if (!readiness.isPublishable || mergedMissing.length > 0) {
                     const missingLabels = formatMissingPublishFields(mergedMissing);
-                    alert(`This listing cannot be published yet. Please add:\n- ${missingLabels.join("\n- ")}`);
+                    await showAlert("Missing fields", `This listing cannot be published yet. Please add:\n- ${missingLabels.join("\n- ")}`);
                 } else {
                     await publishListing(listingData.id, user.id);
                     const updatedListing = await getListingWithDetails(listingData.id);
@@ -144,26 +146,28 @@ export default function Listing() {
     const handleDelete = async () => {
         if (!listingData) return;
         if (!user) {
-            alert("You must be logged in to delete a listing.");
+            await showAlert("Login required", "You must be logged in to delete a listing.");
             navigate("/login");
             return;
         }
         await refreshTokens();
         if (listingData.user_id !== user.id) {
-            alert("You can only delete your own listings.");
+            await showAlert("Not allowed", "You can only delete your own listings.");
             return;
         }
-        if (!window.confirm("Are you sure you want to delete this listing? This action cannot be undone.")) {
-            return;
-        }
+        const confirmed = await confirm(
+            "Delete listing",
+            "Are you sure you want to delete this listing? This action cannot be undone."
+        );
+        if (!confirmed) return;
         setDeleteLoading(true);
         try {
             await deleteListing(listingData.id, user?.id);
-            alert("Listing deleted successfully.");
+            await showAlert("Deleted", "Listing deleted successfully.");
             navigate("/");
         } catch (error) {
             console.error("Error deleting listing");
-            alert("Failed to delete listing. Please try again.");
+            await showAlert("Error", "Failed to delete listing. Please try again.");
         } finally {
             setDeleteLoading(false);
         }
@@ -432,10 +436,10 @@ export default function Listing() {
                                         } catch (err) {
                                             console.error("Failed to start conversation:", err);
                                             if (String(err).includes("Session expired")) {
-                                                alert("Your session has expired. Please log in again.");
+                                                await showAlert("Session expired", "Your session has expired. Please log in again.");
                                                 navigate("/login");
                                             } else {
-                                                alert("Could not start conversation. Please try again.");
+                                                await showAlert("Error", "Could not start conversation. Please try again.");
                                             }
                                         } finally {
                                             setMessagingLoading(false);

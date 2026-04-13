@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useConfirm } from '../contexts/ConfirmContext';
 import {
     createListing,
     deleteListingImage,
@@ -32,6 +33,7 @@ export default function Form({
     onSubmitSuccess,
     editListing,
 }: FormProps) {
+    const { alert: showAlert } = useConfirm();
     const [listingTitle, setListingTitle] = useState('Title');
     const [listingPrice, setListingPrice] = useState(0);
     const [listingCategory, setListingCategory] = useState('');
@@ -50,7 +52,7 @@ export default function Form({
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const objectUrlRef = useRef<string | null>(null);
 
-    const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const handleListingImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
         if (!selectedFile) return;
 
@@ -59,8 +61,8 @@ export default function Form({
         const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
         if (!allowedMimeTypes.includes(selectedFile.type as ListingImageContentType) || !allowedExtensions.includes(fileExtension)) {
-            alert('Only jpg, jpeg, png, and webp files are allowed.');
             event.target.value = '';
+            await showAlert('Invalid file type', 'Only jpg, jpeg, png, and webp files are allowed.');
             return;
         }
 

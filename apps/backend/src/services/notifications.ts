@@ -117,3 +117,33 @@ export async function deleteNotification(notificationId: string,userId: string):
     throw new Error("Notification not found or does not belong to you");
   }
 }
+
+// Subscribe to new notifications for a user via Supabase Realtime.
+// Calls onNotification every time a new notification is inserted for this user.
+// Returns an object with an unsubscribe function — call it on cleanup/unmount.
+export function subscribeToNotifications(
+  userId: string,
+  onNotification: (n: Notification) => void,
+): { unsubscribe: () => void } {
+  if (!userId.trim()) throw new Error("User ID is required");
+
+  const channel = supabase
+    .channel(`notifications:${userId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        onNotification(payload.new as Notification);
+      },
+    )
+    .subscribe();
+
+  return {
+    unsubscribe: () => supabase.removeChannel(channel),
+  };
+}

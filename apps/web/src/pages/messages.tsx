@@ -8,6 +8,7 @@ import {
     markMessagesRead,
     subscribeToMessages,
     getSessionFromTokens,
+    archiveConversation,
 } from "@campus-marketplace/backend";
 import type { Conversation, Message } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
@@ -224,6 +225,22 @@ export default function Messages() {
         }
     }
 
+    // --- archive a conversation ---
+    async function handleArchive(id: string) {
+        if (!user) return;
+        try {
+            await archiveConversation(id, user.id);
+            setConversations((prev) => prev.filter((c) => c.id !== id));
+            if (id === activeConversationId) {
+                setActiveConversationId(null);
+                setMessages([]);
+            }
+        } catch (err) {
+            console.error("Failed to archive conversation:", err);
+            setError("Failed to archive conversation. Please try again.");
+        }
+    }
+
     // --- select a conversation ---
     function handleSelectConversation(id: string) {
         if (id === activeConversationId) {
@@ -289,6 +306,8 @@ export default function Messages() {
                         searchFilter={searchFilter}
                         onSearchChange={setSearchFilter}
                         onSelect={handleSelectConversation}
+                        onArchive={handleArchive}
+                        userId={user.id}
                         loading={loading}
                     />
                 </div>
@@ -305,14 +324,17 @@ export default function Messages() {
                             onSend={handleSend}
                             loading={chatLoading}
                             onBack={() => setMobileView("list")}
+                            listingId={activeConvo.listing_id}
+                            listingTitle={activeConvo.listing_title}
+                            isSeller={activeConvo.is_seller}
                         />
                     ) : (
                         <div className="flex h-full w-full flex-col border-l border-[var(--color-border)]">
-                            <div className="mx-auto mt-3 w-[55%] bg-[var(--color-background)] py-3 text-center text-2xl text-black">
+                            <div className="mx-auto mt-3 w-[55%] bg-[var(--color-background)] py-3 text-center text-2xl text-[var(--color-text)]">
                                 Messages
                             </div>
                             <div className="flex flex-1 items-center justify-center px-4 pb-4 pt-6 sm:px-8">
-                                <p className="text-xl text-black">
+                                <p className="text-xl text-[var(--color-text)]">
                                     Select a contact to start chatting.
                                 </p>
                             </div>

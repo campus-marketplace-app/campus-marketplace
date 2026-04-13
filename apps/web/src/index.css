@@ -1,24 +1,52 @@
 @import "tailwindcss";
 
-/* Fallback CSS variables — ThemeProvider overwrites these at runtime */
+/* Fallback CSS variables — ThemeProvider overwrites these at runtime.
+   Values below match the 'njit-classic' preset on Default radius + Inter font. */
 :root {
+  /* === Brand Colors === */
+
   --color-primary: #B81C24;
+  /* Sidebar background, topbar, active nav items, send button, message bubbles.
+     Changing this rebrands the entire app. */
+
+  --color-primary-hover: #d42230;
+  /* Hover state of primary-colored buttons. Auto-derived from primary. */
+
+  --color-primary-dark: #8c0010;
+  /* Darker variant of primary. Used for avatar gradient endpoint and logo letter. */
+
   --color-secondary: #FFFFFF;
   --color-accent: #f1b7be;
-  --color-background: #ececec;
-  --color-text-on-primary: #FFFFFF;
-  --color-button-style: #000000;
-  --color-primary-hover: #d42230;
-  --color-primary-dark: #8c0010;
   --color-accent-light: #f6d3d6;
   --color-accent-muted: #cc7f84;
   --color-secondary-muted: #c86d72;
+
+  /* === Surface & Background === */
+
+  --color-background: #ececec;
   --color-background-alt: #dddddd;
-  --color-border: #b9b9b9;
   --color-surface: #d8d8d8;
   --color-surface-alt: #d0d0d0;
-  --font-family: Arial, Helvetica, sans-serif;
+  --color-border: #b9b9b9;
+
+  /* === Text === */
+
+  --color-text-on-primary: #FFFFFF;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-button-style: #8c0010;
+
+  /* === Typography === */
+
+  --font-family: 'Inter', sans-serif;
   font-family: var(--font-family);
+
+  /* === Border Radius === */
+
+  --radius:      6px;    /* cards, inputs, panels */
+  --radius-sm:   3px;    /* badges, tags */
+  --radius-lg:   10px;   /* modals, sheets */
+  --radius-pill: 9999px; /* pill-shaped buttons */
 }
 
 :root.dark {

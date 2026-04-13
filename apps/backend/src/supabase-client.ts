@@ -33,4 +33,9 @@ if (!supabaseUrl || !supabaseKey) {
 
 // Single shared Supabase client used by backend service modules.
 // Frontend should never import this directly.
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    flowType: 'pkce',
+    detectSessionInUrl: false, // We handle URL parsing manually; disabling prevents SDK crashes on error redirects
+  },
+});
