@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { User } from 'lucide-react';
+import { User, Bookmark } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getAvatarUrl, type Notification } from '@campus-marketplace/backend';
 import ThemeModeToggle from './theme-mode-toggle';
@@ -112,6 +112,16 @@ export default function PageHeader({
                             <a href="#" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Help</a>
                             <a href="#" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Contact</a>
                         </div>
+                    )}
+
+                    {isRegistering && isLoggedIn && (
+                        <Link
+                            to="/wishlist"
+                            aria-label="Wishlist"
+                            className="text-[var(--color-text-on-primary)] hover:opacity-80 transition-opacity p-1"
+                        >
+                            <Bookmark size={18} />
+                        </Link>
                     )}
 
                     {isRegistering && isLoggedIn && (

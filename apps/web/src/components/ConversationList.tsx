@@ -113,7 +113,7 @@ export default function ConversationList({
     }
 
     return (
-        <aside className="flex h-full min-h-0 w-full flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] p-4">
+        <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-background)] p-4">
             {/* Search bar */}
             <div className="relative mb-4">
                 <Search

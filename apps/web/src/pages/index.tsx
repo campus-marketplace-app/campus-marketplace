@@ -1,6 +1,6 @@
 import { getListingImageUrl, getListingWithDetails, searchListings } from "@campus-marketplace/backend";
 import { useEffect, useRef } from "react";
-import { Link, useLocation, useOutletContext } from "react-router-dom";
+import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useState } from "react";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
 
@@ -13,6 +13,7 @@ const PAGE_SIZE = 12;
 
 export default function Index() {
     const location = useLocation();
+    const navigate = useNavigate();
     const { searchQuery, listingsRefreshKey } = useOutletContext<OutletContext>();
     const [listingsData, setListingsData] = useState<Array<ListingWithDetails>>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -21,13 +22,36 @@ export default function Index() {
     const [hasMore, setHasMore] = useState(true);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [offset, setOffset] = useState(0);
+    const [wishlistToast, setWishlistToast] = useState<string | null>(null);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const state = location.state as { wishlistToast?: string } | null;
+        const message = state?.wishlistToast;
+        if (!message) {
+            return;
+        }
+
+        setWishlistToast(message);
+        navigate(location.pathname, { replace: true, state: null });
+    }, [location.pathname, location.state, navigate]);
+
+    useEffect(() => {
+        if (!wishlistToast) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setWishlistToast(null);
+        }, 2600);
+
+        return () => window.clearTimeout(timer);
+    }, [wishlistToast]);
 
     useEffect(() => {
         // Reset pagination when filters/search change.
         setOffset(0);
         setHasMore(true);
-        setListingsData([]);
     }, [category, listingType, searchQuery, listingsRefreshKey]);
 
     useEffect(() => {
@@ -120,6 +144,25 @@ export default function Index() {
 
     return (
         <section className="p-6 sm:p-8">
+            {wishlistToast && (
+                <div className="fixed right-5 top-24 z-40 w-[min(92vw,26rem)] rounded-2xl border border-[var(--color-primary)] bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+                    <div className="flex items-start gap-3">
+                        <div className="mt-0.5 rounded-full bg-[var(--color-primary)] px-2 py-1 text-xs font-bold text-[var(--color-text-on-primary)]">
+                            SAVED
+                        </div>
+                        <p className="flex-1 text-sm font-medium text-black">{wishlistToast}</p>
+                        <button
+                            type="button"
+                            className="text-sm font-bold text-black/60 transition hover:text-black"
+                            onClick={() => setWishlistToast(null)}
+                            aria-label="Dismiss notification"
+                        >
+                            x
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="mb-10 flex flex-wrap items-end gap-3">
                 <div className="w-full max-w-[13rem]">
                     <label htmlFor="listing-type-filter" className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-black/80">
@@ -163,8 +206,19 @@ export default function Index() {
             </div>
 
             <p className="mb-10 text-3xl">CATEGORIES</p>
-            {isLoading ? (<h2>Loading...</h2>) : (
-                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
+
+            {isLoading && listingsData.length > 0 && (
+                <p className="mb-4 text-sm font-medium text-black/70">Updating listings...</p>
+            )}
+
+            {!isLoading && listingsData.length === 0 ? (
+                <h2>No listings found.</h2>
+            ) : (
+                <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
+                    {isLoading && listingsData.length > 0 && (
+                        <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/20" aria-hidden="true" />
+                    )}
+
                     {listingsData.map((listing) => (
                         <Link
                             key={listing.id}

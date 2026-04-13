@@ -103,13 +103,24 @@ export default function Messages() {
             );
 
             // Update the sidebar preview for this conversation.
-            setConversations((prev) =>
-                prev.map((c) =>
-                    c.id === activeConversationId
-                        ? { ...c, last_message: newMsg.content, unread_count: 0 }
-                        : c,
-                ),
-            );
+            setConversations((prev) => {
+                const index = prev.findIndex((conversation) => conversation.id === activeConversationId);
+                if (index === -1) {
+                    return prev;
+                }
+
+                const updatedConversation = {
+                    ...prev[index],
+                    last_message: newMsg.content,
+                    unread_count: 0,
+                    updated_at: new Date().toISOString(),
+                };
+
+                return [
+                    updatedConversation,
+                    ...prev.filter((_, currentIndex) => currentIndex !== index),
+                ];
+            });
 
             // If the message is from the other person, mark it read.
             if (newMsg.sender_id !== user.id) {
@@ -139,13 +150,23 @@ export default function Messages() {
             );
 
             // Update sidebar preview.
-            setConversations((prev) =>
-                prev.map((c) =>
-                    c.id === activeConversationId
-                        ? { ...c, last_message: sent.content }
-                        : c,
-                ),
-            );
+            setConversations((prev) => {
+                const index = prev.findIndex((conversation) => conversation.id === activeConversationId);
+                if (index === -1) {
+                    return prev;
+                }
+
+                const updatedConversation = {
+                    ...prev[index],
+                    last_message: sent.content,
+                    updated_at: new Date().toISOString(),
+                };
+
+                return [
+                    updatedConversation,
+                    ...prev.filter((_, currentIndex) => currentIndex !== index),
+                ];
+            });
         } catch (err) {
             console.error("Failed to send message:", err);
             setError("Failed to send message. Please try again.");
@@ -220,12 +241,12 @@ export default function Messages() {
     );
 
     return (
-        <section className="h-full w-full min-w-0 overflow-hidden">
+        <section className="h-full min-h-0 w-full min-w-0 overflow-hidden">
             {errorBanner}
 
-            <div className="grid h-full w-full min-w-0 grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_minmax(0,1fr)]">
+            <div className="grid h-full min-h-0 w-full min-w-0 grid-cols-1 overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-alt)] sm:grid-cols-[230px_minmax(0,1fr)]">
                 {/* Sidebar — hidden on mobile when viewing a chat */}
-                <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"} min-w-0`}>
+                <div className={`${mobileView === "chat" ? "hidden sm:flex" : "flex"} h-full min-h-0 min-w-0 overflow-hidden`}>
                     <ConversationList
                         conversations={conversations}
                         activeId={activeConversationId}
@@ -239,7 +260,7 @@ export default function Messages() {
                 </div>
 
                 {/* Chat panel — hidden on mobile when viewing the list */}
-                <div className={`${mobileView === "list" ? "hidden sm:flex" : "flex"} h-full min-w-0`}>
+                <div className={`${mobileView === "list" ? "hidden sm:flex" : "flex"} h-full min-h-0 min-w-0`}>
                     {activeConvo ? (
                         <ChatPanel
                             messages={messages}
