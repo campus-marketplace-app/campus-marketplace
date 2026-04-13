@@ -250,6 +250,8 @@ export async function updatePassword(accessToken: string, refreshToken: string, 
 // Completes a password reset using the PKCE code from the reset email link.
 // Call this on the reset-password page after extracting `code` from the URL.
 // Works for logged-out users — no session required.
+// Note: detectSessionFromUrl must be false on the client so the SDK does not
+// auto-consume the code before this is called.
 export async function completePasswordReset(token: string, newPassword: string): Promise<void> {
   if (!token.trim()) {
     throw new Error("Reset token is required");
@@ -266,7 +268,8 @@ export async function completePasswordReset(token: string, newPassword: string):
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(token);
 
   if (exchangeError) {
-    throw new Error("Reset token is invalid or has expired");
+    console.error("exchangeCodeForSession failed:", exchangeError.message);
+    throw new Error(`Reset failed: ${exchangeError.message}`);
   }
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });

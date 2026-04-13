@@ -1,6 +1,6 @@
 import { useEffect, useState, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
-import { completePasswordReset } from "@campus-marketplace/backend";
+import { completePasswordReset, updatePassword } from "@campus-marketplace/backend";
 
 export default function ResetPassword() {
     const [password, setPassword] = useState('');
@@ -12,6 +12,8 @@ export default function ResetPassword() {
     const [serverError, setServerError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [code, setCode] = useState('');
+    const [mode, setMode] = useState<'pkce' | 'implicit' | null>(null);
+    const [implicitTokens, setImplicitTokens] = useState<{ access: string; refresh: string } | null>(null);
 
     const checkPassword = (value: string) => {
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
@@ -50,7 +52,13 @@ export default function ResetPassword() {
         setServerError('');
         setSuccessMessage('');
         try {
-            await completePasswordReset(code, password);
+            if (mode === 'pkce') {
+                await completePasswordReset(code, password);
+            } else if (mode === 'implicit' && implicitTokens) {
+                await updatePassword(implicitTokens.access, implicitTokens.refresh, password);
+            } else {
+                throw new Error('Reset link is invalid or expired. Please request a new password reset email.');
+            }
             setSuccessMessage('Your password has been reset successfully. You can now sign in with your new password.');
         } catch (err) {
             setServerError(err instanceof Error ? err.message : 'Failed to reset password. Please try again.');
@@ -60,13 +68,40 @@ export default function ResetPassword() {
     };
 
     useEffect(() => {
-        const code = new URLSearchParams(window.location.search).get("code") ?? "";
-        if (!code) {
-            setServerError('Reset link is invalid or expired. Please request a new password reset email.');
-        } else {
-            setCode(code);
-            setServerError('');
+        const searchParams = new URLSearchParams(window.location.search);
+
+        // Supabase error redirect — e.g. expired or already-used link.
+        // Show the exact reason from the URL rather than a generic message.
+        const errorCode = searchParams.get("error_code");
+        const errorDescription = searchParams.get("error_description");
+        if (errorCode) {
+            const message = errorCode === 'otp_expired'
+                ? 'This reset link has expired. Please request a new password reset email.'
+                : (errorDescription ?? 'Reset link is invalid or expired. Please request a new password reset email.');
+            setServerError(message);
+            return;
         }
+
+        // PKCE format: /reset-password?code=xxx
+        const queryCode = searchParams.get("code") ?? "";
+        if (queryCode) {
+            setCode(queryCode);
+            setMode('pkce');
+            return;
+        }
+
+        // Implicit format: /reset-password#access_token=xxx&refresh_token=yyy&type=recovery
+        const hash = new URLSearchParams(window.location.hash.slice(1));
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        const type = hash.get("type");
+        if (accessToken && type === "recovery") {
+            setImplicitTokens({ access: accessToken, refresh: refreshToken ?? "" });
+            setMode('implicit');
+            return;
+        }
+
+        setServerError('Reset link is invalid or expired. Please request a new password reset email.');
     }, []);
 
     return (
