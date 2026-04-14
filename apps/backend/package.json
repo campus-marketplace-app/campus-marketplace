@@ -12,12 +12,14 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^3.0.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "dotenv": "^16.0.0",
