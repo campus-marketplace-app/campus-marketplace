@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness } from "@campus-marketplace/backend";
+import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist, isWishlisted } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
 import { useConfirm } from "../contexts/ConfirmContext";
@@ -27,24 +27,17 @@ export default function Listing() {
         return date.toLocaleString();
     };
 
-    const addToWishlist = () => {
-        if (!listingData) return;
+    const toggleWishlist = async () => {
+        if (!user || !listingData) return;
 
-        const wishlist: string[] = JSON.parse(localStorage.getItem("wishlist") ?? "[]");
-
-        if (wishlist.includes(listingData.id)) {
+        if (isInWishlist) {
+            await removeFromWishlist(user.id, listingData.id);
+            setIsInWishlist(false);
+        } else {
+            await addToWishlist(user.id, listingData.id);
             setIsInWishlist(true);
-            return;
+            navigate("/", { state: { wishlistToast: "Added to your wishlist." } });
         }
-
-        wishlist.push(listingData.id);
-        localStorage.setItem("wishlist", JSON.stringify(wishlist));
-        setIsInWishlist(true);
-        navigate("/", {
-            state: {
-                wishlistToast: "Added to your wishlist.",
-            },
-        });
     };
 
 
@@ -203,8 +196,9 @@ export default function Listing() {
 
                 setUnavailableMessage(null);
                 setListingData(listing);
-                const wishlist: string[] = JSON.parse(localStorage.getItem("wishlist") ?? "[]");
-                setIsInWishlist(wishlist.includes(listing.id));
+                if (user) {
+                    setIsInWishlist(await isWishlisted(user.id, listing.id));
+                }
                 let account = await getProfile(listing.user_id);
                 setDisplayName(account.display_name);
             } catch (error) {
@@ -450,14 +444,14 @@ export default function Listing() {
                                 </button>
                             )}
 
-                            {user && listingData.user_id !== user.id ? (<button
-                                type="button"
-                                disabled={isInWishlist}
-                                className={`px-8 py-2 text-2xl text-black transition ${isInWishlist ? "cursor-not-allowed bg-gray-400" : "bg-[var(--color-accent)] hover:bg-white"}`}
-                                onClick={addToWishlist}
-                            >
-                                {isInWishlist ? "Wishlisted" : "Wishlist"}
-                            </button>
+                            {user && listingData.user_id !== user.id ? (
+                                <button
+                                    type="button"
+                                    className={`px-8 py-2 text-2xl text-black transition ${isInWishlist ? "bg-gray-300 hover:bg-gray-200" : "bg-[var(--color-accent)] hover:bg-white"}`}
+                                    onClick={() => void toggleWishlist()}
+                                >
+                                    {isInWishlist ? "Wishlisted" : "Wishlist"}
+                                </button>
                             ) : null}
                         </div>
                     </div>
