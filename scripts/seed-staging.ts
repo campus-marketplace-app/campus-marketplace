@@ -25,8 +25,18 @@ const DEMO_ACCOUNTS = [
   { email: "demo.casey@demo.edu",  password: "demo1234", displayName: "Casey (Demo)",  accountType: "student"  as const },
 ];
 
-// Versioned path — bump the suffix whenever the placeholder changes to bust CDN cache.
-const PLACEHOLDER_STORAGE_PATH = "seed/placeholder-v3.png";
+// One real photo per category, fetched from Lorem Picsum (seeded = same image every run).
+// Storage paths are stable so re-seeding overwrites rather than accumulating files.
+const CATEGORY_IMAGES: Record<string, { storagePath: string; picsumSeed: string }> = {
+  "Textbooks":       { storagePath: "seed/cat-textbooks.jpg",    picsumSeed: "books42"    },
+  "Electronics":     { storagePath: "seed/cat-electronics.jpg",  picsumSeed: "tech77"     },
+  "Furniture":       { storagePath: "seed/cat-furniture.jpg",    picsumSeed: "room19"     },
+  "Clothing":        { storagePath: "seed/cat-clothing.jpg",     picsumSeed: "fashion55"  },
+  "Services":        { storagePath: "seed/cat-services.jpg",     picsumSeed: "people88"   },
+  "Transportation":  { storagePath: "seed/cat-transport.jpg",    picsumSeed: "bike33"     },
+  "Sports & Fitness":{ storagePath: "seed/cat-sports.jpg",       picsumSeed: "sport64"    },
+  "Free Stuff":      { storagePath: "seed/cat-freestuff.jpg",    picsumSeed: "gift11"     },
+};
 
 // ─── Safety check ─────────────────────────────────────────────────────────────
 // Set SUPABASE_PROD_REF in your shell (not committed) to match your production
@@ -117,23 +127,23 @@ async function wipeDemoListings(userMap: Map<string, string>): Promise<number> {
   return count ?? 0;
 }
 
-// ─── Upload placeholder image ──────────────────────────────────────────────────
-// Uploads a single 1×1 PNG to the listing-images bucket.
-// All seed listings share this path — avoids 25 separate uploads.
+// ─── Upload category images ────────────────────────────────────────────────────
+// Fetches one real photo per category from Lorem Picsum and uploads to storage.
+// Seeded URLs return the same photo every run, so re-seeding is stable.
 
-async function uploadPlaceholder(): Promise<void> {
-  // Fetch a real placeholder image so listing cards don't render as black squares.
-  const response = await fetch("https://placehold.co/600x400/e2e8f0/94a3b8.png");
-  if (!response.ok) throw new Error(`Failed to fetch placeholder image: ${response.statusText}`);
-  const buffer = Buffer.from(await response.arrayBuffer());
+async function uploadCategoryImages(): Promise<void> {
+  for (const [category, { storagePath, picsumSeed }] of Object.entries(CATEGORY_IMAGES)) {
+    const url = `https://picsum.photos/seed/${picsumSeed}/600/400`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to fetch image for "${category}": ${response.statusText}`);
+    const buffer = Buffer.from(await response.arrayBuffer());
 
-  const { error } = await supabase.storage
-    .from("listing-images")
-    .upload(PLACEHOLDER_STORAGE_PATH, buffer, {
-      contentType: "image/png",
-      upsert: true,
-    });
-  if (error) throw new Error(`Failed to upload placeholder: ${error.message}`);
+    const { error } = await supabase.storage
+      .from("listing-images")
+      .upload(storagePath, buffer, { contentType: "image/jpeg", upsert: true });
+    if (error) throw new Error(`Failed to upload image for "${category}": ${error.message}`);
+    console.log(`  Uploaded: ${storagePath}`);
+  }
 }
 
 
@@ -230,11 +240,12 @@ async function seedListings(
       });
     }
 
-    // Insert placeholder image row directly — reuses the one uploaded in uploadPlaceholder().
+    // Insert category-specific image — each category has its own real photo.
+    const imagePath = CATEGORY_IMAGES[def.category]?.storagePath ?? "seed/cat-freestuff.jpg";
     const { error: imgError } = await supabase.from("listing_images").insert({
       listing_id: listing.id,
-      path: PLACEHOLDER_STORAGE_PATH,
-      alt_text: "Demo listing image",
+      path: imagePath,
+      alt_text: `${def.category} listing image`,
       order_no: 0,
     });
     if (imgError) throw new Error(`Failed to insert image for "${def.title}": ${imgError.message}`);
@@ -301,8 +312,8 @@ async function main(): Promise<void> {
   }
 
   console.log("\n[3/3] Seeding listings...");
-  await uploadPlaceholder();
-  console.log(`  Uploaded ${PLACEHOLDER_STORAGE_PATH}`);
+  console.log("  Uploading category images...");
+  await uploadCategoryImages();
 
   const [categories, tags] = await Promise.all([getCategories(), getTags()]);
   const categoryMap = new Map(categories.map((c) => [c.name, c.id]));
