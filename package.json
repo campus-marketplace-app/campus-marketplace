@@ -17,7 +17,7 @@
     "setup": "npm install && npm run build --workspace=apps/backend && npm run dev",
     "setup:windows": "powershell -ExecutionPolicy Bypass -File dev.ps1",
     "setup:unix": "bash dev.sh",
-    "seed": "node --env-file=apps/backend/.env.local --import tsx/esm scripts/seed-staging.ts"
+    "seed": "node --env-file=apps/backend/.env.local --import tsx scripts/seed-staging.ts"
   },
   "devDependencies": {
     "supabase": "^1.199.0",
