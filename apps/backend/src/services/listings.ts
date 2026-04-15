@@ -813,11 +813,22 @@ export async function searchListings(options: SearchListingsOptions = {}): Promi
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
-  // Full-text search via GIN-indexed tsvector column.
+  // Prefix full-text search via GIN-indexed tsvector column.
+  // Each word gets :* appended so "boo" matches "book", "calc" matches "calculus", etc.
+  // Omitting `type` makes Supabase use to_tsquery, which supports the :* prefix syntax.
   if (query?.trim()) {
-    queryBuilder = queryBuilder.textSearch("tsv", query.trim(), {
-      type: "websearch",
-    });
+    const prefixQuery = query
+      .trim()
+      .split(/\s+/)
+      .map((w) => w.replace(/[^a-zA-Z0-9]/g, ""))
+      .filter(Boolean)
+      .map((w) => `${w}:*`)
+      .join(" & ");
+
+    if (prefixQuery) {
+      // config: "simple" skips dictionary stemming so short prefixes like "t" aren't dropped.
+      queryBuilder = queryBuilder.textSearch("tsv", prefixQuery, { config: "simple" });
+    }
   }
 
   // Optional filters.
