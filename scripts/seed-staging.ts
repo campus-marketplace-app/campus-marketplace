@@ -49,25 +49,72 @@ function checkNotProduction(): void {
   }
 }
 
-// ─── Wipe demo accounts ────────────────────────────────────────────────────────
-// Finds each demo email in auth.users and deletes it.
-// Cascade: profiles, listings, listing_images, item_details, service_details, listing_tags.
+// ─── Ensure demo accounts exist ───────────────────────────────────────────────
+// Creates each demo account if it doesn't already exist, otherwise reuses it.
+// Never deletes auth users — avoids Supabase auth rate limits.
+// Returns email → userId map for all 5 accounts.
 
-async function wipeDemo(): Promise<number> {
-  const targetEmails = new Set(DEMO_ACCOUNTS.map((a) => a.email));
-  let wiped = 0;
-
+async function ensureUsers(): Promise<Map<string, string>> {
   const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
   if (error) throw new Error(`Failed to list users: ${error.message}`);
 
-  for (const user of data.users) {
-    if (user.email && targetEmails.has(user.email)) {
-      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
-      if (deleteError) throw new Error(`Failed to delete ${user.email}: ${deleteError.message}`);
-      wiped++;
+  const existingByEmail = new Map(
+    data.users
+      .filter((u) => u.email && DEMO_ACCOUNTS.some((a) => a.email === u.email))
+      .map((u) => [u.email!, u.id]),
+  );
+
+  const userMap = new Map<string, string>();
+
+  for (const account of DEMO_ACCOUNTS) {
+    const existingId = existingByEmail.get(account.email);
+
+    if (existingId) {
+      userMap.set(account.email, existingId);
+      console.log(`  Reusing: ${account.email}`);
+    } else {
+      const { data: created, error: createError } = await supabase.auth.admin.createUser({
+        email: account.email,
+        password: account.password,
+        email_confirm: true,
+        user_metadata: {
+          display_name: account.displayName,
+          account_type: account.accountType,
+        },
+      });
+      if (createError || !created.user) {
+        throw new Error(`Failed to create ${account.email}: ${createError?.message ?? "unknown"}`);
+      }
+      userMap.set(account.email, created.user.id);
+      console.log(`  Created:  ${account.email}`);
     }
+
+    await upsertProfile({
+      user_id: userMap.get(account.email)!,
+      display_name: account.displayName,
+      account_type: account.accountType,
+    });
   }
-  return wiped;
+
+  return userMap;
+}
+
+// ─── Wipe demo listings ────────────────────────────────────────────────────────
+// Hard-deletes all listings owned by demo accounts.
+// Cascades to: item_details, service_details, listing_images, listing_tags.
+// Does NOT touch auth users — accounts are kept between runs.
+
+async function wipeDemoListings(userMap: Map<string, string>): Promise<number> {
+  const userIds = [...userMap.values()];
+  if (userIds.length === 0) return 0;
+
+  const { count, error } = await supabase
+    .from("listings")
+    .delete({ count: "exact" })
+    .in("user_id", userIds);
+
+  if (error) throw new Error(`Failed to wipe demo listings: ${error.message}`);
+  return count ?? 0;
 }
 
 // ─── Upload placeholder image ──────────────────────────────────────────────────
@@ -89,39 +136,6 @@ async function uploadPlaceholder(): Promise<void> {
   if (error) throw new Error(`Failed to upload placeholder: ${error.message}`);
 }
 
-// ─── Seed users ────────────────────────────────────────────────────────────────
-// Creates 5 demo accounts via admin API (no email verification needed).
-// Returns a map of email → Supabase user UUID for use in listing creation.
-
-async function seedUsers(): Promise<Map<string, string>> {
-  const userMap = new Map<string, string>();
-
-  for (const account of DEMO_ACCOUNTS) {
-    const { data, error } = await supabase.auth.admin.createUser({
-      email: account.email,
-      password: account.password,
-      email_confirm: true,
-      user_metadata: {
-        display_name: account.displayName,
-        account_type: account.accountType,
-      },
-    });
-
-    if (error || !data.user) {
-      throw new Error(`Failed to create ${account.email}: ${error?.message ?? "unknown"}`);
-    }
-
-    await upsertProfile({
-      user_id: data.user.id,
-      display_name: account.displayName,
-      account_type: account.accountType,
-    });
-
-    userMap.set(account.email, data.user.id);
-    console.log(`  Created: ${account.email}`);
-  }
-  return userMap;
-}
 
 // ─── Listing definitions ──────────────────────────────────────────────────────
 
@@ -256,9 +270,11 @@ async function main(): Promise<void> {
   console.log("─────────────────────────────────────────");
   console.log(`Targeting: ${process.env.SUPABASE_URL}`);
   console.log("\nThis will:");
-  console.log("  • Delete demo accounts (demo.alex/sam/jordan/riley/casey @demo.edu) + all their listings");
-  if (!wipeOnly) {
-    console.log("  • Create 5 fresh demo accounts with ~25 listings");
+  console.log("  • Create demo accounts if they don't exist (accounts are kept between runs)");
+  if (wipeOnly) {
+    console.log("  • Delete all listings owned by demo accounts");
+  } else {
+    console.log("  • Delete all listings owned by demo accounts, then re-create ~25 fresh listings");
   }
   console.log();
 
@@ -271,32 +287,31 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  console.log("\n[1/1] Wiping demo accounts...");
-  const wiped = await wipeDemo();
-  console.log(`  Deleted ${wiped} existing demo account(s)`);
+  console.log("\n[1/3] Ensuring demo accounts exist...");
+  const userMap = await ensureUsers();
+
+  console.log("\n[2/3] Wiping demo listings...");
+  const wiped = await wipeDemoListings(userMap);
+  console.log(`  Deleted ${wiped} listing(s)`);
 
   if (wipeOnly) {
     console.log("\n─────────────────────────────────────────");
-    console.log(`Wiped ${wiped} demo account(s). Done.`);
+    console.log(`Wiped ${wiped} listing(s). Accounts kept. Done.`);
     return;
   }
 
-  console.log("\n[2/4] Uploading placeholder image...");
+  console.log("\n[3/3] Seeding listings...");
   await uploadPlaceholder();
   console.log(`  Uploaded ${PLACEHOLDER_STORAGE_PATH}`);
 
-  console.log("\n[3/4] Creating demo users...");
-  const userMap = await seedUsers();
-
-  console.log("\n[4/4] Creating listings...");
   const [categories, tags] = await Promise.all([getCategories(), getTags()]);
   const categoryMap = new Map(categories.map((c) => [c.name, c.id]));
   const tagMap = new Map(tags.map((t) => [t.name, t.id]));
   const listingCount = await seedListings(userMap, categoryMap, tagMap);
 
   console.log("\n─────────────────────────────────────────");
-  console.log(`Wiped   ${wiped} demo account(s)`);
-  console.log(`Created 5 users`);
+  console.log(`Accounts 5 (reused or created)`);
+  console.log(`Wiped   ${wiped} old listing(s)`);
   console.log(`Created ${listingCount} listings`);
   console.log("\nDone. Run 'npm run dev' to browse the seeded marketplace.");
 }
