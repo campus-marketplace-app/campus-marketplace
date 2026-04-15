@@ -25,11 +25,6 @@ const DEMO_ACCOUNTS = [
   { email: "demo.casey@demo.edu",  password: "demo1234", displayName: "Casey (Demo)",  accountType: "student"  as const },
 ];
 
-// Minimal 1×1 grey PNG, base64-encoded — no external file or downloads needed.
-const PLACEHOLDER_PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVQI12NgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==",
-  "base64",
-);
 const PLACEHOLDER_STORAGE_PATH = "seed/placeholder.png";
 
 // ─── Safety check ─────────────────────────────────────────────────────────────
@@ -79,9 +74,14 @@ async function wipeDemo(): Promise<number> {
 // All seed listings share this path — avoids 25 separate uploads.
 
 async function uploadPlaceholder(): Promise<void> {
+  // Fetch a real placeholder image so listing cards don't render as black squares.
+  const response = await fetch("https://placehold.co/600x400/e2e8f0/94a3b8.png");
+  if (!response.ok) throw new Error(`Failed to fetch placeholder image: ${response.statusText}`);
+  const buffer = Buffer.from(await response.arrayBuffer());
+
   const { error } = await supabase.storage
     .from("listing-images")
-    .upload(PLACEHOLDER_STORAGE_PATH, PLACEHOLDER_PNG, {
+    .upload(PLACEHOLDER_STORAGE_PATH, buffer, {
       contentType: "image/png",
       upsert: true,
     });
