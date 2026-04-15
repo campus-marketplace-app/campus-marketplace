@@ -13,6 +13,7 @@
     "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/backend",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test --workspace=apps/backend",
+    "test:coverage": "npm run test:coverage --workspace=apps/backend",
     "setup": "npm install && npm run build --workspace=apps/backend && npm run dev",
     "setup:windows": "powershell -ExecutionPolicy Bypass -File dev.ps1",
     "setup:unix": "bash dev.sh"
