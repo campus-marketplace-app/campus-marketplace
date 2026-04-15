@@ -25,7 +25,8 @@ const DEMO_ACCOUNTS = [
   { email: "demo.casey@demo.edu",  password: "demo1234", displayName: "Casey (Demo)",  accountType: "student"  as const },
 ];
 
-const PLACEHOLDER_STORAGE_PATH = "seed/placeholder.png";
+// Versioned path — bump the suffix whenever the placeholder changes to bust CDN cache.
+const PLACEHOLDER_STORAGE_PATH = "seed/placeholder-v3.png";
 
 // ─── Safety check ─────────────────────────────────────────────────────────────
 // Set SUPABASE_PROD_REF in your shell (not committed) to match your production
@@ -249,12 +250,17 @@ async function seedListings(
 async function main(): Promise<void> {
   checkNotProduction();
 
+  const wipeOnly = process.argv.includes("--wipe-only");
+
   console.log("\nCampus Marketplace — Staging Seed Script");
   console.log("─────────────────────────────────────────");
   console.log(`Targeting: ${process.env.SUPABASE_URL}`);
   console.log("\nThis will:");
   console.log("  • Delete demo accounts (demo.alex/sam/jordan/riley/casey @demo.edu) + all their listings");
-  console.log("  • Create 5 fresh demo accounts with ~25 listings\n");
+  if (!wipeOnly) {
+    console.log("  • Create 5 fresh demo accounts with ~25 listings");
+  }
+  console.log();
 
   const rl = readline.createInterface({ input: stdin, output: stdout });
   const answer = await rl.question("Proceed? (y/n) ");
@@ -265,9 +271,15 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  console.log("\n[1/4] Wiping demo accounts...");
+  console.log("\n[1/1] Wiping demo accounts...");
   const wiped = await wipeDemo();
   console.log(`  Deleted ${wiped} existing demo account(s)`);
+
+  if (wipeOnly) {
+    console.log("\n─────────────────────────────────────────");
+    console.log(`Wiped ${wiped} demo account(s). Done.`);
+    return;
+  }
 
   console.log("\n[2/4] Uploading placeholder image...");
   await uploadPlaceholder();
