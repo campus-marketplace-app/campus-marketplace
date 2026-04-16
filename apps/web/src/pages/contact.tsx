@@ -50,11 +50,8 @@ export default function Contact() {
 							href="mailto:support@campusmarketplace.edu"
 							className="mt-2 inline-block text-lg font-semibold text-[var(--color-primary)] transition hover:opacity-80"
 						>
-							support@campusmarketplace.edu
+							campusmarketplace.dev@gmail.com
 						</a>
-						<p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-							Use this placeholder email for now. You can swap it later with your real support address.
-						</p>
 					</div>
 				</div>
 			</div>
