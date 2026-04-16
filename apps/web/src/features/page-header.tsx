@@ -108,20 +108,10 @@ export default function PageHeader({
                     ) : (
                         /* Login/signup pages — show marketing links */
                         <div className="flex items-center gap-6">
-                            <a href="#" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">About</a>
-                            <a href="#" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Help</a>
-                            <a href="#" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Contact</a>
+                            <Link to="/about" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">About</Link>
+                            <Link to="/help" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Help</Link>
+                            <Link to="/contact" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Contact</Link>
                         </div>
-                    )}
-
-                    {isRegistering && isLoggedIn && (
-                        <Link
-                            to="/wishlist"
-                            aria-label="Wishlist"
-                            className="text-[var(--color-text-on-primary)] hover:opacity-80 transition-opacity p-1"
-                        >
-                            <Bookmark size={18} />
-                        </Link>
                     )}
 
                     {isRegistering && isLoggedIn && (

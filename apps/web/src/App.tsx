@@ -11,6 +11,9 @@ import ResetEmail from './pages/reset-email.tsx'
 import ResetPassword from './pages/reset-password.tsx'
 import MyListings from './pages/my-listings.tsx'
 import Wishlist from './pages/wishlist.tsx'
+import About from './pages/about.tsx'
+import Contact from './pages/contact.tsx'
+import Help from './pages/help.tsx'
 
 function App() {
   return (
@@ -32,6 +35,9 @@ function App() {
             <Route path='/my-listings' element={<MyListings />} />
             <Route path='/profile/:userId' element={<Profile />} />
             <Route path='/wishlist' element={<Wishlist />} />
+            <Route path='/about' element={<About />} />
+            <Route path='/help' element={<Help />} />
+            <Route path='/contact' element={<Contact />} />
           </Route>
         </Routes>
         </div>
