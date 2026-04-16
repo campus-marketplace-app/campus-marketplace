@@ -169,7 +169,7 @@ describe("messaging service", () => {
   });
 
   it("creates a new conversation when no existing conversation is found", async () => {
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("c-new");
+    vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-0000-0000-000000000001");
 
     enqueueResponse({ table: "blocks", operation: "select", data: [] });
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
@@ -178,7 +178,7 @@ describe("messaging service", () => {
     enqueueResponse({
       table: "conversations",
       operation: "select",
-      data: { id: "c-new", listing_id: null, created_at: "2026-01-01", updated_at: "2026-01-01" },
+      data: { id: "00000000-0000-0000-0000-000000000001", listing_id: null, created_at: "2026-01-01", updated_at: "2026-01-01" },
     });
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ user_id: "u2" }] });
     enqueueResponse({ table: "profiles", operation: "select", data: { display_name: "Other User", avatar_path: null } });
@@ -187,7 +187,7 @@ describe("messaging service", () => {
 
     const convo = await createConversation("u1", "u2");
 
-    expect(convo.id).toBe("c-new");
+    expect(convo.id).toBe("00000000-0000-0000-0000-000000000001");
     expect(convo.unread_count).toBe(0);
   });
 

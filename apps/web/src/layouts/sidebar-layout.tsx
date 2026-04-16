@@ -4,8 +4,9 @@ import PageHeader from '../features/page-header';
 import Navbar from '../features/navbar';
 import Form from '../features/form';
 import ThemeCustomizer from '../features/theme-customizer';
-import { getSessionFromTokens, getProfile, getNotifications, subscribeToNotifications, markAllNotificationsRead, markNotificationRead, type Notification } from "@campus-marketplace/backend";
-import type { SessionUser, UserProfile } from "../features/types";
+import { getSessionFromTokens, getNotifications, subscribeToNotifications, markAllNotificationsRead, markNotificationRead, type Notification } from "@campus-marketplace/backend";
+import { useProfile } from "../hooks/useProfile";
+import type { SessionUser } from "../features/types";
 import { useNavigate } from 'react-router-dom';
 
 export default function SidebarLayout() {
@@ -25,8 +26,10 @@ export default function SidebarLayout() {
     const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
     const isHomePage = location.pathname === '/' || location.pathname === '/home';
     const [user, setUser] = useState<SessionUser | null>(null);
-    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
+
+    // Profile is fetched via the cache — shared with profile.tsx and my-listings.tsx.
+    const { data: profile } = useProfile(user?.id);
     const navigate = useNavigate();
 
     const clearStoredTokens = () => {
@@ -90,8 +93,6 @@ export default function SidebarLayout() {
                 }
 
                 setUser(user);
-                const userProfile = await getProfile(user.id);
-                setProfile(userProfile);
                 const notifs = await getNotifications(user.id);
                 setNotifications(notifs);
                 setIsLoggedIn(true);

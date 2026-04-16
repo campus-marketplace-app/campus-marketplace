@@ -1,8 +1,9 @@
-import { getListingImageUrl, getListingWithDetails, searchListings } from "@campus-marketplace/backend";
+import { getListingImageUrl } from "@campus-marketplace/backend";
 import { useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { useState } from "react";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
+import { useSearchListings } from "../hooks/useListings";
 
 type OutletContext = {
     searchQuery: string;
@@ -15,132 +16,70 @@ export default function Index() {
     const location = useLocation();
     const navigate = useNavigate();
     const { searchQuery, listingsRefreshKey } = useOutletContext<OutletContext>();
-    const [listingsData, setListingsData] = useState<Array<ListingWithDetails>>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [category, setCategory] = useState<string>("");
     const [listingType, setListingType] = useState<"" | "item" | "service">("");
-    const [hasMore, setHasMore] = useState(true);
-    const [isFetchingMore, setIsFetchingMore] = useState(false);
-    const [offset, setOffset] = useState(0);
     const [wishlistToast, setWishlistToast] = useState<string | null>(null);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+    // Build filters — omit empty strings so the cache key stays clean.
+    const filters = {
+        ...(searchQuery.trim() !== "" && { query: searchQuery.trim() }),
+        ...(category !== "" && { category_id: category }),
+        ...(listingType !== "" && { type: listingType as "item" | "service" }),
+        limit: PAGE_SIZE,
+    };
+
+    const {
+        data,
+        isLoading,
+        isFetchingNextPage,
+        hasNextPage,
+        fetchNextPage,
+    } = useSearchListings(filters);
+
+    // Flatten all cached pages into a single list.
+    const listingsData = data?.pages.flatMap((page) => page.listings) ?? [];
+
+    // Show wishlist toast from navigation state.
+    // setState here is intentional — syncing one-shot router state (external system) into component state.
     useEffect(() => {
         const state = location.state as { wishlistToast?: string } | null;
         const message = state?.wishlistToast;
-        if (!message) {
-            return;
-        }
-
+        if (!message) return;
+        /* eslint-disable-next-line react-hooks/set-state-in-effect */
         setWishlistToast(message);
         navigate(location.pathname, { replace: true, state: null });
     }, [location.pathname, location.state, navigate]);
 
     useEffect(() => {
-        if (!wishlistToast) {
-            return;
-        }
-
-        const timer = window.setTimeout(() => {
-            setWishlistToast(null);
-        }, 2600);
-
+        if (!wishlistToast) return;
+        const timer = window.setTimeout(() => setWishlistToast(null), 2600);
         return () => window.clearTimeout(timer);
     }, [wishlistToast]);
 
-    useEffect(() => {
-        // Reset pagination when filters/search change.
-        setOffset(0);
-        setHasMore(true);
-    }, [category, listingType, searchQuery, listingsRefreshKey]);
-
-    useEffect(() => {
-        const fetchListings = async () => {
-            if (!hasMore && offset > 0) {
-                return;
-            }
-
-            if (offset === 0) {
-                setIsLoading(true);
-            }
-            else {
-                setIsFetchingMore(true);
-            }
-
-            try {
-                const searchTrimmed = searchQuery.trim();
-                const options: {
-                    query?: string;
-                    category_id?: string;
-                    type?: "item" | "service";
-                    limit: number;
-                    offset: number;
-                } = {
-                    limit: PAGE_SIZE,
-                    offset,
-                };
-
-                if (searchTrimmed !== "") {
-                    options.query = searchTrimmed;
-                }
-                if (category !== "") {
-                    options.category_id = category;
-                }
-                if (listingType !== "") {
-                    options.type = listingType;
-                }
-
-                const data = await searchListings(options);
-                const detailedListings = await Promise.all(
-                    data.map((listing) => getListingWithDetails(listing.id)),
-                );
-
-                setListingsData((prev) => (offset === 0 ? detailedListings : [...prev, ...detailedListings]));
-                setHasMore(data.length === PAGE_SIZE);
-            } catch (error) {
-                console.error("Error fetching listings:", error);
-            }
-            finally {
-                setIsLoading(false);
-                setIsFetchingMore(false);
-            }
-        };
-
-        void fetchListings();
-    }, [offset, category, listingType, searchQuery, listingsRefreshKey, hasMore]);
-
+    // Trigger next page load when the sentinel element scrolls into view.
     useEffect(() => {
         const target = loadMoreRef.current;
-        if (!target) {
-            return;
-        }
+        if (!target) return;
 
         const observer = new IntersectionObserver(
             (entries) => {
                 const entry = entries[0];
-                if (!entry?.isIntersecting) {
-                    return;
-                }
-
-                if (isLoading || isFetchingMore || !hasMore) {
-                    return;
-                }
-
-                setOffset((prev) => prev + PAGE_SIZE);
+                if (!entry?.isIntersecting) return;
+                if (isFetchingNextPage || !hasNextPage) return;
+                void fetchNextPage();
             },
-            {
-                root: null,
-                rootMargin: "220px",
-                threshold: 0,
-            },
+            { root: null, rootMargin: "220px", threshold: 0 },
         );
 
         observer.observe(target);
+        return () => observer.disconnect();
+    }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
-        return () => {
-            observer.disconnect();
-        };
-    }, [isLoading, isFetchingMore, hasMore]);
+    // listingsRefreshKey increments when the user posts a new listing.
+    // We use it as a dependency in a separate effect just to suppress the lint warning —
+    // TanStack Query handles the actual refetch via cache invalidation in the form component.
+    useEffect(() => {}, [listingsRefreshKey]);
 
     return (
         <section className="p-6 sm:p-8">
@@ -219,7 +158,7 @@ export default function Index() {
                         <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/20" aria-hidden="true" />
                     )}
 
-                    {listingsData.map((listing) => (
+                    {listingsData.map((listing: ListingWithDetails) => (
                         <Link
                             key={listing.id}
                             to={`/listing/${listing.id}`}
@@ -280,8 +219,8 @@ export default function Index() {
             {!isLoading && (
                 <>
                     <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
-                    {isFetchingMore && <p className="mt-6 text-sm text-black/70">Loading more listings...</p>}
-                    {!hasMore && listingsData.length > 0 && (
+                    {isFetchingNextPage && <p className="mt-6 text-sm text-black/70">Loading more listings...</p>}
+                    {!hasNextPage && listingsData.length > 0 && (
                         <p className="mt-6 text-sm text-black/70">You&apos;ve reached the end.</p>
                     )}
                 </>

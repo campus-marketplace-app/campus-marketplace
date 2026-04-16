@@ -1,24 +1,37 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist, isWishlisted } from "@campus-marketplace/backend";
+import { createConversation, ensureFreshSession, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useListingDetail, useInvalidateListings } from "../hooks/useListings";
+import { useProfile } from "../hooks/useProfile";
+import { useIsWishlisted, wishlistKeys } from "../hooks/useWishlist";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 export default function Listing() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { user, listingsRefreshKey } = useOutletContext<OutletContext>();
+    const { user } = useOutletContext<OutletContext>();
     const { confirm, alert: showAlert } = useConfirm();
-    const [listingData, setListingData] = useState<any>(null);
     const [messagingLoading, setMessagingLoading] = useState(false);
-    const [displayName, setDisplayName] = useState<string>("");
     const [publishLoading, setPublishLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [unavailableMessage, setUnavailableMessage] = useState<string | null>(null);
-    const [isInWishlist, setIsInWishlist] = useState(false);
+
+    // Cached data fetches — no manual useEffect needed.
+    const { data: listingData, refetch: refetchListing } = useListingDetail(id);
+    const { data: sellerProfile } = useProfile(listingData?.user_id);
+    const isInWishlist = useIsWishlisted(user?.id, listingData?.id);
+    const { invalidateDetail, invalidateByUser, invalidateAll } = useInvalidateListings();
+    const queryClient = useQueryClient();
+
+    // Show unavailable message when listing is inactive and viewer is not the owner.
+    const unavailableMessage =
+        listingData && listingData.status !== "active" && (!user || user.id !== listingData.user_id)
+            ? "This listing is no longer avaible"
+            : null;
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -32,11 +45,13 @@ export default function Listing() {
 
         if (isInWishlist) {
             await removeFromWishlist(user.id, listingData.id);
-            setIsInWishlist(false);
         } else {
             await addToWishlist(user.id, listingData.id);
-            setIsInWishlist(true);
             navigate("/", { state: { wishlistToast: "Added to your wishlist." } });
+        }
+        // Invalidate the wishlist cache so useIsWishlisted reflects the new state.
+        if (user) {
+            void queryClient.invalidateQueries({ queryKey: wishlistKeys.byUser(user.id) });
         }
     };
 
@@ -116,8 +131,10 @@ export default function Listing() {
                     await showAlert("Missing fields", `This listing cannot be published yet. Please add:\n- ${missingLabels.join("\n- ")}`);
                 } else {
                     await publishListing(listingData.id, user.id);
-                    const updatedListing = await getListingWithDetails(listingData.id);
-                    setListingData(updatedListing);
+                    // Invalidate cache so this listing and the user's listings list both refresh.
+                    invalidateDetail(listingData.id);
+                    invalidateByUser(user.id);
+                    await refetchListing();
                 }
             } catch (error) {
                 console.error("Error publishing listing:", error);
@@ -126,14 +143,14 @@ export default function Listing() {
         else if (listingData.status === "active") {
             try {
                 await unpublishListing(listingData.id, user.id);
-                const updatedListing = await getListingWithDetails(listingData.id);
-                setListingData(updatedListing);
+                invalidateDetail(listingData.id);
+                invalidateByUser(user.id);
+                await refetchListing();
             } catch (error) {
                 console.error("Error unpublishing listing:", error);
             }
         }
         setPublishLoading(false);
-        listingsRefreshKey + 1;
     };
 
     const handleDelete = async () => {
@@ -156,15 +173,18 @@ export default function Listing() {
         setDeleteLoading(true);
         try {
             await deleteListing(listingData.id, user?.id);
+            // Invalidate this listing's detail and the user's listings list.
+            invalidateDetail(listingData.id);
+            invalidateByUser(user.id);
+            invalidateAll();
             await showAlert("Deleted", "Listing deleted successfully.");
             navigate("/");
-        } catch (error) {
+        } catch {
             console.error("Error deleting listing");
             await showAlert("Error", "Failed to delete listing. Please try again.");
         } finally {
             setDeleteLoading(false);
         }
-        listingsRefreshKey + 1;
     };
 
     const editListing = () => {
@@ -178,36 +198,8 @@ export default function Listing() {
     useEffect(() => {
         if (!id) {
             navigate("/", { replace: true });
-            return;
         }
-
-        console.log("Listing ID from URL:", id as string);
-
-        const callback = async () => {
-            try {
-                const listing = await getListingWithDetails(id as string);
-
-                if (listing.status !== "active" && (!user || user.id !== listing.user_id)) {
-                    setUnavailableMessage("This listing is no longer avaible");
-                    return;
-                }
-
-                console.log("Listing details:", listing);
-
-                setUnavailableMessage(null);
-                setListingData(listing);
-                if (user) {
-                    setIsInWishlist(await isWishlisted(user.id, listing.id));
-                }
-                let account = await getProfile(listing.user_id);
-                setDisplayName(account.display_name);
-            } catch (error) {
-                console.error("Error fetching listing details:", error);
-                setUnavailableMessage("This listing is no longer avaible");
-            }
-        };
-        callback();
-    }, [id, navigate, user]);
+    }, [id, navigate]);
 
     if (unavailableMessage) {
         return (
@@ -231,7 +223,7 @@ export default function Listing() {
     }
 
     if (!listingData) {
-        return <div className="flex h-screen items-center justify-center text-[var(--color-text-on-primary)]">Loading...</div>;
+        return <div className="flex h-screen items-center justify-center text-[var(--color-text-on-primary)]">Loading...</div>
     }
 
     if (showForm) {
@@ -280,7 +272,7 @@ export default function Listing() {
                                     to={`/profile/${listingData?.user_id}`}
                                     className="mt-2 inline-block text-sm text-blue-500 hover:underline"
                                 >
-                                    Owned by {displayName}
+                                    Owned by {sellerProfile?.display_name ?? ""}
                                 </Link>
                                 {user && listingData.user_id === user.id ? (
                                     <div className="mt-4 flex flex-col items-start gap-2">
