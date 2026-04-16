@@ -6,32 +6,6 @@ import { useTheme } from '../contexts/ThemeContext';
 const interFont = { fontFamily: "'Inter', sans-serif" };
 const spaceGroteskFont = { fontFamily: "'Space Grotesk', sans-serif" };
 
-// Simple inline SVG icons for social media
-function FacebookIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-        </svg>
-    );
-}
-
-function InstagramIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-            <circle cx="12" cy="12" r="4" />
-            <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
-        </svg>
-    );
-}
-
-function TwitterIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-        </svg>
-    );
-}
 
 export default function Login() {
     const navigate = useNavigate();
@@ -124,34 +98,6 @@ export default function Login() {
                         sell, and promote services using verified .edu accounts. Making campus transactions simple,
                         secure, and local.
                     </p>
-
-                    {/* Social media */}
-                    <p className="mt-8 text-sm font-normal text-white/70">
-                        Follow us on social media:
-                    </p>
-                    <div className="mt-3 flex gap-4">
-                        <a
-                            href="#"
-                            aria-label="Facebook"
-                            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
-                        >
-                            <FacebookIcon />
-                        </a>
-                        <a
-                            href="#"
-                            aria-label="Instagram"
-                            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
-                        >
-                            <InstagramIcon />
-                        </a>
-                        <a
-                            href="#"
-                            aria-label="Twitter"
-                            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
-                        >
-                            <TwitterIcon />
-                        </a>
-                    </div>
                 </div>
 
                 {/* Right side: login card — glass morphism */}
