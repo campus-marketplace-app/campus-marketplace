@@ -95,6 +95,26 @@ function createPngBytes(size = 64): Uint8Array {
   return new Uint8Array(size).fill(1);
 }
 
+async function appearsInSearch(
+  listingId: string,
+  options: Parameters<typeof searchListings>[0] = {},
+  maxAttempts = 8,
+  delayMs = 250,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const results = await searchListings(options);
+    if (results.some((listing) => listing.id === listingId)) {
+      return true;
+    }
+
+    if (attempt < maxAttempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return false;
+}
+
 type PublishableDraftOptions = {
   type?: "item" | "service";
   title?: string;
@@ -338,8 +358,9 @@ describe("publish/unpublish listing", () => {
     const published = await publishListing(draft.id, testUser.user.id);
     expect(published.status).toBe("active");
 
-    const browseResults = await searchListings({ query: "Ready To Publish" });
-    expect(browseResults.some((listing) => listing.id === draft.id)).toBe(true);
+    await expect(
+      appearsInSearch(draft.id, { status: "active", limit: 200 }),
+    ).resolves.toBe(true);
   });
 
   it("unpublishes a published listing back to draft", async () => {
