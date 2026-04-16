@@ -474,3 +474,39 @@ export async function archiveConversation(conversationId: string, userId: string
 
   if (error) throw new Error(`Failed to archive conversation: ${error.message}`);
 }
+
+// Subscribe to updates on any of the given conversations via Supabase Realtime.
+// Calls onChange whenever a conversation row is updated (e.g. last message, unread count).
+// Used by the frontend to replace 15-second polling with event-driven cache invalidation.
+// Returns an object with an unsubscribe function — call it on cleanup/unmount.
+export function subscribeToConversations(
+  conversationIds: string[],
+  onChange: () => void,
+): { unsubscribe: () => void } {
+  if (conversationIds.length === 0) return { unsubscribe: () => {} };
+
+  const channel = supabase
+    .channel(`conversations:${conversationIds.join(",")}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "conversations",
+      },
+      (payload) => {
+        // Only trigger if the update is for one of the conversations we care about.
+        const updatedId = (payload.new as { id: string }).id;
+        if (conversationIds.includes(updatedId)) {
+          onChange();
+        }
+      },
+    )
+    .subscribe();
+
+  return {
+    unsubscribe: () => {
+      supabase.removeChannel(channel);
+    },
+  };
+}

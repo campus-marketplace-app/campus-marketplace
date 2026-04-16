@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useOutletContext, useParams, Link } from "react-router-dom";
 import {
-    getConversationsByUser,
     getListingWithDetails,
     getMessages,
     sendMessage,
@@ -9,29 +8,33 @@ import {
     subscribeToMessages,
     getSessionFromTokens,
     archiveConversation,
+    subscribeToConversations,
 } from "@campus-marketplace/backend";
-import type { Conversation, Message } from "@campus-marketplace/backend";
+import type { Message } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import ConversationList from "../components/ConversationList";
 import ChatPanel from "../components/ChatPanel";
+import { useConversations, useInvalidateConversations } from "../hooks/useConversations";
 
 export default function Messages() {
     const { user } = useOutletContext<OutletContext>();
     const { conversationId: routeConvoId } = useParams<{ conversationId?: string }>();
 
     // --- state ---
-    const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<string | null>(
         routeConvoId ?? null,
     );
     const [messages, setMessages] = useState<Message[]>([]);
     const [messageInput, setMessageInput] = useState("");
     const [searchFilter, setSearchFilter] = useState("");
-    const [loading, setLoading] = useState(true);
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mobileView, setMobileView] = useState<"list" | "chat">("list");
     const [listingTitlesById, setListingTitlesById] = useState<Record<string, string>>({});
+
+    // --- cached conversation list (replaces manual fetch + 15s polling) ---
+    const { data: conversations = [], isLoading: loading } = useConversations(user?.id);
+    const { invalidate: invalidateConversations } = useInvalidateConversations();
 
     // --- restore Supabase session so RLS recognizes the user ---
     useEffect(() => {
@@ -42,29 +45,22 @@ export default function Messages() {
         }
     }, []);
 
-    // --- load conversations on mount ---
+    // --- realtime subscription on conversations (replaces 15s setInterval polling) ---
+    // When any conversation we're in gets updated (new message, read status), we invalidate
+    // the TanStack Query cache so it refetches — without polling.
     useEffect(() => {
-        if (!user) return;
+        if (!user || conversations.length === 0) return;
 
-        setLoading(true);
-        getConversationsByUser(user.id)
-            .then(setConversations)
-            .catch((err) => setError(err.message))
-            .finally(() => setLoading(false));
-    }, [user?.id]);
+        const conversationIds = conversations.map((c) => c.id);
+        const { unsubscribe } = subscribeToConversations(conversationIds, () => {
+            invalidateConversations(user.id);
+        });
 
-    // --- poll conversations every 15 s so the sidebar stays fresh ---
-    useEffect(() => {
-        if (!user) return;
-
-        const interval = setInterval(() => {
-            getConversationsByUser(user.id)
-                .then(setConversations)
-                .catch(console.error);
-        }, 15_000);
-
-        return () => clearInterval(interval);
-    }, [user?.id]);
+        return unsubscribe;
+        // conversations.length is intentional — re-subscribe when the list grows.
+        // invalidateConversations is a stable ref from useQueryClient; user is stable per session.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, conversations.length]);
 
     // --- load messages + realtime subscription when active conversation changes ---
     useEffect(() => {
@@ -79,7 +75,7 @@ export default function Messages() {
                 if (!cancelled) setMessages(msgs);
             })
             .catch((err) => {
-                if (!cancelled) setError(err.message);
+                if (!cancelled) setError(err instanceof Error ? err.message : String(err));
             })
             .finally(() => {
                 if (!cancelled) setChatLoading(false);
@@ -87,13 +83,6 @@ export default function Messages() {
 
         // Mark incoming messages as read.
         markMessagesRead(activeConversationId, user.id).catch(console.error);
-
-        // Clear the unread badge in the sidebar right away.
-        setConversations((prev) =>
-            prev.map((c) =>
-                c.id === activeConversationId ? { ...c, unread_count: 0 } : c,
-            ),
-        );
 
         // Subscribe to new messages in real time.
         const { unsubscribe } = subscribeToMessages(activeConversationId, (newMsg) => {
@@ -104,25 +93,8 @@ export default function Messages() {
                 prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg],
             );
 
-            // Update the sidebar preview for this conversation.
-            setConversations((prev) => {
-                const index = prev.findIndex((conversation) => conversation.id === activeConversationId);
-                if (index === -1) {
-                    return prev;
-                }
-
-                const updatedConversation = {
-                    ...prev[index],
-                    last_message: newMsg.content,
-                    unread_count: 0,
-                    updated_at: new Date().toISOString(),
-                };
-
-                return [
-                    updatedConversation,
-                    ...prev.filter((_, currentIndex) => currentIndex !== index),
-                ];
-            });
+            // Invalidate the conversation list so the sidebar preview updates.
+            invalidateConversations(user.id);
 
             // If the message is from the other person, mark it read.
             if (newMsg.sender_id !== user.id) {
@@ -134,9 +106,13 @@ export default function Messages() {
             cancelled = true;
             unsubscribe();
         };
+        // invalidateConversations is a stable ref from useQueryClient; intentionally omitted.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeConversationId, user?.id]);
 
-    // --- fetch listing titles for conversations so similar contacts are distinguishable ---
+    // --- fetch listing titles for conversations (manual cache kept — getListingWithDetails
+    //     is deduplicated by TanStack Query across the app but this sidebar needs the title
+    //     as a plain string without mounting a full hook per conversation row) ---
     useEffect(() => {
         const listingIds = Array.from(
             new Set(
@@ -201,24 +177,8 @@ export default function Messages() {
                 prev.some((m) => m.id === sent.id) ? prev : [...prev, sent],
             );
 
-            // Update sidebar preview.
-            setConversations((prev) => {
-                const index = prev.findIndex((conversation) => conversation.id === activeConversationId);
-                if (index === -1) {
-                    return prev;
-                }
-
-                const updatedConversation = {
-                    ...prev[index],
-                    last_message: sent.content,
-                    updated_at: new Date().toISOString(),
-                };
-
-                return [
-                    updatedConversation,
-                    ...prev.filter((_, currentIndex) => currentIndex !== index),
-                ];
-            });
+            // Invalidate the conversation list so the sidebar preview (last message) updates.
+            invalidateConversations(user.id);
         } catch (err) {
             console.error("Failed to send message:", err);
             setError("Failed to send message. Please try again.");
@@ -230,7 +190,8 @@ export default function Messages() {
         if (!user) return;
         try {
             await archiveConversation(id, user.id);
-            setConversations((prev) => prev.filter((c) => c.id !== id));
+            // Invalidate so the archived conversation disappears from the list.
+            invalidateConversations(user.id);
             if (id === activeConversationId) {
                 setActiveConversationId(null);
                 setMessages([]);
@@ -302,7 +263,6 @@ export default function Messages() {
                     <ConversationList
                         conversations={conversations}
                         activeId={activeConversationId}
-                        listingTitlesById={listingTitlesById}
                         searchFilter={searchFilter}
                         onSearchChange={setSearchFilter}
                         onSelect={handleSelectConversation}

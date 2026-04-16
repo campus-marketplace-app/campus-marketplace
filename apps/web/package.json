@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@campus-marketplace/backend": "*",
+    "@tanstack/react-query": "^5.99.0",
+    "@tanstack/react-query-devtools": "^5.99.0",
     "lucide-react": "^1.8.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useOutletContext, Link } from "react-router-dom";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
-import { getListingImageUrl, getListingWithDetails, getListingsByUser, getProfile } from "@campus-marketplace/backend";
-import type { SessionUser, UserProfile } from "../features/types";
+import { getListingImageUrl } from "@campus-marketplace/backend";
+import type { SessionUser } from "../features/types";
+import { useState } from "react";
+import { useProfile } from "../hooks/useProfile";
+import { useListingsByUser } from "../hooks/useListings";
 
 //Section 1: outlet context and types
 type OutletContext = {
@@ -13,44 +15,11 @@ type OutletContext = {
 
 const MyListings = () => {
     const navigate = useNavigate();
-    const { user, openPostForm } = useOutletContext<OutletContext>();  // Get context from the sidebar layout
-    const [profileData, setProfileData] = useState<UserProfile | null>(null);     // State for user profile data
-    const [listingsData, setListingsData] = useState<Array<ListingWithDetails>>([]);     // State for all user's listings
-    const [isLoading, setIsLoading] = useState(true);     // State to track if data is still loading
-    const [filterStatus, setFilterStatus] = useState<"published" | "draft">("published");     // State to track the current filter: published or draft
+    const { user, openPostForm } = useOutletContext<OutletContext>();
+    const [filterStatus, setFilterStatus] = useState<"published" | "draft">("published");
 
-    // Fetch user profile and listings on component mount
-    useEffect(() => {
-        if (!user) {
-            setProfileData(null);
-            setListingsData([]);
-            setIsLoading(false);
-            return;
-        }
-
-        const fetchData = async () => {
-            setIsLoading(true);
-            try {
-                // Fetch profile and listings in parallel
-                const [profile, listings] = await Promise.all([
-                    getProfile(user.id),
-                    getListingsByUser(user.id),
-                ]);
-
-                const detailedListings = await Promise.all(
-                    listings.map((listing) => getListingWithDetails(listing.id)),
-                );
-
-                setProfileData(profile);
-                setListingsData(detailedListings);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        void fetchData();
-    }, [user]);
+    const { data: profileData } = useProfile(user?.id)
+    const { data: listingsData = [], isLoading } = useListingsByUser(user?.id)
 
     // Show sign-in prompt if user is not logged in.
     if (!user) {
@@ -75,10 +44,8 @@ const MyListings = () => {
     // Filter listings by status: active = published, draft = draft
     const publishedListings = listingsData.filter((l) => l.status === "active");
     const draftListings = listingsData.filter((l) => l.status === "draft");
-    // Get listings based on current filter selection
     const filteredListings =
         filterStatus === "published" ? publishedListings : draftListings;
-    // Check if user has any listings at all
     const hasAnyListings = listingsData.length > 0;
 
     // Show loading spinner while fetching data
@@ -141,7 +108,7 @@ const MyListings = () => {
                 </div>
             )}
 
-            {/* Action buttons to create new Item or Service listing */}
+            {/* Action buttons to create new listing */}
             <div className="flex gap-4">
                 <button
                     onClick={openPostForm}
@@ -160,33 +127,31 @@ const MyListings = () => {
                     }}
                 >
                     <label className="font-semibold uppercase text-[var(--color-text-on-primary)]">Filter:</label>
-                    <select 
+                    <select
                         value={filterStatus}
-                        onChange={(e) => 
+                        onChange={(e) =>
                             setFilterStatus(e.target.value as "published" | "draft")
                         }
                         className="rounded-lg border border-white/40 bg-[var(--color-primary)] px-4 py-2 font-semibold text-[var(--color-text-on-primary)] shadow-sm"
                     >
-                        <option value="published">Published</option> 
+                        <option value="published">Published</option>
                         <option value="draft">Draft</option>
                     </select>
                 </div>
             )}
 
-            {/* Listings grid section - shows published or draft listings based on current filter */}
+            {/* Listings grid section */}
             {hasAnyListings ? (
                 <section className="space-y-6">
-                    {/* Section title with count - updates based on filter selection */}
                     <h2 className="text-2xl font-bold uppercase text-black">
                         {filterStatus === "published"
                             ? `Published Listings (${publishedListings.length})`
                             : `Draft Listings (${draftListings.length})`}
                     </h2>
 
-                    {/* Grid of listing cards */}
                     {filteredListings.length > 0 ? (
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                            {filteredListings.map((listing) => (
+                            {filteredListings.map((listing: ListingWithDetails) => (
                                 <div
                                     key={listing.id}
                                     onClick={() => navigate(`/listing/${listing.id}`)}
@@ -208,10 +173,8 @@ const MyListings = () => {
                                         )}
                                     </div>
 
-                                    {/* Listing title */}
                                     <p className="text-lg font-bold leading-tight">{listing.title}</p>
 
-                                    {/* Price and category info */}
                                     <div className="mt-2 flex justify-between text-sm">
                                         <span className="font-semibold">
                                             {listing.price_unit ?? "$"}
@@ -222,10 +185,8 @@ const MyListings = () => {
                                         </span>
                                     </div>
 
-                                    {/* Item details (condition) OR Service designation + date posted */}
                                     <div className="mt-2 flex justify-between text-xs text-gray-700">
                                         <span>
-                                            {/* Check listing type - items have condition, services don't */}
                                             {listing.type === "item"
                                                 ? listing.item_details?.condition || "N/A"
                                                 : "Service"}
@@ -233,7 +194,6 @@ const MyListings = () => {
                                         <span>{listing.created_at?.split("T")[0] ?? "N/A"}</span>
                                     </div>
 
-                                    {/* Status badge - shows Published or Draft with icon */}
                                     <div className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-white"
                                         style={{ backgroundColor: "var(--color-primary)" }}
                                     >
@@ -243,7 +203,6 @@ const MyListings = () => {
                             ))}
                         </div>
                     ) : (
-                        /* Empty state for current filter - no listings in this category */
                         <div
                             className="rounded-xl p-8 text-center text-black"
                             style={{ backgroundColor: "color-mix(in srgb, var(--color-secondary) 34%, white)" }}
@@ -255,7 +214,6 @@ const MyListings = () => {
                     )}
                 </section>
             ) : (
-                /* Empty state - user has no listings at all (neither published nor draft) */
                 <div
                     className="rounded-xl p-12 text-center text-black"
                     style={{ backgroundColor: "color-mix(in srgb, var(--color-secondary) 34%, white)" }}
@@ -264,7 +222,6 @@ const MyListings = () => {
                     <p className="mt-4 text-2xl font-semibold">You haven't posted anything yet!</p>
                     <p className="mt-2 text-gray-700">Start selling today — it only takes a minute</p>
 
-                    {/* Action buttons in empty state - same as top buttons */}
                     <div className="mt-8 flex justify-center gap-4">
                         <button
                             onClick={openPostForm}

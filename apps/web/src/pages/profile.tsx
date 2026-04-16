@@ -1,7 +1,8 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useOutletContext, Link, useParams } from "react-router-dom";
-import { getProfile, updateProfile, uploadAvatar, getAvatarUrl } from "@campus-marketplace/backend";
+import { getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
+import { useProfile, useUpdateProfile, useUploadAvatar } from "../hooks/useProfile";
 
 type OutletContext = {
     user: SessionUser | null;
@@ -14,7 +15,6 @@ export default function Profile() {
     const { user, onProfileSave } = useOutletContext<OutletContext>();
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
-    const [refreshKey, setRefreshKey] = useState(0);
     const [accountTitle, setAccountTitle] = useState("Student Account");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -27,6 +27,11 @@ export default function Profile() {
     const [avatarError, setAvatarError] = useState("");
     const { userId: viewedUserId } = useParams<{ userId: string }>();
     const isOwner = !viewedUserId || viewedUserId === user?.id;
+
+    const { mutateAsync: updateProfileMutation } = useUpdateProfile();
+    const { mutateAsync: uploadAvatarMutation } = useUploadAvatar();
+    // Fetch the profile for whoever we're viewing (own profile or another user's).
+    const { data: profileData } = useProfile(viewedUserId ?? user?.id);
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -84,32 +89,36 @@ export default function Profile() {
         return true;
     };
 
-    const loadProfile = async (userId: string) => {
-        try {
-            const profile = await getProfile(userId);
+    // Populate form fields whenever the cached profile data loads or changes.
+    // setState calls here are intentional — syncing server data into local form state.
+    useEffect(() => {
+        if (!profileData) return;
 
-            // Populate first/last name; fall back to splitting display_name for existing accounts.
-            if (profile.first_name) setFirstName(profile.first_name);
-            if (profile.last_name) setLastName(profile.last_name);
-            if (!profile.first_name && !profile.last_name && profile.display_name) {
-                const parts = profile.display_name.trim().split(/\s+/);
-                setFirstName(parts[0] ?? "");
-                setLastName(parts.slice(1).join(" "));
-            }
-
-            if (profile.bio !== null) setBio(profile.bio);
-            if (profile.avatar_path !== null) {
-                setAvatarUrl(`${getAvatarUrl(profile.avatar_path)}?t=${Date.now()}`);
-            }
-            if (profile.account_type === "student") {
-                setAccountTitle("Student");
-            } else if (profile.account_type === "business") {
-                setAccountTitle("Business");
-            }
-        } catch (error) {
-            console.error("Failed to load profile:", error);
+        /* eslint-disable react-hooks/set-state-in-effect */
+        if (profileData.first_name) setFirstName(profileData.first_name);
+        if (profileData.last_name) setLastName(profileData.last_name);
+        if (!profileData.first_name && !profileData.last_name && profileData.display_name) {
+            const parts = profileData.display_name.trim().split(/\s+/);
+            setFirstName(parts[0] ?? "");
+            setLastName(parts.slice(1).join(" "));
         }
-    };
+
+        if (profileData.bio !== null) setBio(profileData.bio);
+        if (profileData.avatar_path !== null) {
+            setAvatarUrl(`${getAvatarUrl(profileData.avatar_path)}?t=${Date.now()}`);
+        }
+        if (profileData.account_type === "student") {
+            setAccountTitle("Student");
+        } else if (profileData.account_type === "business") {
+            setAccountTitle("Business");
+        }
+        /* eslint-enable react-hooks/set-state-in-effect */
+    }, [profileData]);
+
+    useEffect(() => {
+        /* eslint-disable-next-line react-hooks/set-state-in-effect */
+        if (!viewedUserId && user?.email) setEmail(user.email);
+    }, [user, viewedUserId]);
 
     const saveProfile = async () => {
         if (!user) return;
@@ -128,7 +137,7 @@ export default function Profile() {
             let avatarPath: string | undefined;
 
             if (avatar) {
-                const updatedProfile = await uploadAvatar(user.id, avatar, avatar.type);
+                const updatedProfile = await uploadAvatarMutation({ userId: user.id, file: avatar, contentType: avatar.type });
                 avatarPath = updatedProfile.avatar_path ?? undefined;
                 if (updatedProfile.avatar_path) {
                     setAvatarUrl(`${getAvatarUrl(updatedProfile.avatar_path)}?t=${Date.now()}`);
@@ -137,27 +146,23 @@ export default function Profile() {
 
             const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
-            await updateProfile(user.id, {
-                display_name: displayName,
-                first_name: firstName.trim() || null,
-                last_name: lastName.trim() || null,
-                bio,
-                ...(avatarPath ? { avatar_path: avatarPath } : {}),
+            await updateProfileMutation({
+                userId: user.id,
+                updates: {
+                    display_name: displayName,
+                    first_name: firstName.trim() || null,
+                    last_name: lastName.trim() || null,
+                    bio,
+                    ...(avatarPath ? { avatar_path: avatarPath } : {}),
+                },
             });
         } catch (error) {
             console.error("Failed to save profile:", error);
         }
 
         setIsEditing(false);
-        setRefreshKey((prev) => prev + 1);
         onProfileSave?.();
     };
-
-    useEffect(() => {
-        if (!user?.id) return;
-        if (!viewedUserId && user.email) setEmail(user.email);
-        void loadProfile(viewedUserId ?? user.id);
-    }, [user, refreshKey, viewedUserId]);
 
     const hasValidationErrors = Boolean(nameError || bioError || avatarError);
     const isSaveDisabled = isEditing && hasValidationErrors;
