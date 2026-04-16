@@ -5,6 +5,9 @@ import { useTheme } from '../contexts/ThemeContext';
 
 type SignupAccountType = "student" | "business";
 
+const interFont = { fontFamily: "'Inter', sans-serif" };
+const spaceGroteskFont = { fontFamily: "'Space Grotesk', sans-serif" };
+
 export default function Signup() {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
@@ -103,148 +106,213 @@ export default function Signup() {
     }
 
 
-    const { signupBgUrl } = useTheme();
+    const { signupBgUrl, schoolName } = useTheme();
 
     return (
         <section
-            className="flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-[var(--color-background-alt)] px-4 py-8 sm:px-8"
+            className="relative flex h-full min-h-[calc(100vh-64px)] w-full items-start overflow-y-auto bg-[var(--color-background-alt)] px-6 py-6 md:items-center md:py-8"
             style={signupBgUrl ? { backgroundImage: `url(${signupBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
         >
-            <div className="mx-auto grid w-full max-w-6xl gap-8 md:grid-cols-[1.6fr_1fr] md:items-center">
-                <div
-                    className="px-1 text-white sm:px-6"
-                    style={{
-                        WebkitTextStroke: "0.6px rgba(0, 0, 0, 0.9)",
-                        textShadow: "0 4px 8px rgba(0, 0, 0, 0.65)",
-                    }}
-                >
-                    <p className="mt-4 text-base font-semibold sm:mt-6 sm:text-2xl">
-                        Create your account to start buying and selling with other students on campus.
-                        Join the marketplace and connect with your campus community.
+            {signupBgUrl && <div className="absolute inset-0 bg-black/45" />}
+
+            <div className="relative z-10 mx-auto grid w-full max-w-6xl items-start gap-12 md:grid-cols-[1.4fr_1fr] md:items-center">
+                <div className="px-2 sm:px-4" style={interFont}>
+                    <h2
+                        className="text-5xl font-bold leading-[1.25] text-white sm:text-[48px]"
+                        style={spaceGroteskFont}
+                    >
+                        Join {schoolName}
+                        <br />
+                        <span style={{ backgroundImage: 'linear-gradient(90deg, rgb(255,255,255) 0%, rgba(255,255,255,0.8) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Marketplace
+                        </span>
+                    </h2>
+
+                    <p className="mt-6 text-lg font-normal leading-relaxed text-white/90">
+                        Create your account to start buying, selling, and connecting with students in your campus community.
+                        Use your verified school email to get started.
                     </p>
                 </div>
 
-                <div className="mx-auto w-full max-w-[380px] overflow-hidden border border-[var(--color-primary-dark)] bg-[var(--color-secondary-muted)] shadow-[0_2px_8px_rgba(0,0,0,0.22)]">
-                    <h1 className="mb-8 bg-[var(--color-primary-dark)] py-3 text-center text-3xl uppercase tracking-wide text-[var(--color-text-on-primary)] shadow-sm">
-                        Signup
+                <div
+                    className="mx-auto flex max-h-[calc(100vh-96px)] w-full max-w-[448px] flex-col rounded-[16px] border border-white/20 px-8 py-6 shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] md:py-8"
+                    style={{
+                        ...interFont,
+                        background: 'linear-gradient(126deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)',
+                    }}
+                >
+                    <h1
+                        className="text-center text-[36px] font-bold leading-10 text-[var(--color-primary-dark)]"
+                        style={spaceGroteskFont}
+                    >
+                        Sign Up
                     </h1>
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        Create your account to access the marketplace
+                    </p>
 
-                    <div className="px-5 pb-6 sm:px-7">
-                    <form className="flex flex-col gap-7" onSubmit={handleSubmit}>
-                        <input
-                            type="text"
-                            placeholder="Username"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
-                            value={displayName}
-                            onChange={(e) => {
-                                setDisplayName(e.target.value);
-                                checkDisplayName(e.target.value);
-                            }}
-                        />
-                        {submitted && displayNameMessage !== '' ?
-                            (<p className="text-sm text-white">{displayNameMessage}</p>) : null
-                        }
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90"
-                            value={email}
-                            onChange={(e) => {
-                                setEmail(e.target.value);
-                                checkEmail(e.target.value);
-                            }}
-                            onBlur={() => checkEmail(email)}
-                        />
-                        {submitted && emailMessage !== '' ?
-                            (<p className="text-sm text-white">{emailMessage}</p>) : null
-                        }
-
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={password}
-                            onChange={(e) => {
-                                setPassword(e.target.value);
-                                checkPassword(e.target.value);
-                                checkRePassword(e.target.value, rePassword);
-                            }}
-                        />
-                        {submitted && passwordMessage !== '' ?
-                            (<p className="text-sm text-white">{passwordMessage}</p>) : null
-                        }
-
-                        <input
-                            type="password"
-                            placeholder="Re-enter Password"
-                            className="border-b border-black bg-transparent pb-1 text-center text-base text-black outline-none placeholder:text-black/90" value={rePassword}
-                            onChange={(e) => {
-                                const nextRePassword = e.target.value;
-                                setRePassword(nextRePassword);
-                                checkRePassword(password, nextRePassword);
-                            }}
-                        />
-                        {submitted && rePasswordMessage !== '' ?
-                            (<p className="text-sm text-white">{rePasswordMessage}</p>) : null
-                        }
-
-                        <div className="space-y-3">
-                            <p className="text-center text-base font-medium text-black">I am a...</p>
-                            <div className="grid grid-cols-2 gap-3">
-                                <label
-                                    className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
-                                        accountType === 'student'
-                                            ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary-dark)] text-[var(--color-text-on-primary)]'
-                                            : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="accountType"
-                                        value="student"
-                                        checked={accountType === 'student'}
-                                        onChange={() => setAccountType('student')}
-                                        className="sr-only"
-                                    />
-                                    Student
+                    <div className="mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+                        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                    Username
                                 </label>
-
-                                <label
-                                    className={`flex cursor-pointer items-center justify-center rounded border px-4 py-3 text-sm font-medium transition ${
-                                        accountType === 'business'
-                                            ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary-dark)] text-[var(--color-text-on-primary)]'
-                                            : 'border-black/30 bg-white/35 text-black hover:bg-white/50'
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="accountType"
-                                        value="business"
-                                        checked={accountType === 'business'}
-                                        onChange={() => setAccountType('business')}
-                                        className="sr-only"
-                                    />
-                                    Business
-                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Choose a username"
+                                    className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                    value={displayName}
+                                    onChange={(e) => {
+                                        setDisplayName(e.target.value);
+                                        checkDisplayName(e.target.value);
+                                    }}
+                                />
+                                {submitted && displayNameMessage ? (
+                                    <p className="mt-1 text-xs text-red-600">{displayNameMessage}</p>
+                                ) : (
+                                    <p className="mt-1 text-xs text-gray-500">This name is shown on your listings and profile</p>
+                                )}
                             </div>
+
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                    NJIT Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    placeholder="e.g., jdoe@njit.edu"
+                                    className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        checkEmail(e.target.value);
+                                    }}
+                                    onBlur={() => checkEmail(email)}
+                                />
+                                {submitted && emailMessage ? (
+                                    <p className="mt-1 text-xs text-red-600">{emailMessage}</p>
+                                ) : (
+                                    <p className="mt-1 text-xs text-gray-500">Use your verified @njit.edu email</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    placeholder="Create a password"
+                                    className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                    value={password}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value);
+                                        checkPassword(e.target.value);
+                                        checkRePassword(e.target.value, rePassword);
+                                    }}
+                                />
+                                {submitted && passwordMessage ? (
+                                    <p className="mt-1 text-xs text-red-600">{passwordMessage}</p>
+                                ) : (
+                                    <p className="mt-1 text-xs text-gray-500">Minimum 6 characters with uppercase, lowercase, number, and symbol</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                                    Re-enter Password
+                                </label>
+                                <input
+                                    type="password"
+                                    placeholder="Confirm your password"
+                                    className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                    value={rePassword}
+                                    onChange={(e) => {
+                                        const nextRePassword = e.target.value;
+                                        setRePassword(nextRePassword);
+                                        checkRePassword(password, nextRePassword);
+                                    }}
+                                />
+                                {submitted && rePasswordMessage ? (
+                                    <p className="mt-1 text-xs text-red-600">{rePasswordMessage}</p>
+                                ) : null}
+                            </div>
+
+                            <div>
+                                <p className="mb-1.5 block text-sm font-medium text-gray-700">I am a...</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <label
+                                        className={`flex cursor-pointer items-center justify-center rounded-[10px] border px-4 py-3 text-sm font-semibold transition ${
+                                            accountType === 'student'
+                                                ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary-dark)] text-white'
+                                                : 'border-gray-300 bg-white/60 text-gray-800 hover:bg-white'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="accountType"
+                                            value="student"
+                                            checked={accountType === 'student'}
+                                            onChange={() => setAccountType('student')}
+                                            className="sr-only"
+                                        />
+                                        Student
+                                    </label>
+
+                                    <label
+                                        className={`flex cursor-pointer items-center justify-center rounded-[10px] border px-4 py-3 text-sm font-semibold transition ${
+                                            accountType === 'business'
+                                                ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary-dark)] text-white'
+                                                : 'border-gray-300 bg-white/60 text-gray-800 hover:bg-white'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="accountType"
+                                            value="business"
+                                            checked={accountType === 'business'}
+                                            onChange={() => setAccountType('business')}
+                                            className="sr-only"
+                                        />
+                                        Business
+                                    </label>
+                                </div>
+                            </div>
+
+                            {serverError && (
+                                <p className="rounded-[10px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                    {serverError}
+                                </p>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full rounded-[10px] py-3 text-base font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                                style={{
+                                    ...interFont,
+                                    background: 'linear-gradient(90deg, rgb(130,15,21) 0%, rgb(154,18,25) 100%)',
+                                }}
+                            >
+                                {loading ? 'Signing up...' : 'Create Account'}
+                            </button>
+                        </form>
+
+                        <div className="relative my-5 flex items-center">
+                            <div className="flex-1 border-t border-gray-200" />
+                            <span className="px-4 text-sm text-gray-500" style={{ ...interFont, background: 'linear-gradient(126deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)' }}>
+                                Already have an account?
+                            </span>
+                            <div className="flex-1 border-t border-gray-200" />
                         </div>
 
-                        {serverError && <p className="text-sm text-white">{serverError}</p>}
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="bg-[var(--color-primary-dark)] py-2 text-lg text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-hover)] disabled:opacity-60"
+                        <Link
+                            to="/login"
+                            className="block w-full rounded-[10px] border border-[var(--color-primary-dark)] py-3 text-center text-base font-semibold text-[var(--color-primary-dark)] transition hover:bg-[var(--color-primary-dark)]/5"
+                            style={interFont}
                         >
-                            {loading ? 'Signing up...' : 'Submit'}
-                        </button>
-                    </form>
-
-                    <Link
-                        to="/login"
-                        className="mx-auto mt-4 block w-fit bg-[var(--color-primary-dark)] px-8 py-2 text-center text-sm text-white transition hover:bg-[var(--color-primary-hover)]"
-                    >
-                        Back to login
-                    </Link>
+                            Back to Login
+                        </Link>
                     </div>
                 </div>
             </div>
