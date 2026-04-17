@@ -249,6 +249,8 @@ describe("messaging service", () => {
 
   it("sends a message for participants and trims content", async () => {
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
+    // Sold-listing guard: fetch conversation listing_id (null = no linked listing, guard passes).
+    enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1", listing_id: null } });
     enqueueResponse({
       table: "messages",
       operation: "insert",
