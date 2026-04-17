@@ -162,10 +162,12 @@ describe("profile service unit", () => {
   });
 
   it("uploadAvatar surfaces storage errors and returns updated profile", async () => {
-    await expect(uploadAvatar("", new Uint8Array([1]), "image/png")).rejects.toThrow("Profile user_id is required");
+    const avatarBytes = new Uint8Array([1]).buffer;
+
+    await expect(uploadAvatar("", avatarBytes, "image/png")).rejects.toThrow("Profile user_id is required");
 
     state.uploadError = { message: "upload failed" };
-    await expect(uploadAvatar("u1", new Uint8Array([1]), "image/png")).rejects.toThrow(
+    await expect(uploadAvatar("u1", avatarBytes, "image/png")).rejects.toThrow(
       "Failed to upload avatar: upload failed",
     );
 
@@ -187,7 +189,7 @@ describe("profile service unit", () => {
       },
     });
 
-    const profile = await uploadAvatar("u1", new Uint8Array([1]), "image/png");
+    const profile = await uploadAvatar("u1", avatarBytes, "image/png");
     expect(profile.avatar_path).toBe("u1/avatar.png");
   });
 

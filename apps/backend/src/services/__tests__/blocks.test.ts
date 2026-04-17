@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, type TaskContext } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { supabase } from "../../supabase-client.js";
 import { blockUser, getBlockedUsers, isBlocked, unblockUser } from "../blocks.js";
 import { createTestUser } from "./helpers.js";
@@ -12,13 +12,12 @@ function isRateLimitError(error: unknown): boolean {
   return message.toLowerCase().includes("request rate limit reached");
 }
 
-beforeAll(async (ctx: TaskContext) => {
+beforeAll(async () => {
   try {
     blocker = await createTestUser("Blocker Test User");
     blocked = await createTestUser("Blocked Test User");
   } catch (error) {
     if (isRateLimitError(error)) {
-      ctx.skip();
       return;
     }
 
@@ -27,6 +26,10 @@ beforeAll(async (ctx: TaskContext) => {
 });
 
 async function useSession(user: TestUser | undefined) {
+  if (!user) {
+    throw new Error("Test user is required");
+  }
+
   if (!user.session) {
     throw new Error("Test user session is required");
   }
