@@ -2,10 +2,11 @@ import { getListingImageUrl } from "@campus-marketplace/backend";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Heart } from "lucide-react";
+import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark, ImageOff } from "lucide-react";
 import { useSearchListings } from "../hooks/useListings";
 import { useProfile } from "../hooks/useProfile";
 import { useHomeStats } from "../hooks/useHomeStats";
+import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "../hooks/useWishlist";
 import type { SessionUser } from "../features/types";
 
 type OutletContext = {
@@ -38,6 +39,15 @@ export default function Index() {
 
     const { data: profile } = useProfile(user?.id);
     const { stats, isLoading: statsLoading } = useHomeStats();
+
+    // Preload the full wishlist once; derive a Set for O(1) lookups per card.
+    const { data: wishlistItems } = useWishlist(user?.id);
+    const wishlistedIds = useMemo(
+        () => new Set(wishlistItems?.map((w) => w.listing_id) ?? []),
+        [wishlistItems],
+    );
+    const addMutation = useAddToWishlist();
+    const removeMutation = useRemoveFromWishlist();
 
     const filters = useMemo(() => {
         const priceFilters =
@@ -98,6 +108,27 @@ export default function Index() {
 
     const displayName = profile?.display_name ?? user?.email ?? "there";
 
+    async function handleWishlistToggle(e: React.MouseEvent, listing: ListingWithDetails) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!user) {
+            navigate("/login");
+            return;
+        }
+        const isAlready = wishlistedIds.has(listing.id);
+        try {
+            if (isAlready) {
+                await removeMutation.mutateAsync({ userId: user.id, listingId: listing.id });
+                setWishlistToast(`"${listing.title}" removed from wishlist`);
+            } else {
+                await addMutation.mutateAsync({ userId: user.id, listingId: listing.id });
+                setWishlistToast(`"${listing.title}" added to your wishlist`);
+            }
+        } catch {
+            setWishlistToast("Could not update wishlist — try again");
+        }
+    }
+
     return (
         <section className="space-y-4 p-4 sm:p-6">
             {/* Wishlist toast */}
@@ -126,7 +157,7 @@ export default function Index() {
                 style={{ backgroundColor: "var(--color-primary)" }}
             >
                 <div>
-                    <p className="text-2xl font-bold">Welcome back, {displayName}! 👋</p>
+                    <p className="text-2xl font-bold">Welcome back, {displayName}!</p>
                     <p className="mt-1 text-sm opacity-80">Discover great deals from fellow NJIT students</p>
                 </div>
                 <div className="flex shrink-0 gap-3">
@@ -143,9 +174,10 @@ export default function Index() {
                 </div>
             </div>
 
-            {/* ── Browse by Category ── */}
+            {/* ── Browse by Category + Filters (merged) ── */}
             <div className="rounded-2xl bg-white p-5 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
+                {/* Category header */}
+                <div className="mb-3 flex items-center justify-between">
                     <p className="text-lg font-bold">Browse by Category</p>
                     <button
                         type="button"
@@ -156,7 +188,9 @@ export default function Index() {
                         View All
                     </button>
                 </div>
-                <div className="flex gap-4 overflow-x-auto pb-1">
+
+                {/* Category tiles */}
+                <div className="flex gap-4 overflow-x-auto px-1 py-2">
                     {CATEGORIES.map(({ label, id, icon: Icon, bgClass }) => {
                         const isActive = category === id;
                         return (
@@ -177,10 +211,11 @@ export default function Index() {
                         );
                     })}
                 </div>
-            </div>
 
-            {/* ── Filters Bar ── */}
-            <div className="rounded-2xl bg-white p-4 shadow-sm">
+                {/* Divider */}
+                <div className="my-4 border-t border-black/8" />
+
+                {/* Filters row */}
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-1.5">
                         <Zap size={16} style={{ color: "var(--color-primary)" }} />
@@ -195,24 +230,6 @@ export default function Index() {
                         <option value="">All types</option>
                         <option value="item">Item</option>
                         <option value="service">Service</option>
-                    </select>
-                    <select
-                        aria-label="Category"
-                        className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                    >
-                        <option value="">All categories</option>
-                        <option value="6a90f825-6c3c-4060-b5e1-ff394162bb6c">Furniture</option>
-                        <option value="716836e6-f8a2-4cba-aa63-36445e70496e">School Supplies</option>
-                        <option value="854c925a-84f6-4280-9c9e-b1452167bb33">Free Stuff</option>
-                        <option value="95fe7a36-cb29-4c97-9a4d-56dccc56a7de">Transportation</option>
-                        <option value="9f280f6c-d4f8-4178-8e61-059243d5c930">Clothing</option>
-                        <option value="b87122bf-36dc-418c-a489-cb8ad0497f34">Electronics</option>
-                        <option value="be4cc965-718d-4e7d-939f-9ace4dcc837c">Sports &amp; Fitness</option>
-                        <option value="cf2121d7-22b7-4e87-ab1b-801d55ebd4fe">Services</option>
-                        <option value="dc2b319a-1068-4b06-bcb3-11c1f3dd3fa2">Textbooks</option>
-                        <option value="744ab09f-350d-4f75-8b4a-cb84016545ef">Other</option>
                     </select>
                     <select
                         aria-label="Price range"
@@ -247,7 +264,7 @@ export default function Index() {
                 {!isLoading && listingsData.length === 0 ? (
                     <p className="text-black/60">No listings found.</p>
                 ) : (
-                    <div className="relative grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {isLoading && listingsData.length > 0 && (
                             <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/20" aria-hidden="true" />
                         )}
@@ -266,30 +283,53 @@ export default function Index() {
                                                 className="h-full w-full object-cover"
                                             />
                                         ) : (
-                                            <span className="absolute inset-0 flex items-center justify-center text-3xl">📷</span>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/5">
+                                                <ImageOff size={32} className="text-black/20" />
+                                                <span className="text-xs text-black/30">No image</span>
+                                            </div>
                                         )}
-                                        <button
-                                            type="button"
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                                            className="absolute right-3 top-3 rounded-full bg-white p-2 shadow-md transition hover:scale-110"
-                                            aria-label="Save listing"
-                                        >
-                                            <Heart size={16} className="text-black/50" />
-                                        </button>
+                                        {/* Wishlist button */}
+                                        {(() => {
+                                            const saved = wishlistedIds.has(listing.id);
+                                            return (
+                                                <div className="group absolute right-3 top-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => void handleWishlistToggle(e, listing)}
+                                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-2 shadow-md transition ${saved ? "bg-[var(--color-primary)] text-white" : "bg-white hover:bg-[var(--color-primary)] hover:text-white"}`}
+                                                        aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+                                                    >
+                                                        <Bookmark
+                                                            size={14}
+                                                            className="shrink-0"
+                                                            fill={saved ? "currentColor" : "none"}
+                                                        />
+                                                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs font-medium transition-all duration-200 group-hover:max-w-[96px]">
+                                                            {saved ? "Saved" : "Add to wishlist"}
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                     <div className="p-3">
                                         <p className="line-clamp-2 font-semibold leading-snug">{listing.title}</p>
-                                        <div className="mt-1.5 flex items-center justify-between text-sm">
-                                            <span className="font-bold" style={{ color: "var(--color-primary)" }}>
-                                                {listing.price == null ? "—" : `${listing.price_unit ?? "$"}${listing.price}`}
-                                            </span>
-                                            <span className="text-xs text-black/50">{listing.category_name ?? ""}</span>
-                                        </div>
-                                        <p className="mt-1 text-xs text-black/40">
-                                            {listing.type === "item" ? (listing.item_details?.condition ?? "") : "Service"}
-                                            {" · "}
-                                            {listing.created_at?.split("T")[0] ?? ""}
+                                        <p className="mt-1.5 text-base font-bold" style={{ color: "var(--color-primary)" }}>
+                                            {listing.price == null ? "Free" : `${listing.price_unit ?? "$"}${listing.price}`}
                                         </p>
+                                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                            {listing.category_name && (
+                                                <span className="rounded-md px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 12%, white)", color: "var(--color-primary)" }}>
+                                                    {listing.category_name}
+                                                </span>
+                                            )}
+                                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${listing.type === "service" ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`}>
+                                                {listing.type === "service" ? "Service" : "Item"}
+                                            </span>
+                                            {listing.type === "item" && listing.item_details?.condition && (
+                                                <span className="text-xs text-black/40">{listing.item_details.condition}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </article>
                             </Link>
