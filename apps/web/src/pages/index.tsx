@@ -2,7 +2,7 @@ import { getListingImageUrl } from "@campus-marketplace/backend";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark, ImageOff } from "lucide-react";
+import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark, ShoppingBag } from "lucide-react";
 import { useSearchListings } from "../hooks/useListings";
 import { useProfile } from "../hooks/useProfile";
 import { useHomeStats } from "../hooks/useHomeStats";
@@ -26,6 +26,52 @@ const CATEGORIES = [
     { label: "Sports", id: "be4cc965-718d-4e7d-939f-9ace4dcc837c", icon: Dumbbell, bgClass: "bg-[var(--color-primary)]" },
 ] as const;
 
+const shimmerStyle: React.CSSProperties = {
+    background: "linear-gradient(90deg, var(--color-background-alt) 25%, var(--color-border) 50%, var(--color-background-alt) 75%)",
+    backgroundSize: "400px 100%",
+    animation: "shimmer 1.4s infinite linear",
+};
+
+function NoImagePlaceholder({ title, hidden = false }: { title: string; hidden?: boolean }) {
+    return (
+        <div
+            className={`absolute inset-0 ${hidden ? "hidden" : "flex"} flex-col items-center justify-center gap-3`}
+            style={{
+                background: "repeating-linear-gradient(135deg, var(--color-background-alt) 0px, var(--color-background-alt) 10px, var(--color-border) 10px, var(--color-border) 11px)",
+            }}
+        >
+            <div
+                className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm"
+                style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 12%, var(--color-surface))" }}
+            >
+                <ShoppingBag size={26} style={{ color: "var(--color-primary)", opacity: 0.7 }} />
+            </div>
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text-muted)" }}>
+                {title.slice(0, 18)}{title.length > 18 ? "…" : ""}
+            </span>
+        </div>
+    );
+}
+
+/** Counts from 0 to `target` over `duration` ms using an ease-out curve. */
+function useCountUp(target: number | undefined, duration = 900): number {
+    const [current, setCurrent] = useState(0);
+    useEffect(() => {
+        if (target === undefined) return;
+        if (target === 0) { setCurrent(0); return; }
+        const start = performance.now();
+        let rafId: number;
+        const tick = (now: number) => {
+            const progress = Math.min((now - start) / duration, 1);
+            setCurrent(Math.round(target * Math.sqrt(progress)));
+            if (progress < 1) rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafId);
+    }, [target, duration]);
+    return current;
+}
+
 export default function Index() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -35,10 +81,15 @@ export default function Index() {
     const [listingType, setListingType] = useState<"" | "item" | "service">("");
     const [priceRange, setPriceRange] = useState<"" | "u25" | "25-100" | "100-500" | "o500">("");
     const [wishlistToast, setWishlistToast] = useState<string | null>(null);
+    const [toastExiting, setToastExiting] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
     const { data: profile } = useProfile(user?.id);
     const { stats, isLoading: statsLoading } = useHomeStats();
+
+    const activeListingsCount = useCountUp(stats?.activeListings);
+    const activeUsersCount = useCountUp(stats?.activeUsers);
+    const newTodayCount = useCountUp(stats?.newToday);
 
     // Preload the full wishlist once; derive a Set for O(1) lookups per card.
     const { data: wishlistItems } = useWishlist(user?.id);
@@ -69,6 +120,11 @@ export default function Index() {
 
     const listingsData = data?.pages.flatMap((page) => page.listings) ?? [];
 
+    function dismissToast() {
+        setToastExiting(true);
+        window.setTimeout(() => { setWishlistToast(null); setToastExiting(false); }, 300);
+    }
+
     // Show wishlist toast from navigation state.
     // setState here is intentional — syncing one-shot router state (external system) into component state.
     useEffect(() => {
@@ -82,9 +138,10 @@ export default function Index() {
 
     useEffect(() => {
         if (!wishlistToast) return;
-        const timer = window.setTimeout(() => setWishlistToast(null), 2600);
+        // Start exit animation at 2300ms so the slide-out completes at ~2600ms total.
+        const timer = window.setTimeout(dismissToast, 2300);
         return () => window.clearTimeout(timer);
-    }, [wishlistToast]);
+    }, [wishlistToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         const target = loadMoreRef.current;
@@ -133,16 +190,24 @@ export default function Index() {
         <section className="space-y-4 p-4 sm:p-6">
             {/* Wishlist toast */}
             {wishlistToast && (
-                <div className="fixed right-5 top-24 z-40 w-[min(92vw,26rem)] rounded-2xl border border-[var(--color-primary)] bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+                <div
+                    className="fixed right-5 top-24 z-40 w-[min(92vw,26rem)] rounded-2xl border p-4 shadow-xl backdrop-blur-sm"
+                    style={{
+                        backgroundColor: "var(--color-surface)",
+                        borderColor: "var(--color-primary)",
+                        animation: toastExiting ? "toastOut 0.3s ease forwards" : "toastIn 0.3s ease forwards",
+                    }}
+                >
                     <div className="flex items-start gap-3">
                         <div className="mt-0.5 rounded-full bg-[var(--color-primary)] px-2 py-1 text-xs font-bold text-[var(--color-text-on-primary)]">
                             SAVED
                         </div>
-                        <p className="flex-1 text-sm font-medium text-black">{wishlistToast}</p>
+                        <p className="flex-1 text-sm font-medium" style={{ color: "var(--color-text)" }}>{wishlistToast}</p>
                         <button
                             type="button"
-                            className="text-sm font-bold text-black/60 transition hover:text-black"
-                            onClick={() => setWishlistToast(null)}
+                            className="text-sm font-bold transition"
+                            style={{ color: "var(--color-text-muted)" }}
+                            onClick={dismissToast}
                             aria-label="Dismiss notification"
                         >
                             x
@@ -160,11 +225,12 @@ export default function Index() {
                     <p className="text-2xl font-bold">Welcome back, {displayName}!</p>
                     <p className="mt-1 text-sm opacity-80">Discover great deals from fellow NJIT students</p>
                 </div>
+                {/* Stat tiles stay white-on-red — intentional design contrast */}
                 <div className="flex shrink-0 gap-3">
                     {([
-                        { value: statsLoading ? "—" : (stats?.activeListings ?? "—"), label: "Active Listings" },
-                        { value: statsLoading ? "—" : (stats?.activeUsers ?? "—"), label: "Active Users" },
-                        { value: statsLoading ? "—" : (stats?.newToday ?? "—"), label: "New Today" },
+                        { value: statsLoading ? "—" : activeListingsCount, label: "Active Listings" },
+                        { value: statsLoading ? "—" : activeUsersCount, label: "Active Users" },
+                        { value: statsLoading ? "—" : newTodayCount, label: "New Today" },
                     ] as const).map((tile) => (
                         <div key={tile.label} className="flex min-w-[80px] flex-col items-center rounded-xl bg-white px-3 py-2 text-black">
                             <span className="text-lg font-bold leading-none">{String(tile.value)}</span>
@@ -175,18 +241,10 @@ export default function Index() {
             </div>
 
             {/* ── Browse by Category + Filters (merged) ── */}
-            <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <div className="rounded-2xl p-5 shadow-sm" style={{ backgroundColor: "var(--color-surface)" }}>
                 {/* Category header */}
-                <div className="mb-3 flex items-center justify-between">
-                    <p className="text-lg font-bold">Browse by Category</p>
-                    <button
-                        type="button"
-                        className="text-sm font-semibold"
-                        style={{ color: "var(--color-primary)" }}
-                        onClick={() => setCategory("")}
-                    >
-                        View All
-                    </button>
+                <div className="mb-3">
+                    <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>Browse by Category</p>
                 </div>
 
                 {/* Category tiles */}
@@ -202,28 +260,29 @@ export default function Index() {
                                 onClick={() => setCategory(isActive ? "" : id)}
                             >
                                 <div
-                                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${bgClass}${isActive ? " ring-2 ring-[var(--color-primary)] ring-offset-2" : ""}`}
+                                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${bgClass}${isActive ? " ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-surface)]" : ""}`}
                                 >
                                     <Icon size={26} color="white" />
                                 </div>
-                                <span className="mt-1.5 text-center text-xs font-medium leading-tight">{label}</span>
+                                <span className="mt-1.5 text-center text-xs font-medium leading-tight" style={{ color: "var(--color-text)" }}>{label}</span>
                             </button>
                         );
                     })}
                 </div>
 
                 {/* Divider */}
-                <div className="my-4 border-t border-black/8" />
+                <div className="my-4 border-t" style={{ borderColor: "var(--color-border)" }} />
 
                 {/* Filters row */}
                 <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-1.5">
                         <Zap size={16} style={{ color: "var(--color-primary)" }} />
-                        <span className="text-sm font-semibold">Filters</span>
+                        <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Filters</span>
                     </div>
                     <select
                         aria-label="Listing type"
-                        className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none"
+                        className="rounded-lg border px-3 py-2 text-sm outline-none"
+                        style={{ backgroundColor: "var(--color-background)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
                         value={listingType}
                         onChange={(e) => setListingType(e.target.value as "" | "item" | "service")}
                     >
@@ -233,7 +292,8 @@ export default function Index() {
                     </select>
                     <select
                         aria-label="Price range"
-                        className="rounded-lg border border-black/15 bg-white px-3 py-2 text-sm outline-none"
+                        className="rounded-lg border px-3 py-2 text-sm outline-none"
+                        style={{ backgroundColor: "var(--color-background)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
                         value={priceRange}
                         onChange={(e) => setPriceRange(e.target.value as "" | "u25" | "25-100" | "100-500" | "o500")}
                     >
@@ -245,7 +305,8 @@ export default function Index() {
                     </select>
                     <button
                         type="button"
-                        className="ml-auto rounded-lg border border-black/20 px-3 py-2 text-sm font-medium hover:bg-black/5"
+                        className="ml-auto rounded-lg border px-3 py-2 text-sm font-medium transition hover:bg-[var(--color-background)]"
+                        style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
                         onClick={() => { setListingType(""); setCategory(""); setPriceRange(""); }}
                     >
                         Clear Filters
@@ -255,38 +316,69 @@ export default function Index() {
 
             {/* ── All Listings ── */}
             <div>
-                <p className="mb-4 text-xl font-bold">All Listings</p>
+                <p className="mb-4 text-xl font-bold" style={{ color: "var(--color-text)" }}>All Listings</p>
 
                 {isLoading && listingsData.length > 0 && (
-                    <p className="mb-4 text-sm font-medium text-black/70">Updating listings...</p>
+                    <p className="mb-4 text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>Updating listings...</p>
                 )}
 
-                {!isLoading && listingsData.length === 0 ? (
-                    <p className="text-black/60">No listings found.</p>
+                {!isLoading && listingsData.length === 0 && !isLoading ? (
+                    <p style={{ color: "var(--color-text-muted)" }}>No listings found.</p>
                 ) : (
                     <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {isLoading && listingsData.length > 0 && (
-                            <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/20" aria-hidden="true" />
+                            <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/10" aria-hidden="true" />
                         )}
-                        {listingsData.map((listing: ListingWithDetails) => (
+
+                        {/* Skeleton cards shown on initial load */}
+                        {isLoading && listingsData.length === 0 && Array.from({ length: 6 }).map((_, i) => (
+                            <div
+                                key={i}
+                                className="overflow-hidden rounded-2xl"
+                                style={{ border: "1px solid var(--color-border)", backgroundColor: "var(--color-surface)" }}
+                            >
+                                <div className="h-48 w-full" style={shimmerStyle} />
+                                <div className="p-3 space-y-2">
+                                    <div className="h-4 rounded" style={{ ...shimmerStyle, width: "65%" }} />
+                                    <div className="h-4 rounded" style={{ ...shimmerStyle, width: "30%" }} />
+                                    <div className="h-3 rounded" style={{ ...shimmerStyle, width: "45%" }} />
+                                </div>
+                            </div>
+                        ))}
+
+                        {listingsData.map((listing: ListingWithDetails, index: number) => (
                             <Link
                                 key={listing.id}
                                 to={`/listing/${listing.id}`}
                                 state={{ backgroundLocation: location }}
                             >
-                                <article className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                                    <div className="relative h-48 w-full bg-[var(--color-secondary)]">
+                                <article
+                                    className="overflow-hidden rounded-2xl shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                    style={{
+                                        backgroundColor: "var(--color-surface)",
+                                        border: "1px solid var(--color-border)",
+                                        animation: "fadeSlideIn 0.35s ease forwards",
+                                        animationDelay: `${Math.min(index, 8) * 40}ms`,
+                                        opacity: 0,
+                                    }}
+                                >
+                                    <div className="relative h-48 w-full" style={{ backgroundColor: "var(--color-background-alt)" }}>
                                         {listing.images?.[0]?.path ? (
-                                            <img
-                                                src={getListingImageUrl(listing.images[0].path)}
-                                                alt={listing.images[0].alt_text ?? listing.title}
-                                                className="h-full w-full object-cover"
-                                            />
+                                            <>
+                                                <img
+                                                    src={getListingImageUrl(listing.images[0].path)}
+                                                    alt={listing.images[0].alt_text ?? listing.title}
+                                                    className="h-full w-full object-cover"
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = "none";
+                                                        const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                                        if (fb) fb.style.display = "flex";
+                                                    }}
+                                                />
+                                                <NoImagePlaceholder title={listing.title} hidden />
+                                            </>
                                         ) : (
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/5">
-                                                <ImageOff size={32} className="text-black/20" />
-                                                <span className="text-xs text-black/30">No image</span>
-                                            </div>
+                                            <NoImagePlaceholder title={listing.title} />
                                         )}
                                         {/* Wishlist button */}
                                         {(() => {
@@ -296,7 +388,8 @@ export default function Index() {
                                                     <button
                                                         type="button"
                                                         onClick={(e) => void handleWishlistToggle(e, listing)}
-                                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-2 shadow-md transition ${saved ? "bg-[var(--color-primary)] text-white" : "bg-white hover:bg-[var(--color-primary)] hover:text-white"}`}
+                                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-2 shadow-md transition ${saved ? "bg-[var(--color-primary)] text-white" : "hover:bg-[var(--color-primary)] hover:text-white"}`}
+                                                        style={saved ? {} : { backgroundColor: "var(--color-surface)", color: "var(--color-text-muted)" }}
                                                         aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
                                                     >
                                                         <Bookmark
@@ -313,21 +406,27 @@ export default function Index() {
                                         })()}
                                     </div>
                                     <div className="p-3">
-                                        <p className="line-clamp-2 font-semibold leading-snug">{listing.title}</p>
+                                        <p className="line-clamp-2 font-semibold leading-snug" style={{ color: "var(--color-text)" }}>{listing.title}</p>
                                         <p className="mt-1.5 text-base font-bold" style={{ color: "var(--color-primary)" }}>
                                             {listing.price == null ? "Free" : `${listing.price_unit ?? "$"}${listing.price}`}
                                         </p>
                                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                             {listing.category_name && (
-                                                <span className="rounded-md px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 12%, white)", color: "var(--color-primary)" }}>
+                                                <span
+                                                    className="rounded-md px-2 py-0.5 text-xs font-medium"
+                                                    style={{
+                                                        backgroundColor: "color-mix(in srgb, var(--color-primary) 15%, var(--color-surface))",
+                                                        color: "var(--color-primary)",
+                                                    }}
+                                                >
                                                     {listing.category_name}
                                                 </span>
                                             )}
-                                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${listing.type === "service" ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`}>
+                                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${listing.type === "service" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300" : "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300"}`}>
                                                 {listing.type === "service" ? "Service" : "Item"}
                                             </span>
                                             {listing.type === "item" && listing.item_details?.condition && (
-                                                <span className="text-xs text-black/40">{listing.item_details.condition}</span>
+                                                <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{listing.item_details.condition}</span>
                                             )}
                                         </div>
                                     </div>
@@ -340,9 +439,9 @@ export default function Index() {
                 {!isLoading && (
                     <>
                         <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
-                        {isFetchingNextPage && <p className="mt-6 text-sm text-black/70">Loading more listings...</p>}
+                        {isFetchingNextPage && <p className="mt-6 text-sm" style={{ color: "var(--color-text-muted)" }}>Loading more listings...</p>}
                         {!hasNextPage && listingsData.length > 0 && (
-                            <p className="mt-6 text-sm text-black/70">You&apos;ve reached the end.</p>
+                            <p className="mt-6 text-sm" style={{ color: "var(--color-text-muted)" }}>You&apos;ve reached the end.</p>
                         )}
                     </>
                 )}
