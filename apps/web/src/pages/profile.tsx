@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useNavigate, useOutletContext, Link, useParams } from "react-router-dom";
-import { getProfile, updateProfile, uploadAvatar, getAvatarUrl } from "@campus-marketplace/backend";
+import { getProfile, updateProfile, uploadAvatar, getAvatarUrl, getListingsByUser } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 
 type OutletContext = {
@@ -16,6 +16,7 @@ export default function Profile() {
     const [isEditing, setIsEditing] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [accountTitle, setAccountTitle] = useState("Student Account");
+    const [displayName, setDisplayName] = useState("");
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("student@university.edu");
@@ -25,6 +26,8 @@ export default function Profile() {
     const [nameError, setNameError] = useState("");
     const [bioError, setBioError] = useState("");
     const [avatarError, setAvatarError] = useState("");
+    const [usernameError, setUsernameError] = useState("");
+    const [listingStats, setListingStats] = useState({ draft: 0, published: 0, total: 0 });
     const { userId: viewedUserId } = useParams<{ userId: string }>();
     const isOwner = !viewedUserId || viewedUserId === user?.id;
 
@@ -88,6 +91,9 @@ export default function Profile() {
         try {
             const profile = await getProfile(userId);
 
+            // Populate display_name (username)
+            if (profile.display_name) setDisplayName(profile.display_name);
+
             // Populate first/last name; fall back to splitting display_name for existing accounts.
             if (profile.first_name) setFirstName(profile.first_name);
             if (profile.last_name) setLastName(profile.last_name);
@@ -111,6 +117,30 @@ export default function Profile() {
         }
     };
 
+    const loadListingStats = async (userId: string) => {
+        try {
+            const listings = await getListingsByUser(userId);
+            const draft = listings.filter((listing) => listing.status === "draft").length;
+            const published = listings.filter((listing) => listing.status === "active").length;
+            setListingStats({ draft, published, total: listings.length });
+        } catch (error) {
+            console.error("Failed to load listing stats:", error);
+        }
+    };
+
+    const validateUsername = () => {
+        if (!displayName.trim()) {
+            setUsernameError("Username is required");
+            return false;
+        }
+        if (xssRegex.test(displayName)) {
+            setUsernameError("Username contains potentially unsafe content");
+            return false;
+        }
+        setUsernameError("");
+        return true;
+    };
+
     const saveProfile = async () => {
         if (!user) return;
 
@@ -119,10 +149,11 @@ export default function Profile() {
             return;
         }
 
+        const isUsernameValid = validateUsername();
         const isNameValid = validateName();
         const isBioValid = validateBio(bio);
         const isAvatarValid = validateAvatar(avatar);
-        if (!isNameValid || !isBioValid || !isAvatarValid) return;
+        if (!isUsernameValid || !isNameValid || !isBioValid || !isAvatarValid) return;
 
         try {
             let avatarPath: string | undefined;
@@ -135,10 +166,8 @@ export default function Profile() {
                 }
             }
 
-            const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
-
             await updateProfile(user.id, {
-                display_name: displayName,
+                display_name: displayName.trim(),
                 first_name: firstName.trim() || null,
                 last_name: lastName.trim() || null,
                 bio,
@@ -156,10 +185,12 @@ export default function Profile() {
     useEffect(() => {
         if (!user?.id) return;
         if (!viewedUserId && user.email) setEmail(user.email);
-        void loadProfile(viewedUserId ?? user.id);
+        const targetUserId = viewedUserId ?? user.id;
+        void loadProfile(targetUserId);
+        void loadListingStats(targetUserId);
     }, [user, refreshKey, viewedUserId]);
 
-    const hasValidationErrors = Boolean(nameError || bioError || avatarError);
+    const hasValidationErrors = Boolean(usernameError || nameError || bioError || avatarError);
     const isSaveDisabled = isEditing && hasValidationErrors;
 
     if (!user) {
@@ -183,116 +214,174 @@ export default function Profile() {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
+            <div className="absolute inset-0 bg-black/45" onClick={() => navigate(-1)} />
 
-            <section className="relative z-10 w-full p-6 sm:p-8">
-                <div className="overflow-y-auto mx-auto w-full max-w-3xl rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
-                    <div className="space-y-8">
-                        <div className="mx-auto w-full max-w-sm">
-                            <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-white">Profile</p>
-                            <p className="w-full rounded-2xl bg-white px-4 py-3 text-center text-3xl text-black outline-none">
-                                {accountTitle}
-                            </p>
+            <section className="relative z-10 w-full p-4 sm:p-6">
+                <div className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border bg-[var(--color-secondary)] shadow-xl" style={{ borderColor: "var(--color-border)" }}>
+                    <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
+                        <div>
+                            <h1 className="text-4xl font-semibold text-[var(--color-text)]">Profile</h1>
+                            <p className="text-sm text-[var(--color-text-muted)]">Manage your account information</p>
+                        </div>
+                        {isOwner && (
+                            <button
+                                type="button"
+                                onClick={saveProfile}
+                                disabled={isSaveDisabled}
+                                className={`rounded-[var(--radius-sm)] px-4 py-2 text-sm font-semibold transition ${
+                                    isSaveDisabled
+                                        ? "cursor-not-allowed bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]"
+                                        : "bg-[var(--color-primary)] text-[var(--color-text-on-primary)] hover:opacity-90"
+                                }`}
+                            >
+                                {isEditing ? "Save Profile" : "Edit Profile"}
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="h-18 bg-[var(--color-primary)] sm:h-20" />
+
+                    <div className="relative px-5 pb-6 sm:px-6 sm:pb-7">
+                        <div className="-mt-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-[var(--color-secondary)] bg-[var(--color-surface)] shadow-sm sm:h-24 sm:w-24">
+                            {avatarUrl ? (
+                                <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                            ) : (
+                                <svg viewBox="0 0 24 24" className="h-10 w-10 text-[var(--color-text-muted)]" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                                    <circle cx="12" cy="8" r="4" />
+                                    <path d="M4 20c0-4.2 3.6-6 8-6s8 1.8 8 6" />
+                                </svg>
+                            )}
                         </div>
 
-                        <div className="grid gap-8 md:grid-cols-[1fr_1.3fr]">
-                            {/* Avatar */}
-                            <div>
-                                <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Avatar</p>
-                                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[var(--color-accent)] text-center text-sm uppercase text-black">
-                                    <img src={avatarUrl || undefined} alt="Avatar" className="h-full w-full object-cover" />
-                                    {isEditing && (
-                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-                                            <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
-                                                Choose Image
-                                                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
+                        {isEditing && (
+                            <div className="mt-3">
+                                <label className="inline-flex cursor-pointer rounded-[var(--radius-sm)] border bg-[var(--color-background)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]" style={{ borderColor: "var(--color-border)" }}>
+                                    Change avatar
+                                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                                </label>
                             </div>
+                        )}
 
-                            {/* Fields */}
-                            <div className="space-y-5">
-                                {/* First + Last name */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">First Name</p>
-                                        <input
-                                            id="firstName"
-                                            type="text"
-                                            value={firstName}
-                                            readOnly={!isEditing}
-                                            onChange={(e) => { setFirstName(e.target.value); setNameError(""); }}
-                                            className="w-full rounded-xl bg-white px-4 py-3 text-sm text-black outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Last Name</p>
-                                        <input
-                                            id="lastName"
-                                            type="text"
-                                            value={lastName}
-                                            readOnly={!isEditing}
-                                            onChange={(e) => { setLastName(e.target.value); setNameError(""); }}
-                                            className="w-full rounded-xl bg-white px-4 py-3 text-sm text-black outline-none"
-                                        />
-                                    </div>
-                                </div>
-                                {nameError && <p className="mt-1 text-xs text-white">{nameError}</p>}
+                        {avatarError && <p className="mt-2 text-sm text-[var(--color-primary)]">{avatarError}</p>}
 
-                                {/* Email */}
+                        <div className="mt-4 flex gap-2">
+                            <span className={`rounded-[var(--radius-sm)] px-3 py-1 text-sm font-medium ${accountTitle === "Student" ? "bg-[var(--color-primary)] text-[var(--color-text-on-primary)]" : "bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]"}`}>
+                                Student
+                            </span>
+                            <span className={`rounded-[var(--radius-sm)] px-3 py-1 text-sm font-medium ${accountTitle === "Business" ? "bg-[var(--color-primary)] text-[var(--color-text-on-primary)]" : "bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]"}`}>
+                                Business
+                            </span>
+                        </div>
+
+                        <div className="mt-5 space-y-4">
+                            <div className="grid gap-3 sm:grid-cols-2">
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Email</p>
+                                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Username</p>
+                                    <input
+                                        id="displayName"
+                                        type="text"
+                                        value={displayName}
+                                        readOnly={!isEditing}
+                                        onChange={(e) => { setDisplayName(e.target.value); setUsernameError(""); }}
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        style={{ borderColor: "var(--color-border)" }}
+                                    />
+                                </div>
+                                <div>
+                                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Email</p>
                                     <input
                                         id="email"
                                         type="email"
                                         value={email}
                                         readOnly
-                                        className="w-full rounded-xl bg-white px-4 py-3 text-sm text-black outline-none opacity-70"
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background)] px-3.5 py-2.5 text-sm text-[var(--color-text)] opacity-80 outline-none"
+                                        style={{ borderColor: "var(--color-border)" }}
                                     />
                                 </div>
+                            </div>
 
-                                {/* Bio */}
+                            {usernameError && <p className="text-xs text-[var(--color-primary)]">{usernameError}</p>}
+
+                            <div className="grid gap-3 sm:grid-cols-2">
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white">Bio</p>
-                                    <textarea
-                                        id="bio"
-                                        rows={4}
-                                        value={bio}
+                                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">First Name</p>
+                                    <input
+                                        id="firstName"
+                                        type="text"
+                                        value={firstName}
                                         readOnly={!isEditing}
-                                        onChange={(e) => { setBio(e.target.value); validateBio(e.target.value); }}
-                                        className="min-h-28 w-full resize-none rounded-2xl bg-white px-4 py-4 text-sm text-black outline-none"
+                                        onChange={(e) => { setFirstName(e.target.value); setNameError(""); }}
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        style={{ borderColor: "var(--color-border)" }}
                                     />
-                                    {bioError && <p className="mt-2 text-xs text-white">{bioError}</p>}
                                 </div>
+                                <div>
+                                    <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Last Name</p>
+                                    <input
+                                        id="lastName"
+                                        type="text"
+                                        value={lastName}
+                                        readOnly={!isEditing}
+                                        onChange={(e) => { setLastName(e.target.value); setNameError(""); }}
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        style={{ borderColor: "var(--color-border)" }}
+                                    />
+                                </div>
+                            </div>
+
+                            {nameError && <p className="text-xs text-[var(--color-primary)]">{nameError}</p>}
+
+                            <div>
+                                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Location</p>
+                                <input
+                                    id="location"
+                                    type="text"
+                                    value="Campus Center"
+                                    readOnly
+                                    className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background)] px-3.5 py-2.5 text-sm text-[var(--color-text)] opacity-80 outline-none"
+                                    style={{ borderColor: "var(--color-border)" }}
+                                />
+                            </div>
+
+                            <div>
+                                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Bio</p>
+                                <textarea
+                                    id="bio"
+                                    rows={4}
+                                    value={bio}
+                                    readOnly={!isEditing}
+                                    onChange={(e) => { setBio(e.target.value); validateBio(e.target.value); }}
+                                    className="min-h-28 w-full resize-none rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                    placeholder="Tell us about yourself..."
+                                    style={{ borderColor: "var(--color-border)" }}
+                                />
+                                {bioError && <p className="mt-1.5 text-xs text-[var(--color-primary)]">{bioError}</p>}
                             </div>
                         </div>
 
-                        {avatarError && <p className="text-sm text-white">{avatarError}</p>}
+                        <div className="mt-6 grid grid-cols-3 overflow-hidden rounded-[var(--radius-sm)] border" style={{ borderColor: "var(--color-border)" }}>
+                            <div className="border-r px-3 py-4 text-center" style={{ borderColor: "var(--color-border)" }}>
+                                <p className="text-3xl font-semibold text-[var(--color-text)]">{listingStats.draft}</p>
+                                <p className="text-xs text-[var(--color-text-muted)]">Draft</p>
+                            </div>
+                            <div className="border-r px-3 py-4 text-center" style={{ borderColor: "var(--color-border)" }}>
+                                <p className="text-3xl font-semibold text-[var(--color-text)]">{listingStats.published}</p>
+                                <p className="text-xs text-[var(--color-text-muted)]">Published</p>
+                            </div>
+                            <div className="px-3 py-4 text-center">
+                                <p className="text-3xl font-semibold text-[var(--color-text)]">{listingStats.total}</p>
+                                <p className="text-xs text-[var(--color-text-muted)]">Total Listing</p>
+                            </div>
+                        </div>
 
-                        <div className="flex items-center justify-between pt-4">
+                        <div className="mt-4">
                             <button
                                 type="button"
-                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
                                 onClick={() => navigate(-1)}
+                                className="text-sm font-medium text-[var(--color-text-muted)] transition hover:text-[var(--color-text)]"
                             >
-                                back
+                                Back
                             </button>
-                            {isOwner && (
-                                <button
-                                    type="button"
-                                    onClick={saveProfile}
-                                    disabled={isSaveDisabled}
-                                    className={`px-8 py-2 text-2xl text-black transition ${
-                                        isSaveDisabled
-                                            ? "cursor-not-allowed bg-neutral-400 text-neutral-700"
-                                            : "bg-[var(--color-accent)] hover:bg-white"
-                                    }`}
-                                >
-                                    {isEditing ? "save" : "edit"}
-                                </button>
-                            )}
                         </div>
                     </div>
                 </div>
