@@ -14,6 +14,7 @@ const { state, supabaseMock } = vi.hoisted(() => {
   const mockState = {
     responses: [] as QueryResponse[],
     realtimeHandler: null as RealtimeHandler | null,
+    realtimeHandlers: {} as Record<string, RealtimeHandler>,
     removedChannels: [] as string[],
   };
 
@@ -86,6 +87,7 @@ const { state, supabaseMock } = vi.hoisted(() => {
           handler: RealtimeHandler,
         ) => {
           mockState.realtimeHandler = handler;
+          mockState.realtimeHandlers[name] = handler;
           return channel;
         },
         subscribe: () => channel,
@@ -115,17 +117,20 @@ vi.mock("../../supabase-client.js", () => ({
 import {
   archiveConversation,
   createConversation,
+  ConversationLockedError,
   getConversation,
   getConversationsByUser,
   getMessages,
   markMessagesRead,
   sendMessage,
+  subscribeToConversations,
   subscribeToMessages,
 } from "../messaging.js";
 
 afterEach(() => {
   state.responses.length = 0;
   state.realtimeHandler = null;
+  state.realtimeHandlers = {};
   state.removedChannels.length = 0;
   vi.restoreAllMocks();
 });
@@ -191,10 +196,38 @@ describe("messaging service", () => {
     expect(convo.unread_count).toBe(0);
   });
 
+  it("throws when creating a conversation fails during insert or participant add", async () => {
+    vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-0000-0000-000000000002");
+
+    enqueueResponse({ table: "blocks", operation: "select", data: [] });
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
+    enqueueResponse({ table: "conversations", operation: "insert", error: { message: "insert convo failed" } });
+
+    await expect(createConversation("u1", "u2")).rejects.toThrow("Failed to create conversation: insert convo failed");
+
+    enqueueResponse({ table: "blocks", operation: "select", data: [] });
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
+    enqueueResponse({ table: "conversations", operation: "insert", data: null });
+    enqueueResponse({ table: "conversation_participants", operation: "insert", error: { message: "insert participant failed" } });
+
+    await expect(createConversation("u1", "u2")).rejects.toThrow(
+      "Failed to add participants: insert participant failed",
+    );
+  });
+
   it("returns empty list when user has no conversations", async () => {
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
 
     await expect(getConversationsByUser("u1")).resolves.toEqual([]);
+  });
+
+  it("throws when fetching conversations fails", async () => {
+    enqueueResponse({ table: "conversation_participants", operation: "select", error: { message: "participants failed" } });
+    await expect(getConversationsByUser("u1")).rejects.toThrow("Failed to fetch conversations: participants failed");
+
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ conversation_id: "c1" }] });
+    enqueueResponse({ table: "conversations", operation: "select", error: { message: "conversations failed" } });
+    await expect(getConversationsByUser("u1")).rejects.toThrow("Failed to fetch conversations: conversations failed");
   });
 
   it("hydrates conversation list with listing context", async () => {
@@ -223,6 +256,19 @@ describe("messaging service", () => {
     await expect(getConversation("c1", "u1")).rejects.toThrow("Conversation not found");
   });
 
+  it("throws when the other participant cannot be resolved", async () => {
+    enqueueResponse({
+      table: "conversations",
+      operation: "select",
+      data: { id: "c1", listing_id: null, created_at: "2026-01-01", updated_at: "2026-01-02" },
+    });
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
+
+    await expect(getConversation("c1", "u1")).rejects.toThrow(
+      "Could not find the other participant in this conversation",
+    );
+  });
+
   it("gets messages sorted query path and validates conversation existence", async () => {
     enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1" } });
     enqueueResponse({
@@ -247,9 +293,15 @@ describe("messaging service", () => {
     await expect(getMessages("")).rejects.toThrow("Conversation ID is required");
   });
 
+  it("throws when fetching messages fails", async () => {
+    enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1" } });
+    enqueueResponse({ table: "messages", operation: "select", error: { message: "messages query failed" } });
+
+    await expect(getMessages("c1")).rejects.toThrow("Failed to fetch messages: messages query failed");
+  });
+
   it("sends a message for participants and trims content", async () => {
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
-    // Sold-listing guard: fetch conversation listing_id (null = no linked listing, guard passes).
     enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1", listing_id: null } });
     enqueueResponse({
       table: "messages",
@@ -280,12 +332,36 @@ describe("messaging service", () => {
     );
   });
 
+  it("throws when sending a message fails to insert", async () => {
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
+    enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1", listing_id: null } });
+    enqueueResponse({ table: "messages", operation: "insert", error: { message: "insert message failed" }, data: null });
+
+    await expect(sendMessage("c1", "u1", "hello")).rejects.toThrow(
+      "Failed to send message: insert message failed",
+    );
+  });
+
+  it("blocks sendMessage when the linked listing is sold", async () => {
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
+    enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1", listing_id: "listing-1" } });
+    enqueueResponse({ table: "listings", operation: "select", data: { status: "sold" } });
+
+    await expect(sendMessage("c1", "u1", "hello")).rejects.toBeInstanceOf(ConversationLockedError);
+  });
+
   it("marks messages read and validates required input", async () => {
     enqueueResponse({ table: "messages", operation: "update", data: null });
 
     await expect(markMessagesRead("c1", "u1")).resolves.toBeUndefined();
     await expect(markMessagesRead("", "u1")).rejects.toThrow("Conversation ID is required");
     await expect(markMessagesRead("c1", "")).rejects.toThrow("User ID is required");
+  });
+
+  it("throws when marking messages read fails", async () => {
+    enqueueResponse({ table: "messages", operation: "update", error: { message: "update failed" } });
+
+    await expect(markMessagesRead("c1", "u1")).rejects.toThrow("Failed to mark messages read: update failed");
   });
 
   it("subscribes and unsubscribes to realtime messages", async () => {
@@ -295,7 +371,7 @@ describe("messaging service", () => {
       received.push(msg.id);
     });
 
-    state.realtimeHandler?.({
+    state.realtimeHandlers["messages:c1"]?.({
       new: {
         id: "m-sub",
         conversation_id: "c1",
@@ -313,6 +389,10 @@ describe("messaging service", () => {
     expect(state.removedChannels).toContain("messages:c1");
   });
 
+  it("validates subscribeToMessages input", () => {
+    expect(() => subscribeToMessages("", () => undefined)).toThrow("Conversation ID is required");
+  });
+
   it("archives conversation only for participants", async () => {
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
     await expect(archiveConversation("c1", "u1")).rejects.toThrow("Not a participant in this conversation");
@@ -320,5 +400,35 @@ describe("messaging service", () => {
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
     enqueueResponse({ table: "conversations", operation: "update", data: null });
     await expect(archiveConversation("c1", "u1")).resolves.toBeUndefined();
+  });
+
+  it("throws when archiving a conversation fails", async () => {
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
+    enqueueResponse({ table: "conversations", operation: "update", error: { message: "archive failed" } });
+
+    await expect(archiveConversation("c1", "u1")).rejects.toThrow(
+      "Failed to archive conversation: archive failed",
+    );
+  });
+
+  it("subscribes to conversation updates and filters payload ids", () => {
+    const changed: string[] = [];
+
+    const subscription = subscribeToConversations(["c1", "c2"], () => {
+      changed.push("changed");
+    });
+
+    state.realtimeHandlers["conversations:c1,c2"]?.({ new: { id: "c3" } });
+    state.realtimeHandlers["conversations:c1,c2"]?.({ new: { id: "c2" } });
+
+    subscription.unsubscribe();
+
+    expect(changed).toHaveLength(1);
+    expect(state.removedChannels).toContain("conversations:c1,c2");
+  });
+
+  it("returns no-op unsubscribe for empty subscribeToConversations input", () => {
+    const subscription = subscribeToConversations([], () => undefined);
+    expect(() => subscription.unsubscribe()).not.toThrow();
   });
 });
