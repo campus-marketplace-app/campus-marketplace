@@ -84,6 +84,34 @@ describe("stats service unit", () => {
     });
   });
 
+  it("defaults activeUsers to zero when users count is null", async () => {
+    enqueueResponse({ table: "listings", count: 3 });
+    enqueueResponse({ table: "listings", count: 1 });
+    enqueueResponse({ table: "profiles", count: null });
+
+    const stats = await getHomeStats();
+
+    expect(stats).toEqual({
+      activeListings: 3,
+      newToday: 1,
+      activeUsers: 0,
+    });
+  });
+
+  it("defaults activeListings to zero when active listing count is null", async () => {
+    enqueueResponse({ table: "listings", count: null });
+    enqueueResponse({ table: "listings", count: 2 });
+    enqueueResponse({ table: "profiles", count: 4 });
+
+    const stats = await getHomeStats();
+
+    expect(stats).toEqual({
+      activeListings: 0,
+      newToday: 2,
+      activeUsers: 4,
+    });
+  });
+
   it("throws for active listings count errors", async () => {
     enqueueResponse({ table: "listings", error: { message: "active failed" } });
     enqueueResponse({ table: "listings", count: 0 });
