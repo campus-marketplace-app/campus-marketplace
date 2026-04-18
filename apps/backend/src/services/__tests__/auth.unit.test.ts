@@ -86,6 +86,24 @@ describe("auth service unit", () => {
     );
   });
 
+  it("validates signUpWithEmail required fields and password length", async () => {
+    await expect(signUpWithEmail({ email: "", password: "Password123", display_name: "Name" })).rejects.toThrow(
+      "Email is required",
+    );
+    await expect(signUpWithEmail({ email: "a@school.edu", password: "", display_name: "Name" })).rejects.toThrow(
+      "Password is required",
+    );
+    await expect(signUpWithEmail({ email: "a@school.edu", password: "123", display_name: "Name" })).rejects.toThrow(
+      "Password must be at least 6 characters",
+    );
+    await expect(signUpWithEmail({ email: "a@school.edu", password: "Password123", display_name: "" })).rejects.toThrow(
+      "Display name is required",
+    );
+    await expect(signUpWithEmail({ email: "a@gmail.com", password: "Password123", display_name: "Name" })).rejects.toThrow(
+      "Only .edu email addresses are allowed to sign up.",
+    );
+  });
+
   it("signUpWithEmail throws for invalid account_type", async () => {
     await expect(
       signUpWithEmail({
@@ -135,12 +153,22 @@ describe("auth service unit", () => {
     );
   });
 
+  it("validates signInWithEmail required fields", async () => {
+    await expect(signInWithEmail({ email: "", password: "pass123" })).rejects.toThrow("Email is required");
+    await expect(signInWithEmail({ email: "u@school.edu", password: "" })).rejects.toThrow("Password is required");
+  });
+
   it("getSessionFromTokens handles setSession failures", async () => {
     authMock.setSession.mockResolvedValueOnce({ data: { user: null, session: null }, error: { message: "expired" } });
     await expect(getSessionFromTokens("a", "r")).rejects.toThrow("Failed to restore session: expired");
 
     authMock.setSession.mockResolvedValueOnce({ data: { user: null, session: null }, error: null });
     await expect(getSessionFromTokens("a", "r")).rejects.toThrow("Session restore did not return a user");
+  });
+
+  it("validates getSessionFromTokens required fields", async () => {
+    await expect(getSessionFromTokens("", "r")).rejects.toThrow("Access token is required");
+    await expect(getSessionFromTokens("a", "")).rejects.toThrow("Refresh token is required");
   });
 
   it("signOutWithTokens continues when setSession fails but signOut succeeds", async () => {
@@ -156,6 +184,11 @@ describe("auth service unit", () => {
     await expect(signOutWithTokens("a", "r")).rejects.toThrow("Failed to sign out: cannot signout");
   });
 
+  it("validates signOutWithTokens required fields", async () => {
+    await expect(signOutWithTokens("", "r")).rejects.toThrow("Access token is required");
+    await expect(signOutWithTokens("a", "")).rejects.toThrow("Refresh token is required");
+  });
+
   it("refreshSession throws on error or missing user", async () => {
     authMock.refreshSession.mockResolvedValueOnce({ data: { user: null, session: null }, error: { message: "bad token" } });
     await expect(refreshSession("r")).rejects.toThrow("Failed to refresh session: bad token");
@@ -164,12 +197,23 @@ describe("auth service unit", () => {
     await expect(refreshSession("r")).rejects.toThrow("Session refresh did not return a user");
   });
 
+  it("validates refreshSession required fields", async () => {
+    await expect(refreshSession("")) .rejects.toThrow("Refresh token is required");
+  });
+
   it("updatePassword throws for setSession and updateUser failures", async () => {
     authMock.setSession.mockResolvedValueOnce({ data: { user: null, session: null }, error: { message: "bad" } });
     await expect(updatePassword("a", "r", "newpassword")).rejects.toThrow("Failed to set session: bad");
 
     authMock.updateUser.mockResolvedValueOnce({ error: { message: "weak" } });
     await expect(updatePassword("a", "r", "newpassword")).rejects.toThrow("Failed to update password: weak");
+  });
+
+  it("validates updatePassword required fields and minimum length", async () => {
+    await expect(updatePassword("", "r", "newpassword")).rejects.toThrow("Access token is required");
+    await expect(updatePassword("a", "", "newpassword")).rejects.toThrow("Refresh token is required");
+    await expect(updatePassword("a", "r", "")).rejects.toThrow("New password is required");
+    await expect(updatePassword("a", "r", "123")).rejects.toThrow("Password must be at least 6 characters");
   });
 
   it("completePasswordReset throws for exchange/update failures", async () => {
@@ -181,6 +225,12 @@ describe("auth service unit", () => {
 
     authMock.updateUser.mockResolvedValueOnce({ error: { message: "reject" } });
     await expect(completePasswordReset("code", "Password123")).rejects.toThrow("Failed to update password: reject");
+  });
+
+  it("validates completePasswordReset required fields and minimum length", async () => {
+    await expect(completePasswordReset("", "Password123")).rejects.toThrow("Reset token is required");
+    await expect(completePasswordReset("token", "")).rejects.toThrow("Password is required");
+    await expect(completePasswordReset("token", "123")).rejects.toThrow("Password must be at least 6 characters");
   });
 
   it("ensureFreshSession throws when refresh has error or no session", async () => {
@@ -203,5 +253,9 @@ describe("auth service unit", () => {
     expect(authMock.resetPasswordForEmail).toHaveBeenCalledWith("user@school.edu", {
       redirectTo: "https://example.com/reset",
     });
+  });
+
+  it("validates sendPasswordResetEmail required fields", async () => {
+    await expect(sendPasswordResetEmail("")).rejects.toThrow("Email is required");
   });
 });
