@@ -2,25 +2,30 @@ import { Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 
 export default function Contact() {
-	const { schoolName } = useTheme();
+	const { schoolName, radiusId } = useTheme();
+	const isPill = radiusId === "pill";
 
 	return (
 		<section className="bg-[var(--color-secondary)] px-4 py-8 sm:px-6 sm:py-10">
-			<div className="mx-auto max-w-[760px] rounded-xl border bg-[var(--color-secondary)] p-5 shadow-lg sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+			<div
+				className="mx-auto max-w-[760px] rounded-xl border bg-[var(--color-secondary)] p-5 shadow-lg sm:p-6"
+				style={{ borderColor: "var(--color-border)" }}
+			>
 				<h1 className="text-center text-3xl font-bold text-[var(--color-text)]">Contact {schoolName} Marketplace</h1>
 				<p className="mt-4 text-base leading-7 text-[var(--color-text-muted)]">
 					If you have questions, feedback, or need help with the platform, you can reach out using the contact information below.
 				</p>
 
 				<div
-					className="mt-5 rounded-xl border p-4"
+					className="mt-5 rounded-[var(--radius)] border p-4"
 					style={{
-						borderColor: "color-mix(in srgb, var(--color-primary) 12%, var(--color-border))",
+						borderColor: "var(--color-border)",
 						backgroundColor: "var(--color-surface)",
 					}}
 				>
-					<h2 className="text-2xl font-semibold text-[var(--color-text)]">What to include</h2>
-					<ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">
+					<div className={isPill ? "pl-2 sm:pl-3" : undefined}>
+						<h2 className="text-2xl font-semibold text-[var(--color-text)]">What to include</h2>
+						<ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">
 						<li className="flex items-center gap-2">
 							<span className="inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />
 							<span>Your name and school email</span>
@@ -33,15 +38,16 @@ export default function Contact() {
 							<span className="inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />
 							<span>Any relevant listing or account details</span>
 						</li>
-					</ul>
+						</ul>
+					</div>
 				</div>
 
-				<div className="mt-5 rounded-xl border bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] p-5 text-[var(--color-text-on-primary)] shadow-md" style={{ borderColor: "color-mix(in srgb, var(--color-primary-dark) 60%, var(--color-border))" }}>
+				<div className="mt-5 rounded-[var(--radius)] border bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] p-5 text-[var(--color-text-on-primary)] shadow-md" style={{ borderColor: "color-mix(in srgb, var(--color-primary-dark) 60%, var(--color-border))" }}>
 					<div className="flex items-start gap-3">
-						<div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg font-bold text-[var(--color-text-on-primary)]" style={{ backgroundColor: "color-mix(in srgb, var(--color-text-on-primary) 18%, transparent)" }}>
+						<div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] text-lg font-bold text-[var(--color-text-on-primary)]" style={{ backgroundColor: "color-mix(in srgb, var(--color-text-on-primary) 18%, transparent)" }}>
 							@
 						</div>
-						<div>
+						<div className={isPill ? "pl-1" : undefined}>
 							<p className="text-3xl font-semibold leading-tight">Email support</p>
 							<a
 								href="mailto:support@campusmarketplace.edu"
@@ -60,14 +66,14 @@ export default function Contact() {
 				<div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
 					<Link
 						to="/help"
-						className="rounded-lg border bg-[var(--color-secondary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+						className="rounded-[var(--radius)] border bg-[var(--color-secondary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
 						style={{ borderColor: "var(--color-border)" }}
 					>
 						View Help Center
 					</Link>
 					<Link
 						to="/login"
-						className="rounded-lg border bg-[var(--color-secondary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+						className="rounded-[var(--radius)] border bg-[var(--color-secondary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
 						style={{ borderColor: "var(--color-border)" }}
 					>
 						Back to Login
