@@ -1,4 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { createClient } from "@supabase/supabase-js";
+import { config as loadEnv } from "dotenv";
+import { resolve } from "node:path";
+import { createConversation, sendMessage, ConversationLockedError } from "../messaging.js";
 import {
   createListing,
   deleteListingImage,
@@ -6,6 +10,8 @@ import {
   getListingImageUrl,
   getListingPublishReadiness,
   ListingPublishValidationError,
+  markListingAsSold,
+  ListingAlreadySoldError,
   publishListing,
   updateListing,
   deleteListing,
@@ -22,12 +28,62 @@ import { createTestUser, createTestListing } from "./helpers.js";
 import type { TestUser } from "./helpers.js";
 
 let testUser: TestUser;
+// secondUser is created via the admin API to avoid consuming an extra auth signup
+// quota slot and to avoid overwriting the shared client's session.
+let secondUser: TestUser;
+// Separate Supabase client for secondUser — using the anon key so we can
+// authenticate as secondUser without touching the shared service-key client.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let secondUserClient: ReturnType<typeof createClient<any>>;
 let categoryId: string;
 const listingIdsToCleanup: string[] = [];
 const imageCleanup: Array<{ imageId: string; userId: string }> = [];
 
 beforeAll(async () => {
   testUser = await createTestUser("Listings Test User");
+
+  // Create a second user via the admin API — no signUpWithEmail call, so the shared
+  // service-key client's auth session remains as testUser's JWT.
+  const secondEmail = `test-second-${Date.now()}@test.edu`;
+  const secondPassword = "TestPassword123!";
+  const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+    email: secondEmail,
+    password: secondPassword,
+    email_confirm: true,
+    user_metadata: { display_name: "Second Test User" },
+  });
+  if (adminError || !adminData.user) {
+    throw new Error(`Failed to create second test user: ${adminError?.message ?? "unknown"}`);
+  }
+
+  // Build a separate anon-key client for secondUser so wishlists/notifications can
+  // be inserted as secondUser (RLS checks auth.uid() = user_id on those tables).
+  // The anon key lives in apps/web/.env.local as VITE_SUPABASE_ANON_KEY.
+  loadEnv({ path: resolve(process.cwd(), "../web/.env.local") });
+  const supabaseUrl = process.env["SUPABASE_URL"] ?? "";
+  const supabaseAnonKey = process.env["SUPABASE_ANON_KEY"] ?? process.env["VITE_SUPABASE_ANON_KEY"] ?? "";
+  secondUserClient = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: signInError } = await secondUserClient.auth.signInWithPassword({
+    email: secondEmail,
+    password: secondPassword,
+  });
+  if (signInError) {
+    throw new Error(`Failed to sign in second test user: ${signInError.message}`);
+  }
+
+  secondUser = {
+    user: adminData.user,
+    session: null,
+    cleanup: async () => {
+      try {
+        await supabase.auth.admin.deleteUser(adminData.user.id);
+      } catch {
+        // Ignore cleanup errors
+      }
+    },
+  };
 
   const { data: existingCategory, error: categoryLookupError } = await supabase
     .from("categories")
@@ -79,6 +135,7 @@ afterAll(async () => {
     }
   }
   await testUser.cleanup();
+  await secondUser?.cleanup();
 });
 
 function trackListing(id: string) {
@@ -576,5 +633,134 @@ describe("listing image storage", () => {
     await expect(
       deleteListingImage(uploaded.id, "00000000-0000-0000-0000-000000000000"),
     ).rejects.toThrow("permission");
+  });
+});
+
+describe("markListingAsSold", () => {
+  it("sets status to sold and removes listing from public search", async () => {
+    const listing = await createPublishableDraft(testUser.user.id);
+    await publishListing(listing.id, testUser.user.id);
+
+    const sold = await markListingAsSold(listing.id, testUser.user.id);
+
+    expect(sold.status).toBe("sold");
+
+    // Should no longer appear in public search
+    const results = await searchListings({});
+    expect(results.some((l) => l.id === listing.id)).toBe(false);
+
+    // Seller can still see it
+    const sellerListings = await getListingsByUser(testUser.user.id);
+    expect(sellerListings.some((l) => l.id === listing.id)).toBe(true);
+  });
+
+  it("throws ListingAlreadySoldError if already sold", async () => {
+    const listing = await createTestListing(testUser.user.id, {
+      title: "Already Sold Listing",
+    });
+    trackListing(listing.id);
+    await supabase.from("listings").update({ status: "sold" }).eq("id", listing.id);
+
+    await expect(markListingAsSold(listing.id, testUser.user.id)).rejects.toBeInstanceOf(
+      ListingAlreadySoldError,
+    );
+  });
+
+  it("throws when called by a non-owner", async () => {
+    const listing = await createTestListing(testUser.user.id, {
+      title: "Other Owner Listing",
+    });
+    trackListing(listing.id);
+
+    await expect(markListingAsSold(listing.id, secondUser.user.id)).rejects.toThrow("permission");
+  });
+
+  it("creates listing_sold notifications for wishlisted users", async () => {
+    const listing = await createPublishableDraft(testUser.user.id, {
+      title: "Wishlisted Item",
+    });
+
+    // Insert wishlist as secondUser — uses the per-user anon client so auth.uid()
+    // matches user_id and the RLS policy is satisfied.
+    const { error: wishlistError } = await secondUserClient.from("wishlists").insert({
+      user_id: secondUser.user.id,
+      listing_id: listing.id,
+    });
+    if (wishlistError) throw new Error(`Wishlist insert failed: ${wishlistError.message}`);
+
+    // Sign out of testUser's session so the shared client uses the service role key.
+    // This allows markListingAsSold's internal wishlist query to bypass RLS and see
+    // all wishlist entries (not just testUser's). The service role JWT bypasses all RLS.
+    await supabase.auth.signOut();
+    await markListingAsSold(listing.id, testUser.user.id);
+    // Sign back in as testUser for the notification assertions below.
+    if (testUser.session) {
+      await supabase.auth.setSession({
+        access_token: testUser.session.access_token,
+        refresh_token: testUser.session.refresh_token,
+      });
+    }
+
+    // Query notifications as secondUser (RLS scopes notifications to auth.uid() = user_id)
+    const { data: notifications } = await secondUserClient
+      .from("notifications")
+      .select("*")
+      .eq("user_id", secondUser.user.id)
+      .eq("type", "listing_sold")
+      .eq("payload->>listing_id", listing.id);
+
+    expect(notifications?.length).toBeGreaterThanOrEqual(1);
+    expect(notifications![0].payload.listing_title).toBe("Wishlisted Item");
+
+    // Cleanup — use secondUserClient for rows owned by secondUser
+    await secondUserClient.from("wishlists").delete().eq("listing_id", listing.id);
+    await secondUserClient.from("notifications").delete().eq("payload->>listing_id", listing.id);
+  });
+
+  it("does not create a notification for the seller", async () => {
+    const listing = await createPublishableDraft(testUser.user.id, {
+      title: "Seller No Notify",
+    });
+
+    // Seller wishlists their own listing (edge case)
+    await supabase.from("wishlists").insert({
+      user_id: testUser.user.id,
+      listing_id: listing.id,
+    });
+
+    await markListingAsSold(listing.id, testUser.user.id);
+
+    const { data: notifications } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", testUser.user.id)
+      .eq("type", "listing_sold")
+      .eq("payload->>listing_id", listing.id);
+
+    expect(notifications?.length ?? 0).toBe(0);
+
+    // Cleanup
+    await supabase.from("wishlists").delete().eq("listing_id", listing.id);
+  });
+
+  it("blocks sendMessage after listing is marked sold", async () => {
+    const listing = await createPublishableDraft(testUser.user.id, {
+      title: "Soon To Be Sold",
+    });
+
+    // Create a conversation between testUser (seller) and secondUser (buyer)
+    const conversation = await createConversation(
+      secondUser.user.id,
+      testUser.user.id,
+      listing.id,
+    );
+
+    // Mark it sold
+    await markListingAsSold(listing.id, testUser.user.id);
+
+    // Buyer tries to send a message — should be blocked
+    await expect(
+      sendMessage(conversation.id, secondUser.user.id, "Is this still available?"),
+    ).rejects.toBeInstanceOf(ConversationLockedError);
   });
 });

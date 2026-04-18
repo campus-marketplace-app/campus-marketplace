@@ -287,6 +287,7 @@ export default function Messages() {
                             listingId={activeConvo.listing_id}
                             listingTitle={activeConvo.listing_title}
                             isSeller={activeConvo.is_seller}
+                            listingStatus={activeConvo.listing_status}
                         />
                     ) : (
                         <div className="flex h-full w-full flex-col border-l border-[var(--color-border)]">

@@ -15,6 +15,7 @@ type ChatPanelProps = {
     listingId?: string | null;
     listingTitle?: string;
     isSeller?: boolean;
+    listingStatus?: string | null;
 };
 
 // Format a timestamp like "3:42 PM".
@@ -37,9 +38,12 @@ export default function ChatPanel({
     listingId,
     listingTitle,
     isSeller,
+    listingStatus,
 }: ChatPanelProps) {
     // Auto-scroll to the bottom when new messages arrive.
     const bottomRef = useRef<HTMLDivElement>(null);
+
+    const isSold = listingStatus === "sold";
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -145,20 +149,28 @@ export default function ChatPanel({
                 <div ref={bottomRef} />
             </div>
 
+            {/* Sold banner — shown when the linked listing has been sold */}
+            {isSold && (
+                <div className="mx-2 mb-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-center text-sm text-[var(--color-text-muted)]">
+                    This item has been sold. Messaging is no longer available.
+                </div>
+            )}
+
             {/* Message input */}
             <div className="m-2 mt-0 flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-background)] p-3">
                 <input
                     type="text"
-                    placeholder="Type a message..."
+                    placeholder={isSold ? "This conversation is closed" : "Type a message..."}
                     value={messageInput}
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 rounded-lg border border-[var(--color-border)] bg-transparent px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all placeholder:text-[var(--color-text-muted)]"
+                    disabled={isSold}
+                    className="flex-1 rounded-lg border border-[var(--color-border)] bg-transparent px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all placeholder:text-[var(--color-text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                     type="button"
                     onClick={onSend}
-                    disabled={!messageInput.trim()}
+                    disabled={!messageInput.trim() || isSold}
                     className="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-on-primary)] disabled:opacity-40 hover:opacity-90 transition-opacity"
                 >
                     <Send size={16} />
