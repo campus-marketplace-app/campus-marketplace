@@ -1,58 +1,77 @@
+import { Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 
 export default function Contact() {
 	const { schoolName } = useTheme();
 
 	return (
-		<section className="px-6 py-8 sm:px-8 sm:py-10">
-			<div className="mx-auto max-w-3xl space-y-6">
-				<header
-					className="rounded-[var(--radius-lg)] border p-6 shadow-sm sm:p-8"
-					style={{
-						borderColor: "color-mix(in srgb, var(--color-primary) 18%, var(--color-border))",
-						background:
-							"linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-background)), color-mix(in srgb, var(--color-secondary) 14%, var(--color-surface)))",
-					}}
-				>
-					<h1 className="text-3xl font-bold text-[var(--color-text)] sm:text-4xl">
-						Contact {schoolName} Marketplace
-					</h1>
-					<p className="mt-4 text-base leading-7 text-[var(--color-text-muted)]">
-						If you have questions, feedback, or need help with the platform, you can reach out using the contact information below.
-					</p>
-				</header>
+		<section className="bg-[var(--color-secondary)] px-4 py-8 sm:px-6 sm:py-10">
+			<div className="mx-auto max-w-[760px] rounded-xl border bg-[var(--color-secondary)] p-5 shadow-lg sm:p-6" style={{ borderColor: "var(--color-border)" }}>
+				<h1 className="text-center text-3xl font-bold text-[var(--color-text)]">Contact {schoolName} Marketplace</h1>
+				<p className="mt-4 text-base leading-7 text-[var(--color-text-muted)]">
+					If you have questions, feedback, or need help with the platform, you can reach out using the contact information below.
+				</p>
 
 				<div
-					className="rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-6 shadow-sm"
+					className="mt-5 rounded-xl border p-4"
 					style={{
-						borderColor: "color-mix(in srgb, var(--color-primary) 18%, var(--color-border))",
-						background: "color-mix(in srgb, var(--color-surface) 88%, var(--color-background))",
+						borderColor: "color-mix(in srgb, var(--color-primary) 12%, var(--color-border))",
+						backgroundColor: "var(--color-surface)",
 					}}
 				>
-					<h2 className="text-xl font-semibold text-[var(--color-text)]">What to include</h2>
-					<ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-7 text-[var(--color-text-muted)]">
-						<li>Your name and school email</li>
-						<li>A short description of the issue or question</li>
-						<li>Any relevant listing or account details</li>
+					<h2 className="text-2xl font-semibold text-[var(--color-text)]">What to include</h2>
+					<ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">
+						<li className="flex items-center gap-2">
+							<span className="inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />
+							<span>Your name and school email</span>
+						</li>
+						<li className="flex items-center gap-2">
+							<span className="inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />
+							<span>A short description of the issue or question</span>
+						</li>
+						<li className="flex items-center gap-2">
+							<span className="inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />
+							<span>Any relevant listing or account details</span>
+						</li>
 					</ul>
+				</div>
 
-					<div
-						className="mt-6 rounded-[var(--radius)] border p-4"
-						style={{
-							borderColor: "color-mix(in srgb, var(--color-primary) 22%, var(--color-border))",
-							background: "linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 7%, var(--color-background)), var(--color-surface))",
-						}}
-					>
-						<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-							Email support
-						</p>
-						<a
-							href="mailto:support@campusmarketplace.edu"
-							className="mt-2 inline-block text-lg font-semibold text-[var(--color-primary)] transition hover:opacity-80"
-						>
-							campusmarketplace.dev@gmail.com
-						</a>
+				<div className="mt-5 rounded-xl border bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-dark)] p-5 text-[var(--color-text-on-primary)] shadow-md" style={{ borderColor: "color-mix(in srgb, var(--color-primary-dark) 60%, var(--color-border))" }}>
+					<div className="flex items-start gap-3">
+						<div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg font-bold text-[var(--color-text-on-primary)]" style={{ backgroundColor: "color-mix(in srgb, var(--color-text-on-primary) 18%, transparent)" }}>
+							@
+						</div>
+						<div>
+							<p className="text-3xl font-semibold leading-tight">Email support</p>
+							<a
+								href="mailto:support@campusmarketplace.edu"
+								className="mt-1 inline-block text-lg underline underline-offset-4 transition hover:opacity-85"
+								style={{ textDecorationColor: "color-mix(in srgb, var(--color-text-on-primary) 70%, transparent)" }}
+							>
+								support@campusmarketplace.edu
+							</a>
+							<p className="mt-2 text-sm text-[var(--color-text-on-primary)]/85">
+								Use this placeholder email for now. You can swap it later with your real support address.
+							</p>
+						</div>
 					</div>
+				</div>
+
+				<div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+					<Link
+						to="/help"
+						className="rounded-lg border bg-[var(--color-secondary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+						style={{ borderColor: "var(--color-border)" }}
+					>
+						View Help Center
+					</Link>
+					<Link
+						to="/login"
+						className="rounded-lg border bg-[var(--color-secondary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+						style={{ borderColor: "var(--color-border)" }}
+					>
+						Back to Login
+					</Link>
 				</div>
 			</div>
 		</section>
