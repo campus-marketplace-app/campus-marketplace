@@ -1,44 +1,109 @@
 import { getListingImageUrl } from "@campus-marketplace/backend";
-import { useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import { useState } from "react";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
+import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark } from "lucide-react";
+import { NoImagePlaceholder } from "../components/NoImagePlaceholder";
 import { useSearchListings } from "../hooks/useListings";
+import { useProfile } from "../hooks/useProfile";
+import { useHomeStats } from "../hooks/useHomeStats";
+import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "../hooks/useWishlist";
+import type { SessionUser } from "../features/types";
 
 type OutletContext = {
     searchQuery: string;
     listingsRefreshKey: number;
+    user: SessionUser | null;
 };
 
 const PAGE_SIZE = 12;
 
+const CATEGORIES = [
+    { label: "Electronics", id: "b87122bf-36dc-418c-a489-cb8ad0497f34", icon: Monitor, bgClass: "bg-blue-500" },
+    { label: "Clothing", id: "9f280f6c-d4f8-4178-8e61-059243d5c930", icon: Shirt, bgClass: "bg-violet-500" },
+    { label: "Furniture", id: "6a90f825-6c3c-4060-b5e1-ff394162bb6c", icon: Sofa, bgClass: "bg-orange-500" },
+    { label: "School Supplies", id: "716836e6-f8a2-4cba-aa63-36445e70496e", icon: BookOpen, bgClass: "bg-emerald-500" },
+    { label: "Free Stuff", id: "854c925a-84f6-4280-9c9e-b1452167bb33", icon: Gift, bgClass: "bg-pink-500" },
+    { label: "Sports", id: "be4cc965-718d-4e7d-939f-9ace4dcc837c", icon: Dumbbell, bgClass: "bg-[var(--color-primary)]" },
+] as const;
+
+const shimmerStyle: React.CSSProperties = {
+    background: "linear-gradient(90deg, var(--color-background-alt) 25%, var(--color-border) 50%, var(--color-background-alt) 75%)",
+    backgroundSize: "400px 100%",
+    animation: "shimmer 1.4s infinite linear",
+};
+
+/** Counts from 0 to `target` over `duration` ms using an ease-out curve. */
+function useCountUp(target: number | undefined, duration = 900): number {
+    const [current, setCurrent] = useState(0);
+    useEffect(() => {
+        if (target === undefined) return;
+        if (target === 0) { setCurrent(0); return; }
+        const start = performance.now();
+        let rafId: number;
+        const tick = (now: number) => {
+            const progress = Math.min((now - start) / duration, 1);
+            setCurrent(Math.round(target * Math.sqrt(progress)));
+            if (progress < 1) rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(rafId);
+    }, [target, duration]);
+    return current;
+}
+
 export default function Index() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { searchQuery, listingsRefreshKey } = useOutletContext<OutletContext>();
+    const { searchQuery, listingsRefreshKey, user } = useOutletContext<OutletContext>();
+
     const [category, setCategory] = useState<string>("");
     const [listingType, setListingType] = useState<"" | "item" | "service">("");
+    const [priceRange, setPriceRange] = useState<"" | "u25" | "25-100" | "100-500" | "o500">("");
     const [wishlistToast, setWishlistToast] = useState<string | null>(null);
+    const [toastExiting, setToastExiting] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-    // Build filters — omit empty strings so the cache key stays clean.
-    const filters = {
-        ...(searchQuery.trim() !== "" && { query: searchQuery.trim() }),
-        ...(category !== "" && { category_id: category }),
-        ...(listingType !== "" && { type: listingType as "item" | "service" }),
-        limit: PAGE_SIZE,
-    };
+    const { data: profile } = useProfile(user?.id);
+    const { stats, isLoading: statsLoading } = useHomeStats();
 
-    const {
-        data,
-        isLoading,
-        isFetchingNextPage,
-        hasNextPage,
-        fetchNextPage,
-    } = useSearchListings(filters);
+    const activeListingsCount = useCountUp(stats?.activeListings);
+    const activeUsersCount = useCountUp(stats?.activeUsers);
+    const newTodayCount = useCountUp(stats?.newToday);
 
-    // Flatten all cached pages into a single list.
+    // Preload the full wishlist once; derive a Set for O(1) lookups per card.
+    const { data: wishlistItems } = useWishlist(user?.id);
+    const wishlistedIds = useMemo(
+        () => new Set(wishlistItems?.map((w) => w.listing_id) ?? []),
+        [wishlistItems],
+    );
+    const addMutation = useAddToWishlist();
+    const removeMutation = useRemoveFromWishlist();
+
+    const filters = useMemo(() => {
+        const priceFilters =
+            priceRange === "u25" ? { max_price: 25 }
+            : priceRange === "25-100" ? { min_price: 25, max_price: 100 }
+            : priceRange === "100-500" ? { min_price: 100, max_price: 500 }
+            : priceRange === "o500" ? { min_price: 500 }
+            : {};
+        return {
+            ...(searchQuery.trim() !== "" && { query: searchQuery.trim() }),
+            ...(category !== "" && { category_id: category }),
+            ...(listingType !== "" && { type: listingType as "item" | "service" }),
+            ...priceFilters,
+            limit: PAGE_SIZE,
+        };
+    }, [searchQuery, category, listingType, priceRange]);
+
+    const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useSearchListings(filters);
+
     const listingsData = data?.pages.flatMap((page) => page.listings) ?? [];
+
+    function dismissToast() {
+        setToastExiting(true);
+        window.setTimeout(() => { setWishlistToast(null); setToastExiting(false); }, 300);
+    }
 
     // Show wishlist toast from navigation state.
     // setState here is intentional — syncing one-shot router state (external system) into component state.
@@ -53,15 +118,14 @@ export default function Index() {
 
     useEffect(() => {
         if (!wishlistToast) return;
-        const timer = window.setTimeout(() => setWishlistToast(null), 2600);
+        // Start exit animation at 2300ms so the slide-out completes at ~2600ms total.
+        const timer = window.setTimeout(dismissToast, 2300);
         return () => window.clearTimeout(timer);
-    }, [wishlistToast]);
+    }, [wishlistToast]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Trigger next page load when the sentinel element scrolls into view.
     useEffect(() => {
         const target = loadMoreRef.current;
         if (!target) return;
-
         const observer = new IntersectionObserver(
             (entries) => {
                 const entry = entries[0];
@@ -71,29 +135,59 @@ export default function Index() {
             },
             { root: null, rootMargin: "220px", threshold: 0 },
         );
-
         observer.observe(target);
         return () => observer.disconnect();
     }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
     // listingsRefreshKey increments when the user posts a new listing.
-    // We use it as a dependency in a separate effect just to suppress the lint warning —
     // TanStack Query handles the actual refetch via cache invalidation in the form component.
     useEffect(() => {}, [listingsRefreshKey]);
 
+    const displayName = profile?.display_name ?? user?.email ?? "there";
+
+    async function handleWishlistToggle(e: React.MouseEvent, listing: ListingWithDetails) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!user) {
+            navigate("/login");
+            return;
+        }
+        const isAlready = wishlistedIds.has(listing.id);
+        try {
+            if (isAlready) {
+                await removeMutation.mutateAsync({ userId: user.id, listingId: listing.id });
+                setWishlistToast(`"${listing.title}" removed from wishlist`);
+            } else {
+                await addMutation.mutateAsync({ userId: user.id, listingId: listing.id });
+                setWishlistToast(`"${listing.title}" added to your wishlist`);
+            }
+        } catch {
+            setWishlistToast("Could not update wishlist — try again");
+        }
+    }
+
     return (
-        <section className="p-6 sm:p-8">
+        <section className="space-y-4 p-4 sm:p-6">
+            {/* Wishlist toast */}
             {wishlistToast && (
-                <div className="fixed right-5 top-24 z-40 w-[min(92vw,26rem)] rounded-2xl border border-[var(--color-primary)] bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+                <div
+                    className="fixed right-5 top-24 z-40 w-[min(92vw,26rem)] rounded-2xl border p-4 shadow-xl backdrop-blur-sm"
+                    style={{
+                        backgroundColor: "var(--color-surface)",
+                        borderColor: "var(--color-primary)",
+                        animation: toastExiting ? "toastOut 0.3s ease forwards" : "toastIn 0.3s ease forwards",
+                    }}
+                >
                     <div className="flex items-start gap-3">
                         <div className="mt-0.5 rounded-full bg-[var(--color-primary)] px-2 py-1 text-xs font-bold text-[var(--color-text-on-primary)]">
                             SAVED
                         </div>
-                        <p className="flex-1 text-sm font-medium text-black">{wishlistToast}</p>
+                        <p className="flex-1 text-sm font-medium" style={{ color: "var(--color-text)" }}>{wishlistToast}</p>
                         <button
                             type="button"
-                            className="text-sm font-bold text-black/60 transition hover:text-black"
-                            onClick={() => setWishlistToast(null)}
+                            className="text-sm font-bold transition"
+                            style={{ color: "var(--color-text-muted)" }}
+                            onClick={dismissToast}
                             aria-label="Dismiss notification"
                         >
                             x
@@ -102,14 +196,73 @@ export default function Index() {
                 </div>
             )}
 
-            <div className="mb-10 flex flex-wrap items-end gap-3">
-                <div className="w-full max-w-[13rem]">
-                    <label htmlFor="listing-type-filter" className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-black/80">
-                        Type
-                    </label>
+            {/* ── Welcome Banner ── */}
+            <div
+                className="flex flex-col gap-4 rounded-2xl p-5 text-white md:flex-row md:items-center md:justify-between"
+                style={{ backgroundColor: "var(--color-primary)" }}
+            >
+                <div>
+                    <p className="text-2xl font-bold">Welcome back, {displayName}!</p>
+                    <p className="mt-1 text-sm opacity-80">Discover great deals from fellow NJIT students</p>
+                </div>
+                {/* Stat tiles stay white-on-red — intentional design contrast */}
+                <div className="flex shrink-0 gap-3">
+                    {([
+                        { value: statsLoading ? "—" : activeListingsCount, label: "Active Listings" },
+                        { value: statsLoading ? "—" : activeUsersCount, label: "Active Users" },
+                        { value: statsLoading ? "—" : newTodayCount, label: "New Today" },
+                    ] as const).map((tile) => (
+                        <div key={tile.label} className="flex min-w-[80px] flex-col items-center rounded-xl bg-white px-3 py-2 text-black">
+                            <span className="text-lg font-bold leading-none">{String(tile.value)}</span>
+                            <span className="mt-0.5 text-center text-xs text-black/60">{tile.label}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── Browse by Category + Filters (merged) ── */}
+            <div className="rounded-2xl p-5 shadow-sm" style={{ backgroundColor: "var(--color-surface)" }}>
+                {/* Category header */}
+                <div className="mb-3">
+                    <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>Browse by Category</p>
+                </div>
+
+                {/* Category tiles */}
+                <div className="flex gap-4 overflow-x-auto px-1 py-2">
+                    {CATEGORIES.map(({ label, id, icon: Icon, bgClass }) => {
+                        const isActive = category === id;
+                        return (
+                            <button
+                                key={id}
+                                type="button"
+                                aria-pressed={isActive}
+                                className="flex min-w-[72px] flex-col items-center"
+                                onClick={() => setCategory(isActive ? "" : id)}
+                            >
+                                <div
+                                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${bgClass}${isActive ? " ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-surface)]" : ""}`}
+                                >
+                                    <Icon size={26} color="white" />
+                                </div>
+                                <span className="mt-1.5 text-center text-xs font-medium leading-tight" style={{ color: "var(--color-text)" }}>{label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Divider */}
+                <div className="my-4 border-t" style={{ borderColor: "var(--color-border)" }} />
+
+                {/* Filters row */}
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                        <Zap size={16} style={{ color: "var(--color-primary)" }} />
+                        <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Filters</span>
+                    </div>
                     <select
-                        id="listing-type-filter"
-                        className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-lg text-black shadow-sm outline-none transition focus:border-black/30 focus:ring-2 focus:ring-black/10"
+                        aria-label="Listing type"
+                        className="rounded-lg border px-3 py-2 text-sm outline-none"
+                        style={{ backgroundColor: "var(--color-background)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
                         value={listingType}
                         onChange={(e) => setListingType(e.target.value as "" | "item" | "service")}
                     >
@@ -117,114 +270,162 @@ export default function Index() {
                         <option value="item">Item</option>
                         <option value="service">Service</option>
                     </select>
-                </div>
-
-                <div className="w-full max-w-[15rem]">
-                    <label htmlFor="category-filter" className="mb-2 block text-sm font-semibold uppercase tracking-[0.2em] text-black/80">
-                        Category
-                    </label>
                     <select
-                        id="category-filter"
-                        className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-lg text-black shadow-sm outline-none transition focus:border-black/30 focus:ring-2 focus:ring-black/10"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
+                        aria-label="Price range"
+                        className="rounded-lg border px-3 py-2 text-sm outline-none"
+                        style={{ backgroundColor: "var(--color-background)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
+                        value={priceRange}
+                        onChange={(e) => setPriceRange(e.target.value as "" | "u25" | "25-100" | "100-500" | "o500")}
                     >
-                        <option value="">All categories</option>
-                        <option value="6a90f825-6c3c-4060-b5e1-ff394162bb6c">Furniture</option>
-                        <option value="716836e6-f8a2-4cba-aa63-36445e70496e">School Supplies</option>
-                        <option value="854c925a-84f6-4280-9c9e-b1452167bb33">Free Stuff</option>
-                        <option value="95fe7a36-cb29-4c97-9a4d-56dccc56a7de">Transportation</option>
-                        <option value="9f280f6c-d4f8-4178-8e61-059243d5c930">Clothing</option>
-                        <option value="b87122bf-36dc-418c-a489-cb8ad0497f34">Electronics</option>
-                        <option value="be4cc965-718d-4e7d-939f-9ace4dcc837c">Sports & Fitness</option>
-                        <option value="cf2121d7-22b7-4e87-ab1b-801d55ebd4fe">Services</option>
-                        <option value="dc2b319a-1068-4b06-bcb3-11c1f3dd3fa2">Textbooks</option>
-                        <option value="744ab09f-350d-4f75-8b4a-cb84016545ef">Other</option>
+                        <option value="">Any price</option>
+                        <option value="u25">Under $25</option>
+                        <option value="25-100">$25–$100</option>
+                        <option value="100-500">$100–$500</option>
+                        <option value="o500">Over $500</option>
                     </select>
+                    <button
+                        type="button"
+                        className="ml-auto rounded-lg border px-3 py-2 text-sm font-medium transition hover:bg-[var(--color-background)]"
+                        style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
+                        onClick={() => { setListingType(""); setCategory(""); setPriceRange(""); }}
+                    >
+                        Clear Filters
+                    </button>
                 </div>
             </div>
 
-            <p className="mb-10 text-3xl">CATEGORIES</p>
+            {/* ── All Listings ── */}
+            <div>
+                <p className="mb-4 text-xl font-bold" style={{ color: "var(--color-text)" }}>All Listings</p>
 
-            {isLoading && listingsData.length > 0 && (
-                <p className="mb-4 text-sm font-medium text-black/70">Updating listings...</p>
-            )}
+                {isLoading && listingsData.length > 0 && (
+                    <p className="mb-4 text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>Updating listings...</p>
+                )}
 
-            {!isLoading && listingsData.length === 0 ? (
-                <h2>No listings found.</h2>
-            ) : (
-                <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
-                    {isLoading && listingsData.length > 0 && (
-                        <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/20" aria-hidden="true" />
-                    )}
+                {!isLoading && listingsData.length === 0 && !isLoading ? (
+                    <p style={{ color: "var(--color-text-muted)" }}>No listings found.</p>
+                ) : (
+                    <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {isLoading && listingsData.length > 0 && (
+                            <div className="pointer-events-none absolute inset-0 rounded-xl bg-white/10" aria-hidden="true" />
+                        )}
 
-                    {listingsData.map((listing: ListingWithDetails) => (
-                        <Link
-                            key={listing.id}
-                            to={`/listing/${listing.id}`}
-                            state={{ backgroundLocation: location }}
-                            className="block rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-black"
-                        >
-                            <article
-                                className="rounded-xl border p-4 text-left text-black shadow-sm"
-                                style={{
-                                    background: "linear-gradient(180deg, color-mix(in srgb, var(--color-secondary) 26%, white), white)",
-                                    borderColor: "color-mix(in srgb, var(--color-primary) 30%, white)",
-                                }}
+                        {/* Skeleton cards shown on initial load */}
+                        {isLoading && listingsData.length === 0 && Array.from({ length: 6 }).map((_, i) => (
+                            <div
+                                key={i}
+                                className="overflow-hidden rounded-2xl"
+                                style={{ border: "1px solid var(--color-border)", backgroundColor: "var(--color-surface)" }}
                             >
-                                <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-[var(--color-secondary)] text-xs text-black">
-                                    {listing.images?.[0]?.path ? (
-                                        <img
-                                            src={getListingImageUrl(listing.images[0].path)}
-                                            alt={listing.images?.[0]?.alt_text ?? listing.title}
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <span className="text-3xl">📷</span>
-                                    )}
+                                <div className="h-48 w-full" style={shimmerStyle} />
+                                <div className="p-3 space-y-2">
+                                    <div className="h-4 rounded" style={{ ...shimmerStyle, width: "65%" }} />
+                                    <div className="h-4 rounded" style={{ ...shimmerStyle, width: "30%" }} />
+                                    <div className="h-3 rounded" style={{ ...shimmerStyle, width: "45%" }} />
                                 </div>
+                            </div>
+                        ))}
 
-                                <p className="text-lg font-bold leading-tight">{listing.title}</p>
-
-                                <div className="mt-2 flex justify-between text-sm">
-                                    <span className="font-semibold">
-                                        {listing.price_unit ?? "$"}
-                                        {listing.price ?? "0"}
-                                    </span>
-                                    <span className="text-gray-700">
-                                        {listing.category_name ?? "N/A"}
-                                    </span>
-                                </div>
-
-                                <div className="mt-2 flex justify-between text-xs text-gray-700">
-                                    <span>
-                                        {listing.type === "item"
-                                            ? listing.item_details?.condition || "N/A"
-                                            : "Service"}
-                                    </span>
-                                    <span>{listing.created_at?.split("T")[0] ?? "N/A"}</span>
-                                </div>
-
-                                <div
-                                    className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold text-[var(--color-text-on-primary)]"
-                                    style={{ backgroundColor: "var(--color-primary)" }}
+                        {listingsData.map((listing: ListingWithDetails, index: number) => (
+                            <Link
+                                key={listing.id}
+                                to={`/listing/${listing.id}`}
+                                state={{ backgroundLocation: location }}
+                            >
+                                <article
+                                    className="overflow-hidden rounded-2xl shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                    style={{
+                                        backgroundColor: "var(--color-surface)",
+                                        border: "1px solid var(--color-border)",
+                                        animation: "fadeSlideIn 0.35s ease forwards",
+                                        animationDelay: `${Math.min(index, 8) * 40}ms`,
+                                        opacity: 0,
+                                    }}
                                 >
-                                    {listing.status === "active" ? "✓ PUBLISHED" : "📝 DRAFT"}
-                                </div>
-                            </article>
-                        </Link>
-                    ))}
-                </div>)}
+                                    <div className="relative h-48 w-full" style={{ backgroundColor: "var(--color-background-alt)" }}>
+                                        {listing.images?.[0]?.path ? (
+                                            <>
+                                                <img
+                                                    src={getListingImageUrl(listing.images[0].path)}
+                                                    alt={listing.images[0].alt_text ?? listing.title}
+                                                    className="h-full w-full object-cover"
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = "none";
+                                                        const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                                        if (fb) fb.style.display = "flex";
+                                                    }}
+                                                />
+                                                <NoImagePlaceholder title={listing.title} hidden />
+                                            </>
+                                        ) : (
+                                            <NoImagePlaceholder title={listing.title} />
+                                        )}
+                                        {/* Wishlist button */}
+                                        {(() => {
+                                            const saved = wishlistedIds.has(listing.id);
+                                            return (
+                                                <div className="group absolute right-3 top-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => void handleWishlistToggle(e, listing)}
+                                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-2 shadow-md transition ${saved ? "bg-[var(--color-primary)] text-white" : "hover:bg-[var(--color-primary)] hover:text-white"}`}
+                                                        style={saved ? {} : { backgroundColor: "var(--color-surface)", color: "var(--color-text-muted)" }}
+                                                        aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
+                                                    >
+                                                        <Bookmark
+                                                            size={14}
+                                                            className="shrink-0"
+                                                            fill={saved ? "currentColor" : "none"}
+                                                        />
+                                                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs font-medium transition-all duration-200 group-hover:max-w-[96px]">
+                                                            {saved ? "Saved" : "Add to wishlist"}
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                    <div className="p-3">
+                                        <p className="line-clamp-2 font-semibold leading-snug" style={{ color: "var(--color-text)" }}>{listing.title}</p>
+                                        <p className="mt-1.5 text-base font-bold" style={{ color: "var(--color-primary)" }}>
+                                            {listing.price == null ? "Free" : `${listing.price_unit ?? "$"}${listing.price}`}
+                                        </p>
+                                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                            {listing.category_name && (
+                                                <span
+                                                    className="rounded-md px-2 py-0.5 text-xs font-medium"
+                                                    style={{
+                                                        backgroundColor: "color-mix(in srgb, var(--color-primary) 15%, var(--color-surface))",
+                                                        color: "var(--color-primary)",
+                                                    }}
+                                                >
+                                                    {listing.category_name}
+                                                </span>
+                                            )}
+                                            <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${listing.type === "service" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300" : "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300"}`}>
+                                                {listing.type === "service" ? "Service" : "Item"}
+                                            </span>
+                                            {listing.type === "item" && listing.item_details?.condition && (
+                                                <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{listing.item_details.condition}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </article>
+                            </Link>
+                        ))}
+                    </div>
+                )}
 
-            {!isLoading && (
-                <>
-                    <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
-                    {isFetchingNextPage && <p className="mt-6 text-sm text-black/70">Loading more listings...</p>}
-                    {!hasNextPage && listingsData.length > 0 && (
-                        <p className="mt-6 text-sm text-black/70">You&apos;ve reached the end.</p>
-                    )}
-                </>
-            )}
+                {!isLoading && (
+                    <>
+                        <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
+                        {isFetchingNextPage && <p className="mt-6 text-sm" style={{ color: "var(--color-text-muted)" }}>Loading more listings...</p>}
+                        {!hasNextPage && listingsData.length > 0 && (
+                            <p className="mt-6 text-sm" style={{ color: "var(--color-text-muted)" }}>You&apos;ve reached the end.</p>
+                        )}
+                    </>
+                )}
+            </div>
         </section>
     );
 }
