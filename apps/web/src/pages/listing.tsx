@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { createConversation, ensureFreshSession, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist } from "@campus-marketplace/backend";
+import { createConversation, ensureFreshSession, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist, markListingAsSold, ListingAlreadySoldError } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
 import { useConfirm } from "../contexts/ConfirmContext";
@@ -18,6 +18,7 @@ export default function Listing() {
     const [messagingLoading, setMessagingLoading] = useState(false);
     const [publishLoading, setPublishLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [soldLoading, setSoldLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
     // Cached data fetches — no manual useEffect needed.
@@ -54,6 +55,20 @@ export default function Listing() {
             void queryClient.invalidateQueries({ queryKey: wishlistKeys.byUser(user.id) });
         }
     };
+
+    async function handleMarkAsSold(listingId: string, userId: string) {
+        try {
+            const listing = await markListingAsSold(listingId, userId);
+            listing.status = "sold";
+            await refetchListing();
+        } catch (err) {
+            if (err instanceof ListingAlreadySoldError) {
+                await refetchListing();
+            } else {
+                throw err;
+            }
+        }
+    }
 
 
     const formatMissingPublishFields = (fields: string[]) => {
@@ -311,99 +326,120 @@ export default function Listing() {
                                     >
                                         {deleteLoading ? "Deleting..." : "Delete Listing"}
                                     </button>
+                                    <button
+                                        className="inline-flex rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                        type="button"
+                                        disabled={soldLoading || listingData.status === "sold"}
+                                        onClick={async () => {
+                                            const confirmed = await confirm(
+                                                "Mark as Complete?",
+                                                "This will archive the listing and lock all messages on it. This cannot be undone.",
+                                                "Archive"
+                                            );
+                                            if (!confirmed) return;
+                                            setSoldLoading(true);
+                                            try {
+                                                await handleMarkAsSold(listingData.id, user.id);
+                                            } finally {
+                                                setSoldLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        {soldLoading ? "Marking..." : listingData.status === "sold" ? "Completed" : "Mark as Complete"}
+                                    </button>
                                 </div>
                             ) : null}
                         </div>
 
                         <div className="space-y-5">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Price</p>
-                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                            {listingData?.price_unit ?? "$"}
-                                            {listingData?.price ?? "0"}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Category</p>
-                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                            {listingData?.category_name ?? "Uncategorized"}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    {listingData.type === "item" ? (
-                                        <>
-                                            <div>
-                                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Condition</p>
-                                                <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                                    {listingData.item_details?.condition ?? "N/A"}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Quantity</p>
-                                                <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                                    {listingData.item_details?.quantity ?? "N/A"}
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div>
-                                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Duration (minutes)</p>
-                                                <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                                    {listingData.service_details?.duration_minutes ?? "N/A"}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available From</p>
-                                                <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                                    {listingData.service_details?.available_from ?? "N/A"}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    {listingData.type === "service" ? (
-                                        <div>
-                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available To</p>
-                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                                {listingData.service_details?.available_to ?? "N/A"}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Type</p>
-                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                                {listingData.type}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Date Posted</p>
-                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                            {formatDateTime(listingData.created_at)}
-                                        </div>
-                                    </div>
-                                </div>
-
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Location</p>
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Price</p>
                                     <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
-                                        {listingData?.location ?? "N/A"}
+                                        {listingData?.price_unit ?? "$"}
+                                        {listingData?.price ?? "0"}
                                     </div>
                                 </div>
+                                <div>
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Category</p>
+                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                        {listingData?.category_name ?? "Uncategorized"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {listingData.type === "item" ? (
+                                    <>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Condition</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.item_details?.condition ?? "N/A"}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Quantity</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.item_details?.quantity ?? "N/A"}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Duration (minutes)</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.service_details?.duration_minutes ?? "N/A"}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available From</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.service_details?.available_from ?? "N/A"}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {listingData.type === "service" ? (
+                                    <div>
+                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available To</p>
+                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            {listingData.service_details?.available_to ?? "N/A"}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Type</p>
+                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            {listingData.type}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div>
-                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Description</p>
-                                    <div className="min-h-36 rounded-lg border border-black/10 bg-white px-3 py-3 text-sm text-black">
-                                        {listingData?.description ?? "No description provided."}
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Date Posted</p>
+                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                        {formatDateTime(listingData.created_at)}
                                     </div>
                                 </div>
+                            </div>
+
+                            <div>
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Location</p>
+                                <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                    {listingData?.location ?? "N/A"}
+                                </div>
+                            </div>
+
+                            <div>
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Description</p>
+                                <div className="min-h-36 rounded-lg border border-black/10 bg-white px-3 py-3 text-sm text-black">
+                                    {listingData?.description ?? "No description provided."}
+                                </div>
+                            </div>
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4">

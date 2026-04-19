@@ -47,7 +47,7 @@ export default function About() {
 						<div className={isPill ? "pl-2 sm:pl-3" : undefined}>
 							<h2 className="text-2xl font-semibold text-[var(--color-text)]">More information</h2>
 							<p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-								This platform is meant to support the campus community by making it easier for students to connect and exchange useful resources. Always use good judgment when meeting others and follow your school’s safety guidelines.
+								This platform is meant to support the campus community by making it easier for students to connect and exchange useful resources. Always use good judgment when meeting others and follow your school's safety guidelines.
 							</p>
 						</div>
 					</div>
