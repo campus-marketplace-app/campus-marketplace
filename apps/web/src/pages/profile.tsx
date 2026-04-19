@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext, Link, useParams } from "react-router-dom
 import { getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "../hooks/useProfile";
+import { useListingsByUser } from "../hooks/useListings";
 
 type OutletContext = {
     user: SessionUser | null;
@@ -27,9 +28,15 @@ export default function Profile() {
     const [bioError, setBioError] = useState("");
     const [avatarError, setAvatarError] = useState("");
     const [usernameError, setUsernameError] = useState("");
-    const [listingStats, setListingStats] = useState({ draft: 0, published: 0, total: 0 });
     const { userId: viewedUserId } = useParams<{ userId: string }>();
     const isOwner = !viewedUserId || viewedUserId === user?.id;
+
+    const { data: userListings } = useListingsByUser(viewedUserId ?? user?.id);
+    const listingStats = {
+        draft: userListings?.filter((l) => l.status === "draft").length ?? 0,
+        published: userListings?.filter((l) => l.status === "active").length ?? 0,
+        total: userListings?.length ?? 0,
+    };
 
     const { mutateAsync: updateProfileMutation } = useUpdateProfile();
     const { mutateAsync: uploadAvatarMutation } = useUploadAvatar();
@@ -40,6 +47,23 @@ export default function Profile() {
         const file = e.target.files?.[0] || null;
         setAvatar(file);
         setAvatarUrl(file ? URL.createObjectURL(file) : "");
+    };
+
+    const validateUsername = () => {
+        if (!displayName.trim()) {
+            setUsernameError("Username is required");
+            return false;
+        }
+        if (displayName.trim().length > 30) {
+            setUsernameError("Username must be 30 characters or less");
+            return false;
+        }
+        if (xssRegex.test(displayName)) {
+            setUsernameError("Username contains potentially unsafe content");
+            return false;
+        }
+        setUsernameError("");
+        return true;
     };
 
     const validateName = () => {
@@ -106,6 +130,7 @@ export default function Profile() {
             setLastName(parts.slice(1).join(" "));
         }
 
+        if (profileData.display_name) setDisplayName(profileData.display_name);
         if (profileData.bio !== null) setBio(profileData.bio);
         if (profileData.avatar_path !== null) {
             setAvatarUrl(`${getAvatarUrl(profileData.avatar_path)}?t=${Date.now()}`);

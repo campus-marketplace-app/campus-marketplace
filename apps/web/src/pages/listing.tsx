@@ -266,52 +266,54 @@ export default function Listing() {
                         </div>
                     </div>
 
-                        <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
-                            <div>
-                                <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Product Image</p>
-                                <div className="flex min-h-72 items-center justify-center rounded-xl bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
-                                    {listingData?.images?.[0]?.path ? (
-                                        <img
-                                            src={getListingImageUrl(listingData.images[0].path)}
-                                            alt={listingData?.images?.[0]?.alt_text ?? "Listing image"}
-                                            className="h-64 w-full rounded-lg object-cover"
-                                        />
-                                    ) : (
-                                        "PICTURE OF THE PRODUCT"
-                                    )}
-                                </div>
-                                <Link
-                                    to={`/profile/${listingData?.user_id}`}
-                                    className="mt-2 inline-block text-sm text-blue-500 hover:underline"
-                                >
-                                    Owned by {sellerProfile?.display_name ?? ""}
-                                </Link>
-                                {user && listingData.user_id === user.id ? (
-                                    <div className="mt-4 flex flex-col items-start gap-2">
-                                        <button
-                                            className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white"
-                                            type="button"
-                                            onClick={editListing}
-                                        >
-                                            Edit Listing
-                                        </button>
-                                        <button className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-                                            type="button"
-                                            disabled={publishLoading}
-                                            onClick={handlePublish}
-                                        >
-                                            {listingData.status === "draft" ? "Publish" : "Unpublish"}
-                                        </button>
-                                        <button className="inline-flex rounded-xl bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                            type="button"
-                                            disabled={deleteLoading}
-                                            onClick={handleDelete}
-                                        >
-                                            {deleteLoading ? "Deleting..." : "Delete Listing"}
-                                        </button>
-                                    </div>
-                                ) : null}
+                    <div className="mt-5 space-y-5">
+                        <div>
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Product Image</p>
+                            <div className="flex min-h-72 items-center justify-center rounded-xl border border-dashed border-black/20 bg-white p-5 text-center text-sm uppercase text-black/60">
+                                {listingData?.images?.[0]?.path ? (
+                                    <img
+                                        src={getListingImageUrl(listingData.images[0].path)}
+                                        alt={listingData?.images?.[0]?.alt_text ?? "Listing image"}
+                                        className="h-64 w-full rounded-lg object-cover"
+                                    />
+                                ) : (
+                                    "PICTURE OF THE PRODUCT"
+                                )}
                             </div>
+                            <Link
+                                to={`/profile/${listingData?.user_id}`}
+                                className="mt-2 inline-block text-sm font-medium text-[var(--color-primary-dark)] hover:underline"
+                            >
+                                Owned by {sellerProfile?.display_name ?? ""}
+                            </Link>
+                            {user && listingData.user_id === user.id ? (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <button
+                                        className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5"
+                                        type="button"
+                                        onClick={editListing}
+                                    >
+                                        Edit Listing
+                                    </button>
+                                    <button
+                                        className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                                        type="button"
+                                        disabled={publishLoading}
+                                        onClick={handlePublish}
+                                    >
+                                        {listingData.status === "draft" ? "Publish" : "Unpublish"}
+                                    </button>
+                                    <button
+                                        className="inline-flex rounded-lg bg-[var(--color-primary)] px-3 py-2 text-xs font-semibold text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
+                                        type="button"
+                                        disabled={deleteLoading}
+                                        onClick={handleDelete}
+                                    >
+                                        {deleteLoading ? "Deleting..." : "Delete Listing"}
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
 
                         <div className="space-y-5">
                                 <div className="grid grid-cols-2 gap-4">
