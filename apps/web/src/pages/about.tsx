@@ -24,7 +24,7 @@ export default function About() {
 					</div>
 
 					<div className="rounded-lg border border-black/5 bg-[var(--color-surface)] p-3">
-						<div className={isPill ? "pl-2 sm:pl-3" : undefined}>
+						<div className={isPill ? "text-center px-3 sm:px-5" : undefined}>
 							<h2 className="text-2xl font-semibold text-[var(--color-text)]">What you can find</h2>
 							<ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">
 								<li className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export default function About() {
 					</div>
 
 					<div className="rounded-lg border p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--color-accent) 25%, #fff8dc)', borderColor: 'color-mix(in srgb, var(--color-primary) 16%, #d9c47f)' }}>
-						<div className={isPill ? "pl-2 sm:pl-3" : undefined}>
+						<div className={isPill ? "text-center px-3 sm:px-5" : undefined}>
 							<h2 className="text-2xl font-semibold text-[var(--color-text)]">More information</h2>
 							<p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
 								This platform is meant to support the campus community by making it easier for students to connect and exchange useful resources. Always use good judgment when meeting others and follow your school's safety guidelines.

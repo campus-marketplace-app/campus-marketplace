@@ -43,7 +43,8 @@ const WORKFLOWS = [
 ];
 
 export default function Help() {
-	const { schoolName } = useTheme();
+	const { schoolName, radiusId } = useTheme();
+	const isPill = radiusId === "pill";
 
 	return (
 		<section className="bg-[var(--color-secondary)] px-4 py-8 sm:px-6 sm:py-10">
@@ -52,7 +53,7 @@ export default function Help() {
 				style={{ borderColor: "var(--color-border)" }}
 			>
 				{/* Page header */}
-				<div className="mb-5">
+				<div className={`mb-5${isPill ? " text-center px-3 sm:px-5" : ""}`}>
 					<h1 className="text-2xl font-bold text-[var(--color-text)] sm:text-3xl">Help Center</h1>
 					<p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
 						Use this page as a quick guide for common workflows in {schoolName} Marketplace.
@@ -69,8 +70,8 @@ export default function Help() {
 								borderColor: "var(--color-border)",
 							}}
 						>
-							<h2 className="text-base font-semibold text-[var(--color-text)]">{workflow.title}</h2>
-							<ul className="mt-2 space-y-1.5">
+						<h2 className={`text-base font-semibold text-[var(--color-text)]${isPill ? " text-center px-3 sm:px-5" : ""}`}>{workflow.title}</h2>
+						<ul className={`mt-2 space-y-1.5${isPill ? " text-center px-3 sm:px-5" : ""}`}>
 								{workflow.steps.map((step) => (
 									<li key={step} className="flex items-start gap-2 text-sm text-[var(--color-text-muted)]">
 										<span className="mt-2 inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />

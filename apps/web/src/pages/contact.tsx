@@ -23,7 +23,7 @@ export default function Contact() {
 						backgroundColor: "var(--color-surface)",
 					}}
 				>
-					<div className={isPill ? "pl-2 sm:pl-3" : undefined}>
+				<div className={isPill ? "text-center px-3 sm:px-5" : undefined}>
 						<h2 className="text-2xl font-semibold text-[var(--color-text)]">What to include</h2>
 						<ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">
 						<li className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export default function Contact() {
 						<div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius)] text-lg font-bold text-[var(--color-text-on-primary)]" style={{ backgroundColor: "color-mix(in srgb, var(--color-text-on-primary) 18%, transparent)" }}>
 							@
 						</div>
-						<div className={isPill ? "pl-1" : undefined}>
+					<div className={isPill ? "text-center px-3 sm:px-5" : undefined}>
 							<p className="text-3xl font-semibold leading-tight">Email support</p>
 							<a
 								href="mailto:support@campusmarketplace.edu"
