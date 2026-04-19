@@ -26,6 +26,10 @@ export interface AuthResult {
   session: Session | null;
 }
 
+export interface DeactivateAccountResult {
+  success: true;
+}
+
 function isAccountType(value: string): value is AccountType {
   return value === "student" || value === "business";
 }
@@ -127,6 +131,20 @@ export async function signInWithEmail(input: SignInInput): Promise<AuthResult> {
     throw new Error("Sign in did not return a user");
   }
 
+  // Deactivation guard: service client bypasses RLS so this works even for deactivated rows.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("deactivated_at")
+    .eq("user_id", data.user.id)
+    .single<{ deactivated_at: string | null }>();
+
+  if (profile?.deactivated_at) {
+    await supabase.auth.signOut({ scope: "local" });
+    throw new Error(
+      "account_deactivated: This account has been deactivated. Contact support to restore access.",
+    );
+  }
+
   return {
     user: data.user,
     session: data.session ?? null,
@@ -189,6 +207,48 @@ export async function signOutWithTokens(accessToken: string, refreshToken: strin
   if (error) {
     throw new Error(`Failed to sign out: ${error.message}`);
   }
+}
+
+// DEACTIVATE ACCOUNT: stamps deactivated_at on the profile, soft-deletes all
+// non-deleted listings, then invalidates the session. Uses service client so it
+// bypasses RLS. Ownership must be verified by the caller (userId from session).
+export async function deactivateAccount(
+  userId: string,
+  accessToken: string,
+  refreshToken: string,
+): Promise<DeactivateAccountResult> {
+  if (!userId.trim()) {
+    throw new Error("User ID is required");
+  }
+  if (!accessToken.trim()) {
+    throw new Error("Access token is required");
+  }
+  if (!refreshToken.trim()) {
+    throw new Error("Refresh token is required");
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ deactivated_at: new Date().toISOString() })
+    .eq("user_id", userId);
+
+  if (profileError) {
+    throw new Error(`Failed to deactivate account: ${profileError.message}`);
+  }
+
+  const { error: listingsError } = await supabase
+    .from("listings")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .is("deleted_at", null);
+
+  if (listingsError) {
+    throw new Error(`Failed to soft-delete listings: ${listingsError.message}`);
+  }
+
+  await signOutWithTokens(accessToken, refreshToken);
+
+  return { success: true };
 }
 
 // Refreshes an expired access token using a refresh token.

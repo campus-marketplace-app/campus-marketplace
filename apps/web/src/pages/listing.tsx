@@ -57,9 +57,10 @@ export default function Listing() {
     };
 
     async function handleMarkAsSold(listingId: string, userId: string) {
+        await refreshTokens();
         try {
-            const listing = await markListingAsSold(listingId, userId);
-            listing.status = "sold";
+            await markListingAsSold(listingId, userId);
+            invalidateByUser(userId);
             await refetchListing();
         } catch (err) {
             if (err instanceof ListingAlreadySoldError) {
