@@ -1,0 +1,435 @@
+# Listings — Usage Guide
+
+> **Rule:** Never import `@supabase/supabase-js` in the frontend. Use `@campus-marketplace/backend`.
+
+## Import
+
+```ts
+import {
+  getListingById,
+  getListingWithDetails,
+  getListingPublishReadiness,
+  getListingsByUser,
+  searchListings,
+  createListing,
+  publishListing,
+  unpublishListing,
+  updateListing,
+  deleteListing,
+  uploadListingImage,
+  deleteListingImage,
+  getListingImageUrl,
+  upsertItemDetails,
+  upsertServiceDetails,
+} from "@campus-marketplace/backend";
+import type {
+  Listing,
+  ListingWithDetails,
+  ListingImage,
+  ItemDetails,
+  ServiceDetails,
+  ListingImageContentType,
+  UploadListingImageOptions,
+} from "@campus-marketplace/backend";
+```
+
+## Types
+
+```ts
+interface Listing {
+  id: string
+  user_id: string
+  type: "item" | "service"
+  title: string
+  description: string
+  price: number | null
+  price_unit: string | null   // e.g. "/hr", "/month"
+  category_id: string | null
+  status: "draft" | "active" | "closed" | "sold" | "archived"
+  location: string | null
+  created_at: string          // ISO-8601
+  updated_at: string
+}
+
+// ListingWithDetails extends Listing with:
+{
+  item_details: {
+    condition: "new" | "like_new" | "good" | "fair" | "poor"
+    quantity: number
+    expires_at: string | null
+  } | null                    // null when type === "service"
+
+  service_details: {
+    duration_minutes: number
+    price_unit: string | null
+    available_from: string | null  // "HH:MM:SS"
+    available_to: string | null
+  } | null                    // null when type === "item"
+
+  images: Array<{
+    id: string
+    path: string
+    alt_text: string | null
+    order_no: number          // pre-sorted ascending
+  }>
+
+  tags: Array<{ id: string; name: string }>
+  category_name: string | null
+}
+```
+
+---
+
+## getListingById(id) — fetch one listing without details
+
+Use for list/card views where images and tags aren't needed.
+
+```ts
+const listing = await getListingById("listing-uuid");
+```
+
+**Input:** `string` — listing UUID
+**Returns:** `Listing`
+**Throws:** if listing doesn't exist
+
+---
+
+## getListingWithDetails(id) — fetch one listing with everything
+
+Use for detail pages.
+
+```ts
+const listing = await getListingWithDetails("listing-uuid");
+listing.images[0]?.path        // pre-sorted by order_no
+listing.tags                   // [{ id, name }]
+listing.item_details?.condition
+listing.service_details?.duration_minutes
+```
+
+**Input:** `string` — listing UUID
+**Returns:** `ListingWithDetails`
+**Throws:** if listing doesn't exist
+
+---
+
+## getListingsByUser(userId, status?) — fetch a user's listings
+
+Use for seller dashboards or profile pages.
+
+```ts
+const all = await getListingsByUser(session.user.id);
+const active = await getListingsByUser(session.user.id, "active");
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `userId` | `string` | yes | |
+| `status` | `string` | no | omit to get all statuses |
+
+**Returns:** `Listing[]` — sorted newest first, empty array if none
+**Throws:** if `userId` is empty
+
+---
+
+## searchListings(options?) — search and filter the marketplace
+
+```ts
+const results = await searchListings({ query: "graphing calculator" });
+const filtered = await searchListings({ type: "item", max_price: 50, limit: 20, offset: 0 });
+const page2 = await searchListings({ limit: 20, offset: 20 });
+```
+
+| Param | Type | Required | Default | Notes |
+|-------|------|----------|---------|-------|
+| `query` | `string` | no | — | searches title + description |
+| `type` | `"item" \| "service"` | no | — | |
+| `status` | `string` | no | `"active"` | auto-applied for public browse |
+| `category_id` | `string` | no | — | UUID |
+| `min_price` | `number` | no | — | |
+| `max_price` | `number` | no | — | |
+| `user_id` | `string` | no | — | scope to one seller; also disables the active-only default |
+| `limit` | `number` | no | `50` | |
+| `offset` | `number` | no | `0` | for pagination |
+
+**Returns:** `Listing[]` — empty array if no matches
+
+---
+
+## createListing(input) — create a new listing
+
+New listings start as `"draft"`. Call `updateListing` to publish.
+
+```ts
+const listing = await createListing({
+  user_id: session.user.id,
+  title: "TI-84 Plus Calculator",
+  type: "item",
+  price: 40,
+  description: "Good condition, includes case",
+});
+```
+
+| Param | Type | Required | Default |
+|-------|------|----------|---------|
+| `user_id` | `string` | yes | — |
+| `title` | `string` | yes | — |
+| `type` | `"item" \| "service"` | no | `"item"` |
+| `description` | `string` | no | `""` |
+| `price` | `number \| null` | no | `null` |
+| `price_unit` | `string \| null` | no | `null` |
+| `category_id` | `string \| null` | no | `null` |
+| `status` | `string` | no | `"draft"` |
+| `location` | `string \| null` | no | `null` |
+
+**Returns:** `Listing` with DB-generated `id`, `created_at`, `updated_at`
+
+---
+
+## updateListing(id, userId, updates) — edit a listing
+
+Only the owner can update. Pass only the fields you want to change.
+
+```ts
+await updateListing(listing.id, session.user.id, { status: "active" });
+await updateListing(listing.id, session.user.id, { price: 35, location: "Library 2nd floor" });
+```
+
+| Param | Type | Required |
+|-------|------|----------|
+| `id` | `string` | yes |
+| `userId` | `string` | yes |
+| `updates.*` | any `Listing` field except `id` and `user_id` | at least one |
+
+**Returns:** updated `Listing`
+**Throws:** if you don't own the listing, no fields are provided, or publishing is blocked by missing required fields
+
+---
+
+## getListingPublishReadiness(id, userId, updates?) — check if a listing can be published
+
+Use this before publishing to surface missing requirements.
+
+```ts
+const readiness = await getListingPublishReadiness(listing.id, session.user.id);
+
+if (!readiness.isPublishable) {
+  console.log(readiness.missingFields);
+  // e.g. ["images", "location", "item_condition"]
+}
+```
+
+**Missing field keys:**
+- `"title"`
+- `"category_id"`
+- `"price"`
+- `"location"`
+- `"images"`
+- `"item_condition"`
+- `"item_quantity"`
+- `"service_duration_minutes"`
+
+---
+
+## publishListing(id, userId) — publish a draft listing
+
+Sets `status = "active"` only when all publish requirements are complete.
+
+```ts
+await publishListing(listing.id, session.user.id);
+```
+
+**Publish requirements (enforced by backend + DB):**
+- title is non-empty
+- category_id is set
+- price is set
+- location is non-empty
+- at least one listing image exists
+- item listing: condition + quantity >= 1
+- service listing: duration_minutes > 0
+
+If requirements are missing, backend throws `ListingPublishValidationError` with:
+- `code = "LISTING_PUBLISH_VALIDATION_FAILED"`
+- `missingFields = PublishMissingField[]`
+
+---
+
+## unpublishListing(id, userId) — unpublish an active listing
+
+Sets `status = "draft"`.
+
+```ts
+await unpublishListing(listing.id, session.user.id);
+```
+
+---
+
+## deleteListing(id, userId) — soft-delete a listing
+
+Hides the listing from all queries. Data is not permanently removed.
+
+```ts
+await deleteListing(listing.id, session.user.id);
+```
+
+**Input:** `id: string`, `userId: string`
+**Returns:** `void`
+**Throws:** if you don't own the listing
+
+---
+
+## uploadListingImage(listingId, userId, file, contentType, options?) — upload one listing image
+
+Uploads an image object to Supabase Storage and creates the corresponding `listing_images` metadata row.
+Only the listing owner can upload images.
+
+```ts
+const file = fileInput.files?.[0];
+if (!file) throw new Error("No file selected");
+
+const image = await uploadListingImage(
+  listing.id,
+  session.user.id,
+  file,
+  file.type as ListingImageContentType,
+  {
+    alt_text: "Front cover",
+    filename: "cover",
+    // optional: order_no: 0,
+  } satisfies UploadListingImageOptions,
+);
+
+console.log(image.path);
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `listingId` | `string` | yes | listing UUID |
+| `userId` | `string` | yes | must own the listing |
+| `file` | `Blob \| ArrayBuffer \| Uint8Array` | yes | browser `File` is accepted (`File` extends `Blob`) |
+| `contentType` | `"image/jpeg" \| "image/png" \| "image/webp"` | yes | only these MIME types are allowed |
+| `options.alt_text` | `string \| null` | no | defaults to `null` |
+| `options.order_no` | `number` | no | non-negative integer; auto-assigned to next order when omitted |
+| `options.filename` | `string` | no | used as filename prefix; extension comes from `contentType` |
+
+**Returns:** `ListingImage`
+
+**Validation and behavior:**
+- rejects unsupported content type
+- rejects files larger than 5 MB
+- verifies listing ownership before upload
+- if metadata insert fails after storage upload, uploaded object is cleaned up
+
+---
+
+## deleteListingImage(imageId, userId) — delete one listing image
+
+Deletes listing image metadata and removes the underlying storage object.
+Only the listing owner can delete images.
+
+```ts
+await deleteListingImage(imageId, session.user.id);
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `imageId` | `string` | yes | listing image UUID |
+| `userId` | `string` | yes | must own the parent listing |
+
+**Returns:** `void`
+
+---
+
+## getListingImageUrl(imagePath) — build public URL for an image path
+
+Converts a stored image path from `listing_images.path` into a public URL.
+
+```ts
+const publicUrl = getListingImageUrl(listing.images[0].path);
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `imagePath` | `string` | yes | relative storage path, for example `listingId/image-uuid.jpg` |
+
+**Returns:** `string` — public URL
+
+---
+
+## upsertItemDetails(listingId, userId, details) — save item-specific details
+
+Call after `createListing` for `type: "item"` listings. Safe to call again to update.
+
+```ts
+await upsertItemDetails(listing.id, session.user.id, {
+  condition: "like_new",
+  quantity: 1,
+  expires_at: "2026-06-01T00:00:00Z", // omit if no expiry
+});
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `listingId` | `string` | yes | |
+| `userId` | `string` | yes | must own the listing |
+| `details.condition` | `string` | yes | `"new"`, `"like_new"`, `"good"`, `"fair"`, `"poor"` |
+| `details.quantity` | `number` | yes | must be ≥ 1 |
+| `details.expires_at` | `string \| null` | no | ISO-8601 |
+
+**Returns:** `ItemDetails`
+
+---
+
+## upsertServiceDetails(listingId, userId, details) — save service-specific details
+
+Call after `createListing` for `type: "service"` listings.
+
+```ts
+await upsertServiceDetails(listing.id, session.user.id, {
+  duration_minutes: 60,
+  price_unit: "/session",
+  available_from: "09:00:00",
+  available_to: "17:00:00",
+});
+```
+
+| Param | Type | Required | Notes |
+|-------|------|----------|-------|
+| `listingId` | `string` | yes | |
+| `userId` | `string` | yes | must own the listing |
+| `details.duration_minutes` | `number` | yes | must be > 0 |
+| `details.price_unit` | `string \| null` | no | e.g. `"/session"` |
+| `details.available_from` | `string \| null` | no | `"HH:MM:SS"` |
+| `details.available_to` | `string \| null` | no | `"HH:MM:SS"` |
+
+**Returns:** `ServiceDetails`
+
+---
+
+## Error Handling
+
+All functions throw on failure. Wrap calls in `try/catch`:
+
+```ts
+try {
+  const listing = await getListingById(id);
+} catch (err) {
+  console.error(err instanceof Error ? err.message : "Unknown error");
+}
+```
+
+Common errors:
+| Message | Cause |
+|---------|-------|
+| `"Listing not found or you do not have permission to modify it"` | wrong owner or deleted |
+| `"Listing ID is required"` | empty string passed |
+| `"No fields provided to update"` | `updateListing` called with `{}` |
+| `"Item quantity must be at least 1"` | `quantity: 0` passed |
+| `"Unsupported image content type. Allowed types: image/jpeg, image/png, image/webp"` | invalid `contentType` sent to `uploadListingImage` |
+| `"Listing image exceeds max size of 5 MB"` | uploaded file is too large |
+| `"Listing image ID is required"` | empty `imageId` passed to `deleteListingImage` |
+| `"Listing image not found or you do not have permission to delete it"` | image doesn't exist, is deleted, or listing ownership check fails |
+
+## Source
+
+- `apps/backend/src/services/listings.ts`
+- `apps/backend/src/services/listings.types.ts`

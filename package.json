@@ -1,0 +1,31 @@
+{
+  "name": "campus-marketplace",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Multi-school campus marketplace for buying and selling items",
+  "workspaces": [
+    "apps/web",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/backend && npm run build --workspace=apps/web",
+    "lint": "npm run lint --workspace=apps/web && npm run lint --workspace=apps/backend",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspace=apps/backend",
+    "test:coverage": "npm run test:coverage --workspace=apps/backend",
+    "setup": "npm install && npm run build --workspace=apps/backend && npm run dev",
+    "setup:windows": "powershell -ExecutionPolicy Bypass -File dev.ps1",
+    "setup:unix": "bash dev.sh",
+    "seed": "node --env-file=apps/backend/.env.local --import tsx scripts/seed-staging.ts",
+    "seed:wipe": "node --env-file=apps/backend/.env.local --import tsx scripts/seed-staging.ts -- --wipe-only"
+  },
+  "devDependencies": {
+    "supabase": "^1.199.0",
+    "tsx": "^4.19.2"
+  },
+  "engines": {
+    "node": "22.x",
+    "npm": "10.x"
+  }
+}
