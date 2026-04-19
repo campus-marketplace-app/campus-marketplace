@@ -9,3 +9,4 @@ export * from "./services/notifications.js";
 export * from "./services/reports.js";
 export * from "./services/categories.js";
 export * from "./services/blocks.js";
+export * from "./services/stats.js";

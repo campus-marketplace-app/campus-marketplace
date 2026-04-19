@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { User, Bookmark } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getAvatarUrl, type Notification } from '@campus-marketplace/backend';
 import ThemeModeToggle from './theme-mode-toggle';

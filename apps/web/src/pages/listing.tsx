@@ -1,25 +1,37 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { getListingWithDetails, createConversation, ensureFreshSession, getProfile, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist, isWishlisted, } from "@campus-marketplace/backend";
-import type { ListingWithDetails } from "@campus-marketplace/backend";
+import { createConversation, ensureFreshSession, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useListingDetail, useInvalidateListings } from "../hooks/useListings";
+import { useProfile } from "../hooks/useProfile";
+import { useIsWishlisted, wishlistKeys } from "../hooks/useWishlist";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 export default function Listing() {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { user, listingsRefreshKey } = useOutletContext<OutletContext>();
+    const { user } = useOutletContext<OutletContext>();
     const { confirm, alert: showAlert } = useConfirm();
-    const [listingData, setListingData] = useState<ListingWithDetails | null>(null);
     const [messagingLoading, setMessagingLoading] = useState(false);
-    const [displayName, setDisplayName] = useState<string>("");
     const [publishLoading, setPublishLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [unavailableMessage, setUnavailableMessage] = useState<string | null>(null);
-    const [isInWishlist, setIsInWishlist] = useState(false);
+
+    // Cached data fetches — no manual useEffect needed.
+    const { data: listingData, refetch: refetchListing } = useListingDetail(id);
+    const { data: sellerProfile } = useProfile(listingData?.user_id);
+    const isInWishlist = useIsWishlisted(user?.id, listingData?.id);
+    const { invalidateDetail, invalidateByUser, invalidateAll } = useInvalidateListings();
+    const queryClient = useQueryClient();
+
+    // Show unavailable message when listing is inactive and viewer is not the owner.
+    const unavailableMessage =
+        listingData && listingData.status !== "active" && (!user || user.id !== listingData.user_id)
+            ? "This listing is no longer avaible"
+            : null;
 
     const formatDateTime = (value?: string | null) => {
         if (!value) return "N/A";
@@ -33,11 +45,13 @@ export default function Listing() {
 
         if (isInWishlist) {
             await removeFromWishlist(user.id, listingData.id);
-            setIsInWishlist(false);
         } else {
             await addToWishlist(user.id, listingData.id);
-            setIsInWishlist(true);
             navigate("/", { state: { wishlistToast: "Added to your wishlist." } });
+        }
+        // Invalidate the wishlist cache so useIsWishlisted reflects the new state.
+        if (user) {
+            void queryClient.invalidateQueries({ queryKey: wishlistKeys.byUser(user.id) });
         }
     };
 
@@ -117,8 +131,10 @@ export default function Listing() {
                     await showAlert("Missing fields", `This listing cannot be published yet. Please add:\n- ${missingLabels.join("\n- ")}`);
                 } else {
                     await publishListing(listingData.id, user.id);
-                    const updatedListing = await getListingWithDetails(listingData.id);
-                    setListingData(updatedListing);
+                    // Invalidate cache so this listing and the user's listings list both refresh.
+                    invalidateDetail(listingData.id);
+                    invalidateByUser(user.id);
+                    await refetchListing();
                 }
             } catch (error) {
                 console.error("Error publishing listing:", error);
@@ -127,14 +143,14 @@ export default function Listing() {
         else if (listingData.status === "active") {
             try {
                 await unpublishListing(listingData.id, user.id);
-                const updatedListing = await getListingWithDetails(listingData.id);
-                setListingData(updatedListing);
+                invalidateDetail(listingData.id);
+                invalidateByUser(user.id);
+                await refetchListing();
             } catch (error) {
                 console.error("Error unpublishing listing:", error);
             }
         }
         setPublishLoading(false);
-        void listingsRefreshKey;
     };
 
     const handleDelete = async () => {
@@ -157,6 +173,10 @@ export default function Listing() {
         setDeleteLoading(true);
         try {
             await deleteListing(listingData.id, user?.id);
+            // Invalidate this listing's detail and the user's listings list.
+            invalidateDetail(listingData.id);
+            invalidateByUser(user.id);
+            invalidateAll();
             await showAlert("Deleted", "Listing deleted successfully.");
             navigate("/");
         } catch {
@@ -165,7 +185,6 @@ export default function Listing() {
         } finally {
             setDeleteLoading(false);
         }
-        void listingsRefreshKey;
     };
 
     const editListing = () => {
@@ -179,36 +198,8 @@ export default function Listing() {
     useEffect(() => {
         if (!id) {
             navigate("/", { replace: true });
-            return;
         }
-
-        console.log("Listing ID from URL:", id as string);
-
-        const callback = async () => {
-            try {
-                const listing = await getListingWithDetails(id as string);
-
-                if (listing.status !== "active" && (!user || user.id !== listing.user_id)) {
-                    setUnavailableMessage("This listing is no longer avaible");
-                    return;
-                }
-
-                console.log("Listing details:", listing);
-
-                setUnavailableMessage(null);
-                setListingData(listing);
-                if (user) {
-                    setIsInWishlist(await isWishlisted(user.id, listing.id));
-                }
-                const account = await getProfile(listing.user_id);
-                setDisplayName(account.display_name);
-            } catch (error) {
-                console.error("Error fetching listing details:", error);
-                setUnavailableMessage("This listing is no longer avaible");
-            }
-        };
-        callback();
-    }, [id, navigate, user]);
+    }, [id, navigate]);
 
     if (unavailableMessage) {
         return (
@@ -236,7 +227,7 @@ export default function Listing() {
     }
 
     if (!listingData) {
-        return <div className="flex h-screen items-center justify-center text-[var(--color-text-on-primary)]">Loading...</div>;
+        return <div className="flex h-screen items-center justify-center text-[var(--color-text-on-primary)]">Loading...</div>
     }
 
     if (showForm) {
@@ -275,52 +266,52 @@ export default function Listing() {
                         </div>
                     </div>
 
-                    <div className="mt-5 space-y-5">
-                        <div>
-                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Product Image</p>
-                            <div className="flex min-h-72 items-center justify-center rounded-xl border border-dashed border-black/20 bg-white p-5 text-center text-sm uppercase text-black/60">
-                                {listingData?.images?.[0]?.path ? (
-                                    <img
-                                        src={getListingImageUrl(listingData.images[0].path)}
-                                        alt={listingData?.images?.[0]?.alt_text ?? "Listing image"}
-                                        className="h-64 w-full rounded-lg border border-black/10 object-cover"
-                                    />
-                                ) : (
-                                    "PICTURE OF THE PRODUCT"
-                                )}
-                            </div>
-                            <Link
-                                to={`/profile/${listingData?.user_id}`}
-                                className="mt-2 inline-block text-sm font-medium text-[var(--color-primary-dark)] hover:underline"
-                            >
-                                Owned by {displayName}
-                            </Link>
-                            {user && listingData.user_id === user.id ? (
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    <button
-                                        className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5"
-                                        type="button"
-                                        onClick={editListing}
-                                    >
-                                        Edit Listing
-                                    </button>
-                                    <button className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
-                                        type="button"
-                                        disabled={publishLoading}
-                                        onClick={handlePublish}
-                                    >
-                                        {listingData.status === "draft" ? "Publish" : "Unpublish"}
-                                    </button>
-                                    <button className="inline-flex rounded-lg bg-[var(--color-primary)] px-3 py-2 text-xs font-semibold text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
-                                        type="button"
-                                        disabled={deleteLoading}
-                                        onClick={handleDelete}
-                                    >
-                                        {deleteLoading ? "Deleting..." : "Delete Listing"}
-                                    </button>
+                        <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
+                            <div>
+                                <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Product Image</p>
+                                <div className="flex min-h-72 items-center justify-center rounded-xl bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
+                                    {listingData?.images?.[0]?.path ? (
+                                        <img
+                                            src={getListingImageUrl(listingData.images[0].path)}
+                                            alt={listingData?.images?.[0]?.alt_text ?? "Listing image"}
+                                            className="h-64 w-full rounded-lg object-cover"
+                                        />
+                                    ) : (
+                                        "PICTURE OF THE PRODUCT"
+                                    )}
                                 </div>
-                            ) : null}
-                        </div>
+                                <Link
+                                    to={`/profile/${listingData?.user_id}`}
+                                    className="mt-2 inline-block text-sm text-blue-500 hover:underline"
+                                >
+                                    Owned by {sellerProfile?.display_name ?? ""}
+                                </Link>
+                                {user && listingData.user_id === user.id ? (
+                                    <div className="mt-4 flex flex-col items-start gap-2">
+                                        <button
+                                            className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white"
+                                            type="button"
+                                            onClick={editListing}
+                                        >
+                                            Edit Listing
+                                        </button>
+                                        <button className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                            type="button"
+                                            disabled={publishLoading}
+                                            onClick={handlePublish}
+                                        >
+                                            {listingData.status === "draft" ? "Publish" : "Unpublish"}
+                                        </button>
+                                        <button className="inline-flex rounded-xl bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                            type="button"
+                                            disabled={deleteLoading}
+                                            onClick={handleDelete}
+                                        >
+                                            {deleteLoading ? "Deleting..." : "Delete Listing"}
+                                        </button>
+                                    </div>
+                                ) : null}
+                            </div>
 
                         <div className="space-y-5">
                                 <div className="grid grid-cols-2 gap-4">

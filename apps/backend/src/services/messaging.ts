@@ -2,6 +2,7 @@
 // Coordinates reads/writes across public.conversations, public.conversation_participants, and public.messages.
 
 import { supabase } from "../supabase-client.js";
+import type { ListingStatus } from "./listings.types.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,6 +27,8 @@ export interface Conversation {
   is_seller?: boolean;
   // Storage path of the other user's avatar (pass to getAvatarUrl to get a URL).
   other_user_avatar_path?: string | null;
+  // Status of the linked listing ("active", "sold", "draft", etc.). Null if no listing.
+  listing_status?: ListingStatus | null;
 }
 
 export interface Message {
@@ -36,6 +39,16 @@ export interface Message {
   is_read: boolean;
   read_at: string | null;
   created_at: string;
+}
+
+/** Thrown when trying to send a message in a conversation whose linked listing is sold. */
+export class ConversationLockedError extends Error {
+  readonly code = "CONVERSATION_LOCKED";
+
+  constructor() {
+    super("This conversation is locked because the listing has been sold");
+    this.name = "ConversationLockedError";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -82,11 +95,13 @@ async function isParticipant(conversationId: string, userId: string): Promise<bo
   return (data ?? []).length > 0;
 }
 
-// Fetch listing title and owner for a given listing_id.
-async function getListingInfo(listingId: string): Promise<{ title: string; user_id: string } | null> {
+// Fetch listing title, owner, and status for a given listing_id.
+async function getListingInfo(
+  listingId: string,
+): Promise<{ title: string; user_id: string; status: ListingStatus } | null> {
   const { data } = await supabase
     .from("listings")
-    .select("title,user_id")
+    .select("title,user_id,status")
     .eq("id", listingId)
     .single();
 
@@ -273,6 +288,7 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
       unread_count: count ?? 0,
       listing_title: listingInfo?.title,
       is_seller: listingInfo ? listingInfo.user_id === userId : undefined,
+      listing_status: listingInfo?.status ?? null,
     });
   }
 
@@ -335,6 +351,7 @@ export async function getConversation(conversationId: string, userId: string): P
     unread_count: count ?? 0,
     listing_title: listingInfo?.title,
     is_seller: listingInfo ? listingInfo.user_id === userId : undefined,
+    listing_status: listingInfo?.status ?? null,
   };
 }
 
@@ -377,10 +394,30 @@ export async function sendMessage(conversationId: string, senderId: string, cont
   const trimmedContent = content.trim();
   if (!trimmedContent) throw new Error("Message content cannot be empty");
 
-  // Verify sender is a participant.
+  // Verify sender is a participant before any other checks.
   const senderIsParticipant = await isParticipant(conversationId, senderId);
   if (!senderIsParticipant) {
     throw new Error("You are not a participant in this conversation");
+  }
+
+  // Guard: block messages if the linked listing has been sold.
+  const { data: convoCheck } = await supabase
+    .from("conversations")
+    .select("listing_id")
+    .eq("id", conversationId)
+    .is("deleted_at", null)
+    .single();
+
+  if (convoCheck?.listing_id) {
+    const { data: listingCheck } = await supabase
+      .from("listings")
+      .select("status")
+      .eq("id", convoCheck.listing_id)
+      .single();
+
+    if (listingCheck?.status === "sold") {
+      throw new ConversationLockedError();
+    }
   }
 
   // Insert the message.
@@ -473,4 +510,40 @@ export async function archiveConversation(conversationId: string, userId: string
     .eq("id", conversationId);
 
   if (error) throw new Error(`Failed to archive conversation: ${error.message}`);
+}
+
+// Subscribe to updates on any of the given conversations via Supabase Realtime.
+// Calls onChange whenever a conversation row is updated (e.g. last message, unread count).
+// Used by the frontend to replace 15-second polling with event-driven cache invalidation.
+// Returns an object with an unsubscribe function — call it on cleanup/unmount.
+export function subscribeToConversations(
+  conversationIds: string[],
+  onChange: () => void,
+): { unsubscribe: () => void } {
+  if (conversationIds.length === 0) return { unsubscribe: () => {} };
+
+  const channel = supabase
+    .channel(`conversations:${conversationIds.join(",")}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "conversations",
+      },
+      (payload) => {
+        // Only trigger if the update is for one of the conversations we care about.
+        const updatedId = (payload.new as { id: string }).id;
+        if (conversationIds.includes(updatedId)) {
+          onChange();
+        }
+      },
+    )
+    .subscribe();
+
+  return {
+    unsubscribe: () => {
+      supabase.removeChannel(channel);
+    },
+  };
 }
