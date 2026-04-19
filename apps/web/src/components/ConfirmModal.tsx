@@ -4,12 +4,13 @@ type ConfirmModalProps = {
     title: string;
     message: string;
     variant: 'danger' | 'info';
+    confirmLabel?: string;
     onConfirm: () => void;
     onCancel: () => void;
 };
 
 /** Branded confirmation/alert modal — replaces native window.confirm() and alert(). */
-export default function ConfirmModal({ title, message, variant, onConfirm, onCancel }: ConfirmModalProps) {
+export default function ConfirmModal({ title, message, variant, confirmLabel, onConfirm, onCancel }: ConfirmModalProps) {
     const isInfo = variant === 'info';
     const Icon = isInfo ? Info : AlertTriangle;
 
@@ -65,7 +66,7 @@ export default function ConfirmModal({ title, message, variant, onConfirm, onCan
                                 : 'bg-red-600 text-white hover:bg-red-700'
                         }`}
                     >
-                        {isInfo ? 'OK' : 'Delete'}
+                        {isInfo ? 'OK' : (confirmLabel ?? 'Delete')}
                     </button>
                 </div>
             </div>

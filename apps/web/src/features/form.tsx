@@ -284,7 +284,7 @@ export default function Form({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
                 className="absolute inset-0 bg-black/50"
                 onClick={() => {
@@ -294,216 +294,235 @@ export default function Form({
                 }}
             />
 
-            <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="mx-auto w-full max-w-sm">
-                        <label htmlFor="title" className="mb-2 block text-center text-sm font-semibold uppercase tracking-wide text-white">
-                            Title
-                        </label>
-                        <div className="rounded-2xl bg-white px-4 py-3 text-center text-3xl">
+            <div className="relative z-10 max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-b-2xl rounded-t-none bg-white p-5 shadow-xl sm:p-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
+                        <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={onClose}
+                            className="text-sm font-medium text-[var(--color-text-on-primary)] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            Back to Listings
+                        </button>
+
+                        <div className="mt-3 text-center">
+                            <h2 className="text-3xl font-bold tracking-tight text-[var(--color-text-on-primary)]">Create New Listing</h2>
+                            <p className="mt-1 text-sm text-[var(--color-text-on-primary)]/85">Fill out the form below to list your item on the marketplace</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Product Photos</p>
+                        <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-black/20 bg-white p-5 text-center text-sm text-black/60">
+                            {imagePreviewUrl ? (
+                                <img
+                                    src={imagePreviewUrl}
+                                    alt={listingImageLabel}
+                                    className="h-44 w-full max-w-xs rounded-lg border border-black/10 object-cover"
+                                />
+                            ) : (
+                                <>
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/5 text-2xl">📷</div>
+                                    <p className="font-semibold text-black">Add Product Photos</p>
+                                    <p className="text-xs text-black/50">or drag and drop (JPG, PNG • Max 10MB)</p>
+                                </>
+                            )}
+                            <label className="cursor-pointer rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5">
+                                Choose Image
+                                <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="hidden" onChange={handleListingImageChange} />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="title" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                Product Title
+                            </label>
                             <input
                                 id="title"
                                 type="text"
                                 value={listingTitle}
                                 onChange={(e) => setListingTitle(e.target.value)}
-                                className="w-full bg-transparent text-center text-3xl outline-none placeholder:text-black"
+                                placeholder="Enter a catchy title for your listing"
+                                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black/35 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
                             />
                         </div>
-                    </div>
 
-                    <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
-                        <div>
-                            <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-white">Product Image</p>
-                            <div className="flex min-h-72 flex-col items-center justify-center gap-4 bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
-                                {imagePreviewUrl ? (
-                                    <img
-                                        src={imagePreviewUrl}
-                                        alt={listingImageLabel}
-                                        className="h-40 w-full max-w-xs rounded-lg object-cover"
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <p className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Listing Type</p>
+                                <div className="grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-white p-1">
+                                    <input
+                                        type="radio"
+                                        id="item"
+                                        name="listingType"
+                                        value="item"
+                                        checked={listingType === 'item'}
+                                        onChange={() => setListingType('item')}
+                                        className="sr-only"
                                     />
-                                ) : (
-                                    <span>{listingImageLabel}</span>
-                                )}
-                                <label className="cursor-pointer rounded bg-white px-3 py-2 text-xs font-semibold text-black hover:bg-neutral-100">
-                                    Choose Image
-                                    <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="hidden" onChange={handleListingImageChange} />
+                                    <label
+                                        htmlFor="item"
+                                        className={`cursor-pointer rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'item' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
+                                    >
+                                        Item
+                                    </label>
+
+                                    <input
+                                        type="radio"
+                                        id="service"
+                                        name="listingType"
+                                        value="service"
+                                        checked={listingType === 'service'}
+                                        onChange={() => setListingType('service')}
+                                        className="sr-only"
+                                    />
+                                    <label
+                                        htmlFor="service"
+                                        className={`cursor-pointer rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'service' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
+                                    >
+                                        Service
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="price" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                    Price
                                 </label>
+                                <div className="relative rounded-lg border border-black/10 bg-white">
+                                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-black/70">$</span>
+                                    <input
+                                        id="price"
+                                        type="number"
+                                        min={0}
+                                        step="0.01"
+                                        value={listingPrice}
+                                        onChange={(e) => setListingPrice(parseFloat(e.target.value))}
+                                        className="w-full rounded-lg bg-transparent py-2.5 pl-7 pr-4 text-sm outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="category" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                    Category
+                                </label>
+                                <select
+                                    id="category"
+                                    value={listingCategory}
+                                    onChange={(e) => setListingCategory(e.target.value)}
+                                    className="w-full overflow-y-auto rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                    size={1}
+                                >
+                                    <option value="">-- Select --</option>
+                                    <option value="6a90f825-6c3c-4060-b5e1-ff394162bb6c">Furniture</option>
+                                    <option value="716836e6-f8a2-4cba-aa63-36445e70496e">School Supplies</option>
+                                    <option value="854c925a-84f6-4280-9c9e-b1452167bb33">Free Stuff</option>
+                                    <option value="95fe7a36-cb29-4c97-9a4d-56dccc56a7de">Transportation</option>
+                                    <option value="9f280f6c-d4f8-4178-8e61-059243d5c930">Clothing</option>
+                                    <option value="b87122bf-36dc-418c-a489-cb8ad0497f34">Electronics</option>
+                                    <option value="be4cc965-718d-4e7d-939f-9ace4dcc837c">Sports & Fitness</option>
+                                    <option value="dc2b319a-1068-4b06-bcb3-11c1f3dd3fa2">Textbooks</option>
+                                    <option value="744ab09f-350d-4f75-8b4a-cb84016545ef">Other</option>
+                                </select>
                             </div>
                         </div>
 
-                        <div className="space-y-5">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2">
-                                    <p className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">Listing Type</p>
-                                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/15 p-1">
-                                        <input
-                                            type="radio"
-                                            id="item"
-                                            name="listingType"
-                                            value="item"
-                                            checked={listingType === 'item'}
-                                            onChange={() => setListingType('item')}
-                                            className="sr-only"
-                                        />
-                                        <label
-                                            htmlFor="item"
-                                            className={`cursor-pointer rounded-lg border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'item' ? 'border-black bg-black text-white shadow-md ring-2 ring-white/80' : 'border-white/60 bg-transparent text-white hover:bg-white/15'}`}
-                                        >
-                                            Item
+                        <div className="grid grid-cols-2 gap-4">
+                            {listingType === 'item' ? (
+                                <>
+                                    <div>
+                                        <label htmlFor="condition" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                            Condition
                                         </label>
-
-                                        <input
-                                            type="radio"
-                                            id="service"
-                                            name="listingType"
-                                            value="service"
-                                            checked={listingType === 'service'}
-                                            onChange={() => setListingType('service')}
-                                            className="sr-only"
-                                        />
-                                        <label
-                                            htmlFor="service"
-                                            className={`cursor-pointer rounded-lg border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'service' ? 'border-black bg-black text-white shadow-md ring-2 ring-white/80' : 'border-white/60 bg-transparent text-white hover:bg-white/15'}`}
+                                        <select
+                                            id="condition"
+                                            value={listingCondition}
+                                            onChange={(e) => setListingCondition(e.target.value as ItemCondition)}
+                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black"
                                         >
-                                            Service
-                                        </label>
+                                            <option value="new">New</option>
+                                            <option value="like_new">Like New</option>
+                                            <option value="good">Good</option>
+                                            <option value="fair">Fair</option>
+                                            <option value="poor">Poor</option>
+                                        </select>
                                     </div>
-                                </div>
-                                <div>
-                                    <label htmlFor="price" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                        Price
-                                    </label>
-                                    <div className="relative rounded-xl bg-white">
-                                        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-black">$</span>
+                                    <div>
+                                        <label htmlFor="quantity" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                            Quantity
+                                        </label>
                                         <input
-                                            id="price"
+                                            id="quantity"
                                             type="number"
-                                            min={0}
-                                            step="0.01"
-                                            value={listingPrice}
-                                            onChange={(e) => setListingPrice(parseFloat(e.target.value))}
-                                            className="w-full rounded-xl bg-transparent py-3 pl-7 pr-4 text-sm outline-none"
+                                            value={listingQuantity}
+                                            onChange={(e) => setListingQuantity(parseInt(e.target.value, 10))}
+                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black"
+                                            min={1}
+                                            max={99}
                                         />
                                     </div>
-                                </div>
-                                <div>
-                                    <label htmlFor="category" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                        Category
-                                    </label>
-                                    <select
-                                        id="category"
-                                        value={listingCategory}
-                                        onChange={(e) => setListingCategory(e.target.value)}
-                                        className="w-full overflow-y-auto rounded-xl bg-white px-4 py-3 text-sm outline-none"
-                                        size={1}
-                                    >
-                                        <option value="">-- Select --</option>
-                                        <option value="6a90f825-6c3c-4060-b5e1-ff394162bb6c">Furniture</option>
-                                        <option value="716836e6-f8a2-4cba-aa63-36445e70496e">School Supplies</option>
-                                        <option value="854c925a-84f6-4280-9c9e-b1452167bb33">Free Stuff</option>
-                                        <option value="95fe7a36-cb29-4c97-9a4d-56dccc56a7de">Transportation</option>
-                                        <option value="9f280f6c-d4f8-4178-8e61-059243d5c930">Clothing</option>
-                                        <option value="b87122bf-36dc-418c-a489-cb8ad0497f34">Electronics</option>
-                                        <option value="be4cc965-718d-4e7d-939f-9ace4dcc837c">Sports & Fitness</option>
-                                        <option value="dc2b319a-1068-4b06-bcb3-11c1f3dd3fa2">Textbooks</option>
-                                        <option value="744ab09f-350d-4f75-8b4a-cb84016545ef">Other</option>
-                                    </select>
-                                </div>
-                            </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label htmlFor="duration" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                            Duration (minutes)
+                                        </label>
+                                        <input
+                                            id="duration"
+                                            type="number"
+                                            min={1}
+                                            value={durationMinutes}
+                                            onChange={(e) => setDurationMinutes(parseInt(e.target.value, 10) || 0)}
+                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="available-from" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                            Available From
+                                        </label>
+                                        <input
+                                            id="available-from"
+                                            type="time"
+                                            value={availableFrom}
+                                            onChange={(e) => setAvailableFrom(e.target.value)}
+                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label htmlFor="available-to" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                            Available To
+                                        </label>
+                                        <input
+                                            id="available-to"
+                                            type="time"
+                                            value={availableTo}
+                                            onChange={(e) => setAvailableTo(e.target.value)}
+                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                {listingType === 'item' ? (
-                                    <>
-                                        <div>
-                                            <label htmlFor="condition" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                                Condition
-                                            </label>
-                                            <select
-                                                id="condition"
-                                                value={listingCondition}
-                                                onChange={(e) => setListingCondition(e.target.value as ItemCondition)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
-                                            >
-                                                <option value="new">New</option>
-                                                <option value="like_new">Like New</option>
-                                                <option value="good">Good</option>
-                                                <option value="fair">Fair</option>
-                                                <option value="poor">Poor</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="quantity" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                                Quantity
-                                            </label>
-                                            <input
-                                                id="quantity"
-                                                type="number"
-                                                value={listingQuantity}
-                                                onChange={(e) => setListingQuantity(parseInt(e.target.value, 10))}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-black"
-                                                min={1}
-                                                max={99}
-                                            />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div>
-                                            <label htmlFor="duration" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                                Duration (minutes)
-                                            </label>
-                                            <input
-                                                id="duration"
-                                                type="number"
-                                                min={1}
-                                                value={durationMinutes}
-                                                onChange={(e) => setDurationMinutes(parseInt(e.target.value, 10) || 0)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="available-from" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                                Available From
-                                            </label>
-                                            <input
-                                                id="available-from"
-                                                type="time"
-                                                value={availableFrom}
-                                                onChange={(e) => setAvailableFrom(e.target.value)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
-                                            />
-                                        </div>
-                                        <div className="col-span-2">
-                                            <label htmlFor="available-to" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                                Available To
-                                            </label>
-                                            <input
-                                                id="available-to"
-                                                type="time"
-                                                value={availableTo}
-                                                onChange={(e) => setAvailableTo(e.target.value)}
-                                                className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="date" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                    Date
+                                <label htmlFor="date" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                    Date Posted
                                 </label>
                                 <input
                                     id="date"
                                     type="datetime-local"
                                     readOnly={true}
                                     value={listingDate}
-                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none"
+                                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black/70 outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="location" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
+                                <label htmlFor="location" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
                                     Location
                                 </label>
                                 <input
@@ -512,40 +531,40 @@ export default function Form({
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                     placeholder="e.g. Campus Center, Building A"
-                                    className="w-full rounded-xl bg-white px-4 py-3 text-sm outline-none placeholder:text-gray-400"
-                                />
-                            </div>
-
-                            <div>
-                                <label htmlFor="description" className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white">
-                                    Description
-                                </label>
-                                <textarea
-                                    id="description"
-                                    rows={5}
-                                    value={listingDescription}
-                                    onChange={(e) => setListingDescription(e.target.value)}
-                                    className="w-full resize-none rounded-2xl bg-white px-4 py-4 text-sm outline-none placeholder:text-black"
+                                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black/35"
                                 />
                             </div>
                         </div>
+
+                        <div>
+                            <label htmlFor="description" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                Description
+                            </label>
+                            <textarea
+                                id="description"
+                                rows={5}
+                                value={listingDescription}
+                                onChange={(e) => setListingDescription(e.target.value)}
+                                placeholder="Provide a detailed description of your item..."
+                                className="w-full resize-none rounded-lg border border-black/10 bg-white px-3 py-3 text-sm outline-none placeholder:text-black/35"
+                            />
+                        </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-8">
+                    <div className="grid grid-cols-2 gap-3 border-t border-black/10 pt-2">
                         <button
-                            type="button"
+                            type="submit"
                             disabled={isSubmitting}
-                            className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
-                            onClick={onClose}
+                            className="rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            back
+                            Save as Draft
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:bg-gray-400 disabled:text-gray-700 disabled:hover:bg-gray-400"
+                            className="rounded-lg border border-[var(--color-primary-dark)] bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Save draft
+                            + Publish Listing
                         </button>
                     </div>
                 </form>

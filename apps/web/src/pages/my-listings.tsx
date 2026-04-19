@@ -26,14 +26,14 @@ const shimmerStyle: React.CSSProperties = {
     animation: "shimmer 1.4s infinite linear",
 };
 
-function statusBadge(status: string) {
+function statusBadge(status: string, type?: string) {
     switch (status) {
         case "active":
             return { label: "Published", className: "bg-emerald-500 text-white" };
         case "draft":
             return { label: "Draft", className: "bg-gray-400 text-white dark:bg-gray-600" };
         case "sold":
-            return { label: "Sold", className: "bg-[var(--color-primary)] text-white" };
+            return { label: type === "service" ? "Ended" : "Sold", className: "bg-[var(--color-primary)] text-white" };
         case "archived":
             return { label: "Archived", className: "bg-gray-300 text-gray-700 dark:bg-gray-700 dark:text-gray-300" };
         default:
@@ -247,7 +247,7 @@ const MyListings = () => {
                     </p>
                     <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {filteredListings.map((listing: ListingWithDetails, index: number) => {
-                            const badge = statusBadge(listing.status ?? "draft");
+                            const badge = statusBadge(listing.status ?? "draft", listing.type);
                             return (
                                 <div
                                     key={listing.id}
