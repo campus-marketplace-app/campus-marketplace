@@ -79,30 +79,26 @@ export default function Login() {
 
     return (
         <section
-            className="relative flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[var(--color-background-alt)] px-6 py-8"
-            style={loginBgUrl ? { backgroundImage: `url(${loginBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-        >
+                className="relative flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[var(--color-background-alt)] px-6 py-8"
+                style={loginBgUrl ? { backgroundImage: `url(${loginBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+            >
             {/* Dark overlay — improves text contrast while keeping the background photo visible */}
             {loginBgUrl && <div className="absolute inset-0 bg-black/45" />}
 
             <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-12 md:grid-cols-[1.4fr_1fr] md:items-center">
 
                 {/* Left side: welcome text + social media */}
-                <div className="px-2 sm:px-4" style={interFont}>
+                <div className="px-0 sm:px-0 -ml-25" style={interFont}>
                     {/* "Welcome to NJIT / Marketplace" heading — Space Grotesk Bold */}
                     <h2
-                        className="text-5xl font-bold leading-[1.25] text-white sm:text-[48px]"
+                        className="text-5xl font-bold leading-[1.25] text-white sm:text-[49px]"
                         style={spaceGroteskFont}
                     >
-                        Welcome to {schoolName}
-                        <br />
-                        <span style={{ backgroundImage: 'linear-gradient(90deg, rgb(255,255,255) 0%, rgba(255,255,255,0.8) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                            Marketplace
-                        </span>
+                        Welcome to {schoolName} <span style={{ backgroundImage: 'linear-gradient(90deg, rgb(255,255,255) 0%, rgba(255,255,255,0.8) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Marketplace!</span>
                     </h2>
 
                     {/* Description */}
-                    <p className="mt-6 text-lg font-normal leading-relaxed text-white/90">
+                    <p className="mt-6 text-xl font-normal leading-relaxed text-white/90">
                         Campus Marketplace is a student-only platform where {schoolName} students can safely buy,
                         sell, and promote services using verified .edu accounts. Making campus transactions simple,
                         secure, and local.
@@ -218,5 +214,6 @@ export default function Login() {
                 </div>
             </div>
         </section>
+
     );
 }

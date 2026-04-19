@@ -5,9 +5,6 @@ import {
     MessageCircle,
     ShoppingBag,
     ClipboardList,
-    MessageCircleQuestionMark,
-    Mail,
-    ScrollText,
     LogIn,
     LogOut,
     ChevronLeft,
@@ -33,9 +30,6 @@ const NAV_ITEMS = [
     { to: '/messages',     icon: MessageCircle, label: 'Messages',    end: false },
     { to: '/my-listings',  icon: ShoppingBag,   label: 'My Listings', end: false },
     { to: '/wishlist',     icon: ClipboardList, label: 'My Wishlist', end: false },
-    { to: '/about',        icon: ScrollText, label: 'About',       end: false },
-    { to : '/help',        icon: MessageCircleQuestionMark, label: 'Help',        end: false },
-    { to : '/contact',     icon: Mail, label: 'Contact',     end: false },
 ] as const;
 
 export default function Navbar({

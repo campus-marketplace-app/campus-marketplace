@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getAvatarUrl, type Notification } from '@campus-marketplace/backend';
 import ThemeModeToggle from './theme-mode-toggle';
 import NotificationBell from './notification-bell';
+import { AboutModal } from './about-modal';
+import { HelpModal } from './help-modal';
+import { ContactModal } from './contact-modal';
 import type { UserProfile } from "./types";
 
 type HeaderProps = {
@@ -32,6 +36,9 @@ export default function PageHeader({
     onNotificationClick,
 }: HeaderProps) {
     const { schoolName } = useTheme();
+    const [showAboutModal, setShowAboutModal] = useState(false);
+    const [showHelpModal, setShowHelpModal] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
 
     const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path) : null;
 
@@ -83,54 +90,60 @@ export default function PageHeader({
                     </div>
                 )}
 
-                {/* Right — auth controls + cart + theme toggle */}
-                <div className="flex items-center gap-3 ml-auto shrink-0">
-                    {isRegistering ? (
-                        isLoggedIn ? (
-                            <Link
-                                to="/profile"
-                                className="flex items-center gap-1.5 text-[var(--color-text-on-primary)] hover:opacity-80 transition-opacity"
-                            >
-                                {avatarUrl ? (
-                                    <img
-                                        key={avatarCacheBust}
-                                        src={`${avatarUrl}?v=${avatarCacheBust}`}
-                                        alt="avatar"
-                                        className="h-7 w-7 object-cover"
-                                        style={{ borderRadius: '9999px' }}
-                                    />
-                                ) : (
-                                    <User size={15} className="shrink-0" />
-                                )}
-                                <span className="hidden sm:block max-w-24 truncate text-sm">
-                                    {profile?.display_name || 'Profile'}
-                                </span>
-                            </Link>
-                        ) : (
-                            <Link to="/login" className="text-sm text-[var(--color-text-on-primary)] hover:opacity-80">
-                                Login
-                            </Link>
-                        )
-                    ) : (
-                        /* Login/signup pages — show marketing links */
-                        <div className="flex items-center gap-6">
-                            <Link to="/about" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">About</Link>
-                            <Link to="/help" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Help</Link>
-                            <Link to="/contact" className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80">Contact</Link>
-                        </div>
-                    )}
+                {/* Right — auth controls + notifications + buttons */}
+                <div className="flex items-center gap-6 ml-auto shrink-0">
+                    {/* User profile and notifications section */}
+                    <div className="flex items-center gap-4">
+                        {isRegistering ? (
+                            isLoggedIn ? (
+                                <Link
+                                    to="/profile"
+                                    className="flex items-center gap-1.5 text-[var(--color-text-on-primary)] hover:opacity-80 transition-opacity"
+                                >
+                                    {avatarUrl ? (
+                                        <img
+                                            key={avatarCacheBust}
+                                            src={`${avatarUrl}?v=${avatarCacheBust}`}
+                                            alt="avatar"
+                                            className="h-7 w-7 object-cover"
+                                            style={{ borderRadius: '9999px' }}
+                                        />
+                                    ) : (
+                                        <User size={15} className="shrink-0" />
+                                    )}
+                                    <span className="hidden sm:block max-w-24 truncate text-sm">
+                                        {profile?.display_name || 'Profile'}
+                                    </span>
+                                </Link>
+                            ) : (
+                                <Link to="/login" className="text-sm text-[var(--color-text-on-primary)] hover:opacity-80">
+                                    Login
+                                </Link>
+                            )
+                        ) : null}
 
-                    {isRegistering && isLoggedIn && (
-                        <NotificationBell
-                            notifications={notifications}
-                            onMarkAllRead={onMarkAllRead || (() => {})}
-                            onNotificationClick={onNotificationClick || (() => {})}
-                        />
-                    )}
+                        {isRegistering && isLoggedIn && (
+                            <NotificationBell
+                                notifications={notifications}
+                                onMarkAllRead={onMarkAllRead || (() => {})}
+                                onNotificationClick={onNotificationClick || (() => {})}
+                            />
+                        )}
+                    </div>
 
-                    {isRegistering && <ThemeModeToggle />}
+                    {/* About, Help, Contact buttons */}
+                    <div className="flex items-center gap-6 border-l border-white/20 pl-6">
+                        <button onClick={() => setShowAboutModal(true)} className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80 transition-opacity">About</button>
+                        <button onClick={() => setShowHelpModal(true)} className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80 transition-opacity">Help</button>
+                        <button onClick={() => setShowContactModal(true)} className="text-xs font-semibold uppercase tracking-wide text-white hover:opacity-80 transition-opacity">Contact</button>
+                    </div>
                 </div>
             </div>
+
+            {/* Modals */}
+            <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
+            <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
+            <ContactModal isOpen={showContactModal} onClose={() => setShowContactModal(false)} />
         </nav>
     );
 }
