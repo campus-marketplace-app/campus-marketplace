@@ -31,7 +31,7 @@ export default function PageHeader({
     onMarkAllRead,
     onNotificationClick,
 }: HeaderProps) {
-    const { schoolName, logoUrl } = useTheme();
+    const { schoolName } = useTheme();
 
     const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path) : null;
 
@@ -44,18 +44,24 @@ export default function PageHeader({
 
                 {/* Left — logo + school name */}
                 <Link to="/" className="flex items-center gap-3 shrink-0 text-[var(--color-text-on-primary)] hover:opacity-90 transition-opacity">
-                    <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center bg-white shadow-md"
-                        style={{ borderRadius: '8px' }}
-                    >
-                        {/* borderRadius hardcoded — logo box must always be a rounded square
-                            regardless of the user's chosen theme radius setting */}
-                        {logoUrl
-                            ? <img src={logoUrl} alt={schoolName} className="h-6 w-auto" />
-                            : <span className="text-base font-bold text-[var(--color-primary-dark)]">
-                                {schoolName.charAt(0)}
-                              </span>
-                        }
+                    <div className="size-14 rounded-full flex items-center justify-center shadow-2xl overflow-hidden border-4" style={{background: '#99040B', borderColor: '#FFFFFF'}}>
+                      <svg viewBox="0 0 40 40" className="w-full h-full">
+                        {/* Shopping bag body - white */}
+                        <path d="M 10 16 L 8 30 C 8 31 9 32 10 32 L 30 32 C 31 32 32 31 32 30 L 30 16 Z" fill="white" stroke="white" strokeWidth="0.5"/>
+
+                        {/* Bag handle - white */}
+                        <path d="M 12 14 C 12 10 14.5 8 20 8 C 25.5 8 28 10 28 14" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+
+                        {/* Eyes - dots */}
+                        <circle cx="15" cy="20" r="1.5" fill="#780006"/>
+                        <circle cx="25" cy="20" r="1.5" fill="#780006"/>
+
+                        {/* Smile */}
+                        <path d="M 14 24 Q 20 27 26 24" fill="none" stroke="#780006" strokeWidth="2" strokeLinecap="round"/>
+
+                        {/* Bottom stripe - white */}
+                        <path d="M 10 28 L 8 30 C 8 31 9 32 10 32 L 30 32 C 31 32 32 31 32 30 L 30 28 Z" fill="white"/>
+                      </svg>
                     </div>
                     <span className="hidden sm:block text-base font-bold tracking-tight whitespace-nowrap">
                         {schoolName} Marketplace
