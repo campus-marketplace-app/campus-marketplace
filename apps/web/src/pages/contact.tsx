@@ -57,7 +57,6 @@ export default function Contact() {
 								support@campusmarketplace.edu
 							</a>
 							<p className="mt-2 text-sm text-[var(--color-text-on-primary)]/85">
-								Use this placeholder email for now. You can swap it later with your real support address.
 							</p>
 						</div>
 					</div>
