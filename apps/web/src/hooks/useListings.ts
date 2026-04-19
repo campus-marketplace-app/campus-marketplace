@@ -29,6 +29,8 @@ export function useSearchListings(filters: {
   query?: string
   category_id?: string
   type?: 'item' | 'service'
+  min_price?: number
+  max_price?: number
   limit: number
 }) {
   return useInfiniteQuery({

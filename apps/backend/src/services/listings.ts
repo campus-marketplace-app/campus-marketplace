@@ -408,6 +408,121 @@ export async function unpublishListing(id: string, userId: string): Promise<List
   return updateListing(id, userId, { status: "draft" });
 }
 
+/** Error thrown when attempting to mark a listing as sold that is already sold. */
+export class ListingAlreadySoldError extends Error {
+  readonly code = "LISTING_ALREADY_SOLD";
+
+  constructor() {
+    super("This listing is already marked as sold");
+    this.name = "ListingAlreadySoldError";
+  }
+}
+
+/**
+ * Marks a listing as sold.
+ *
+ * Removes it from public search, keeps it visible to the seller,
+ * and sends a listing_sold notification to all users who wishlisted it
+ * or have an open conversation about it (excluding the seller).
+ *
+ * param listingId - UUID of the listing to mark as sold.
+ * param userId - UUID of the seller (must own the listing).
+ * returns The updated Listing record with status "sold".
+ * throws Error if the listing does not exist or you do not have permission to modify it.
+ * throws ListingAlreadySoldError if already sold.
+ */
+export async function markListingAsSold(listingId: string, userId: string): Promise<Listing> {
+  if (!listingId.trim()) throw new Error("Listing ID is required");
+  if (!userId.trim()) throw new Error("User ID is required");
+
+  // Atomically update to "sold" only if we own it and it's not already sold.
+  const { data: updated, error: updateError } = await supabase
+    .from("listings")
+    .update({ status: "sold" })
+    .eq("id", listingId)
+    .eq("user_id", userId)
+    .neq("status", "sold")
+    .is("deleted_at", null)
+    .select(listingSelect)
+    .single<ListingRow>();
+
+  if (updateError || !updated) {
+    // One read on the failure path to give a precise error.
+    const { data: check } = await supabase
+      .from("listings")
+      .select("status,user_id")
+      .eq("id", listingId)
+      .is("deleted_at", null)
+      .maybeSingle();
+
+    if (!check) throw new Error("Listing not found");
+    if (check.user_id !== userId) throw new Error("Listing not found or you do not have permission to modify it");
+    if (check.status === "sold") throw new ListingAlreadySoldError();
+    throw new Error(`Failed to mark listing as sold: ${updateError?.message ?? "no data returned"}`);
+  }
+
+  // 4. Collect user IDs from wishlists (excluding the seller)
+  const { data: wishlistRows } = await supabase
+    .from("wishlists")
+    .select("user_id")
+    .eq("listing_id", listingId)
+    .neq("user_id", userId);
+
+  const wishlistUserIds: string[] = (wishlistRows ?? []).map(
+    (r: { user_id: string }) => r.user_id,
+  );
+
+  // 5. Collect user IDs from conversations linked to this listing (excluding seller)
+  // Two-step: first find conversation IDs for this listing, then find participants.
+  const { data: linkedConvos } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("listing_id", listingId)
+    .is("deleted_at", null);
+
+  const linkedConvoIds = (linkedConvos ?? []).map((r: { id: string }) => r.id);
+
+  const conversationUserIds: string[] = [];
+  if (linkedConvoIds.length > 0) {
+    const { data: participantRows } = await supabase
+      .from("conversation_participants")
+      .select("user_id")
+      .in("conversation_id", linkedConvoIds)
+      .neq("user_id", userId)
+      .is("left_at", null);
+
+    conversationUserIds.push(
+      ...(participantRows ?? []).map((r: { user_id: string }) => r.user_id),
+    );
+  }
+
+  // 6. Deduplicate (wishlist and conversation lists may overlap).
+  // The seller is excluded at the DB level in both queries, but the filter
+  // here guards the edge case where a seller wishlists their own listing.
+  const notifyUserIds = [
+    ...new Set([...wishlistUserIds, ...conversationUserIds].filter((id) => id !== userId)),
+  ];
+
+  // 7. Batch-insert notifications (skip if no one to notify)
+  if (notifyUserIds.length > 0) {
+    const notifications = notifyUserIds.map((notifyUserId) => ({
+      user_id: notifyUserId,
+      type: "listing_sold",
+      payload: { listing_id: listingId, listing_title: updated.title },
+    }));
+
+    const { error: notifyError } = await supabase.from("notifications").insert(notifications);
+    if (notifyError) {
+      console.warn(
+        `[markListingAsSold] Failed to insert sold notifications for listing ${listingId}:`,
+        notifyError.message,
+      );
+    }
+  }
+
+  return mapListingRow(updated);
+}
+
 /**
  * Soft-deletes a listing by setting `deleted_at`. Only the listing's owner may delete it.
  *

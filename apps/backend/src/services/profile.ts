@@ -17,6 +17,7 @@ export interface UserProfile {
   account_type: AccountType;
   created_at: string;
   updated_at: string;
+  deactivated_at: string | null;
 }
 
 // Input shape for creating/upserting profiles.
@@ -38,7 +39,7 @@ export interface UpdateProfileInput {
   avatar_path?: string | null;
 }
 
-const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,account_type,created_at,updated_at";
+const profileSelect = "user_id,display_name,first_name,last_name,bio,avatar_path,account_type,created_at,updated_at,deactivated_at";
 
 // GET: Loads one user's profile by auth user ID. Returns a user profile, otherwise throws an error.
 export async function getProfile(userId: string): Promise<UserProfile> {

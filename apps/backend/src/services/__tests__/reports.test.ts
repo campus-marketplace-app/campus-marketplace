@@ -129,4 +129,30 @@ describe("reports service", () => {
     );
     await expect(createReport("reporter-1", null, "user-2", "")).rejects.toThrow("Reason is required");
   });
+
+  it("throws when reported listing is missing or deleted", async () => {
+    enqueueResponse({ table: "listings", operation: "select", data: null, error: { message: "not found" } });
+
+    await expect(createReport("reporter-1", "listing-1", null, "Spam")).rejects.toThrow(
+      "Reported listing not found or has been deleted",
+    );
+  });
+
+  it("throws when report insert fails", async () => {
+    enqueueResponse({ table: "listings", operation: "select", data: { id: "listing-1" }, error: null });
+    enqueueResponse({ table: "reports", operation: "insert", data: null, error: { message: "insert failed" } });
+
+    await expect(createReport("reporter-1", "listing-1", null, "Spam")).rejects.toThrow(
+      "Failed to create report: insert failed",
+    );
+  });
+
+  it("throws when report insert returns no data", async () => {
+    enqueueResponse({ table: "listings", operation: "select", data: { id: "listing-1" }, error: null });
+    enqueueResponse({ table: "reports", operation: "insert", data: null, error: null });
+
+    await expect(createReport("reporter-1", "listing-1", null, "Spam")).rejects.toThrow(
+      "Create report did not return data",
+    );
+  });
 });

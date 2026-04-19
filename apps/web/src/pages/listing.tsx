@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useOutletContext, Link } from "react-router-dom";
-import { createConversation, ensureFreshSession, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist } from "@campus-marketplace/backend";
+import { createConversation, ensureFreshSession, publishListing, unpublishListing, deleteListing, getListingImageUrl, getListingPublishReadiness, addToWishlist, removeFromWishlist, markListingAsSold, ListingAlreadySoldError } from "@campus-marketplace/backend";
 import type { OutletContext } from "../features/types";
 import Form from "../features/form";
 import { useConfirm } from "../contexts/ConfirmContext";
@@ -18,6 +18,7 @@ export default function Listing() {
     const [messagingLoading, setMessagingLoading] = useState(false);
     const [publishLoading, setPublishLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [soldLoading, setSoldLoading] = useState(false);
     const [showForm, setShowForm] = useState(false);
 
     // Cached data fetches — no manual useEffect needed.
@@ -54,6 +55,21 @@ export default function Listing() {
             void queryClient.invalidateQueries({ queryKey: wishlistKeys.byUser(user.id) });
         }
     };
+
+    async function handleMarkAsSold(listingId: string, userId: string) {
+        await refreshTokens();
+        try {
+            await markListingAsSold(listingId, userId);
+            invalidateByUser(userId);
+            await refetchListing();
+        } catch (err) {
+            if (err instanceof ListingAlreadySoldError) {
+                await refetchListing();
+            } else {
+                throw err;
+            }
+        }
+    }
 
 
     const formatMissingPublishFields = (fields: string[]) => {
@@ -203,19 +219,23 @@ export default function Listing() {
 
     if (unavailableMessage) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-                <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
-                <section className="relative z-10 w-full max-w-xl p-6 sm:p-8">
-                    <div className="rounded-sm bg-[var(--color-primary)] p-8 text-center shadow-lg sm:p-10">
-                        <p className="text-2xl font-semibold text-[var(--color-text-on-primary)]">{unavailableMessage}</p>
-                        <button
-                            type="button"
-                            className="mt-6 bg-[var(--color-accent)] px-8 py-2 text-xl text-black transition hover:bg-white"
-                            onClick={() => navigate("/", { replace: true })}
-                        >
-                            Back to marketplace
-                        </button>
+                <section className="relative z-10 w-full max-w-[760px]">
+                    <div className="overflow-hidden rounded-b-2xl rounded-t-none bg-white shadow-xl">
+                        <div className="bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 text-center sm:px-6">
+                            <p className="text-2xl font-semibold text-[var(--color-text-on-primary)]">{unavailableMessage}</p>
+                        </div>
+                        <div className="px-5 py-5 text-center sm:px-6">
+                            <button
+                                type="button"
+                                className="rounded-lg border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/5"
+                                onClick={() => navigate("/", { replace: true })}
+                            >
+                                Back to marketplace
+                            </button>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -241,165 +261,195 @@ export default function Listing() {
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-gray-600/55" onClick={() => navigate(-1)} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
-            <section className="relative z-10 w-full p-6 sm:p-8">
-                <div className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-sm bg-[var(--color-primary)] p-6 shadow-lg sm:p-10">
-                    <div className="space-y-8">
-                        <div className="mx-auto w-full max-w-sm">
-                            <p className="mb-2 text-center text-sm font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Title</p>
-                            <div className="rounded-2xl bg-white px-4 py-3 text-center text-3xl text-black">
+            <section className="relative z-10 w-full max-w-[760px]">
+                <div className="max-h-[92vh] overflow-y-auto rounded-b-2xl rounded-t-none bg-white p-5 shadow-xl sm:p-6">
+                    <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
+                            className="text-sm font-medium text-[var(--color-text-on-primary)] underline-offset-2 hover:underline"
+                        >
+                            Back to Listings
+                        </button>
+                        <div className="mt-3 text-center">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--color-text-on-primary)]/85">Listing Details</p>
+                            <h2 className="mt-1 text-3xl font-bold tracking-tight text-[var(--color-text-on-primary)]">
                                 {listingData?.title ?? "Untitled listing"}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 space-y-5">
+                        <div>
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Product Image</p>
+                            <div className="flex min-h-72 items-center justify-center rounded-xl border border-dashed border-black/20 bg-white p-5 text-center text-sm uppercase text-black/60">
+                                {listingData?.images?.[0]?.path ? (
+                                    <img
+                                        src={getListingImageUrl(listingData.images[0].path)}
+                                        alt={listingData?.images?.[0]?.alt_text ?? "Listing image"}
+                                        className="h-64 w-full rounded-lg object-cover"
+                                    />
+                                ) : (
+                                    "PICTURE OF THE PRODUCT"
+                                )}
                             </div>
+                            <Link
+                                to={`/profile/${listingData?.user_id}`}
+                                className="mt-2 inline-block text-sm font-medium text-[var(--color-primary-dark)] hover:underline"
+                            >
+                                Owned by {sellerProfile?.display_name ?? ""}
+                            </Link>
+                            {user && listingData.user_id === user.id ? (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <button
+                                        className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5"
+                                        type="button"
+                                        onClick={editListing}
+                                    >
+                                        Edit Listing
+                                    </button>
+                                    <button
+                                        className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                                        type="button"
+                                        disabled={publishLoading}
+                                        onClick={handlePublish}
+                                    >
+                                        {listingData.status === "draft" ? "Publish" : "Unpublish"}
+                                    </button>
+                                    <button
+                                        className="inline-flex rounded-lg bg-[var(--color-primary)] px-3 py-2 text-xs font-semibold text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
+                                        type="button"
+                                        disabled={deleteLoading}
+                                        onClick={handleDelete}
+                                    >
+                                        {deleteLoading ? "Deleting..." : "Delete Listing"}
+                                    </button>
+                                    <button
+                                        className="inline-flex rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                        type="button"
+                                        disabled={soldLoading || listingData.status === "sold"}
+                                        onClick={async () => {
+                                            const confirmed = await confirm(
+                                                "Mark as Complete?",
+                                                "This will archive the listing and lock all messages on it. This cannot be undone.",
+                                                "Archive"
+                                            );
+                                            if (!confirmed) return;
+                                            setSoldLoading(true);
+                                            try {
+                                                await handleMarkAsSold(listingData.id, user.id);
+                                            } finally {
+                                                setSoldLoading(false);
+                                            }
+                                        }}
+                                    >
+                                        {soldLoading ? "Marking..." : listingData.status === "sold" ? "Completed" : "Mark as Complete"}
+                                    </button>
+                                </div>
+                            ) : null}
                         </div>
 
-                        <div className="grid gap-8 md:grid-cols-[1.1fr_1.4fr]">
+                        <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Price</p>
+                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                        {listingData?.price_unit ?? "$"}
+                                        {listingData?.price ?? "0"}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Category</p>
+                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                        {listingData?.category_name ?? "Uncategorized"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {listingData.type === "item" ? (
+                                    <>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Condition</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.item_details?.condition ?? "N/A"}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Quantity</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.item_details?.quantity ?? "N/A"}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Duration (minutes)</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.service_details?.duration_minutes ?? "N/A"}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available From</p>
+                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                                {listingData.service_details?.available_from ?? "N/A"}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {listingData.type === "service" ? (
+                                    <div>
+                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available To</p>
+                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            {listingData.service_details?.available_to ?? "N/A"}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Type</p>
+                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            {listingData.type}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Date Posted</p>
+                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                        {formatDateTime(listingData.created_at)}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
-                                <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Product Image</p>
-                                <div className="flex min-h-72 items-center justify-center rounded-xl bg-[var(--color-accent)] p-6 text-center text-sm uppercase text-black">
-                                    {listingData?.images?.[0]?.path ? (
-                                        <img
-                                            src={getListingImageUrl(listingData.images[0].path)}
-                                            alt={listingData?.images?.[0]?.alt_text ?? "Listing image"}
-                                            className="h-64 w-full rounded-lg object-cover"
-                                        />
-                                    ) : (
-                                        "PICTURE OF THE PRODUCT"
-                                    )}
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Location</p>
+                                <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                    {listingData?.location ?? "N/A"}
                                 </div>
-                                <Link
-                                    to={`/profile/${listingData?.user_id}`}
-                                    className="mt-2 inline-block text-sm text-blue-500 hover:underline"
-                                >
-                                    Owned by {sellerProfile?.display_name ?? ""}
-                                </Link>
-                                {user && listingData.user_id === user.id ? (
-                                    <div className="mt-4 flex flex-col items-start gap-2">
-                                        <button
-                                            className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white"
-                                            type="button"
-                                            onClick={editListing}
-                                        >
-                                            Edit Listing
-                                        </button>
-                                        <button className="inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-                                            type="button"
-                                            disabled={publishLoading}
-                                            onClick={handlePublish}
-                                        >
-                                            {listingData.status === "draft" ? "Publish" : "Unpublish"}
-                                        </button>
-                                        <button className="inline-flex rounded-xl bg-red-500 px-4 py-2 text-sm text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                            type="button"
-                                            disabled={deleteLoading}
-                                            onClick={handleDelete}
-                                        >
-                                            {deleteLoading ? "Deleting..." : "Delete Listing"}
-                                        </button>
-                                    </div>
-                                ) : null}
                             </div>
 
-                            <div className="space-y-5">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Price</p>
-                                        <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                            {listingData?.price_unit ?? "$"}
-                                            {listingData?.price ?? "0"}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Category</p>
-                                        <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                            {listingData?.category_name ?? "Uncategorized"}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    {listingData.type === "item" ? (
-                                        <>
-                                            <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Condition</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                                    {listingData.item_details?.condition ?? "N/A"}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Quantity</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                                    {listingData.item_details?.quantity ?? "N/A"}
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Duration (minutes)</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                                    {listingData.service_details?.duration_minutes ?? "N/A"}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Available From</p>
-                                                <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                                    {listingData.service_details?.available_from ?? "N/A"}
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    {listingData.type === "service" ? (
-                                        <div>
-                                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Available To</p>
-                                            <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                                {listingData.service_details?.available_to ?? "N/A"}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Type</p>
-                                            <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                                {listingData.type}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Date Posted</p>
-                                        <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                            {formatDateTime(listingData.created_at)}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Location</p>
-                                    <div className="rounded-xl bg-white px-4 py-3 text-sm text-black">
-                                        {listingData?.location ?? "N/A"}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-on-primary)]">Description</p>
-                                    <div className="min-h-36 rounded-2xl bg-white px-4 py-4 text-sm text-black">
-                                        {listingData?.description ?? "No description provided."}
-                                    </div>
+                            <div>
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Description</p>
+                                <div className="min-h-36 rounded-lg border border-black/10 bg-white px-3 py-3 text-sm text-black">
+                                    {listingData?.description ?? "No description provided."}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-8">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4">
                             <button
                                 type="button"
-                                className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white"
+                                className="rounded-lg border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/5"
                                 onClick={() => navigate(-1)}
                             >
-                                back
+                                Back
                             </button>
 
                             {/* Only show "Message Seller" if logged in and not viewing your own listing */}
@@ -407,7 +457,7 @@ export default function Listing() {
                                 <button
                                     type="button"
                                     disabled={messagingLoading}
-                                    className="bg-[var(--color-accent)] px-8 py-2 text-2xl text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-lg border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                                     onClick={async () => {
                                         setMessagingLoading(true);
                                         try {
@@ -439,7 +489,7 @@ export default function Listing() {
                             {user && listingData.user_id !== user.id ? (
                                 <button
                                     type="button"
-                                    className={`px-8 py-2 text-2xl text-black transition ${isInWishlist ? "bg-gray-300 hover:bg-gray-200" : "bg-[var(--color-accent)] hover:bg-white"}`}
+                                    className={`rounded-lg px-4 py-2 text-sm font-semibold text-black transition ${isInWishlist ? "border border-black/15 bg-black/10 hover:bg-black/5" : "border border-black/15 bg-white hover:bg-black/5"}`}
                                     onClick={() => void toggleWishlist()}
                                 >
                                     {isInWishlist ? "Wishlisted" : "Wishlist"}

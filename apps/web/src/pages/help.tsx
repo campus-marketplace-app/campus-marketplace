@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useTheme } from "../contexts/ThemeContext";
 
 const WORKFLOWS = [
@@ -42,42 +43,61 @@ const WORKFLOWS = [
 ];
 
 export default function Help() {
-	const { schoolName } = useTheme();
+	const { schoolName, radiusId } = useTheme();
+	const isPill = radiusId === "pill";
 
 	return (
-		<section className="px-6 py-8 sm:px-8 sm:py-10">
-			<div className="mx-auto max-w-4xl space-y-6">
-				<header
-					className="rounded-[var(--radius-lg)] border p-6 shadow-sm sm:p-8"
-					style={{
-						borderColor: "color-mix(in srgb, var(--color-primary) 18%, var(--color-border))",
-						background:
-							"linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 8%, var(--color-background)), color-mix(in srgb, var(--color-secondary) 14%, var(--color-surface)))",
-					}}
-				>
-					<h1 className="text-3xl font-bold text-[var(--color-text)] sm:text-4xl">
-						Help Center
-					</h1>
-					<p className="mt-4 text-base leading-7 text-[var(--color-text-muted)]">
+		<section className="bg-[var(--color-secondary)] px-4 py-8 sm:px-6 sm:py-10">
+			<div
+				className="mx-auto max-w-[760px] rounded-xl border bg-[var(--color-secondary)] p-5 shadow-lg sm:p-6"
+				style={{ borderColor: "var(--color-border)" }}
+			>
+				{/* Page header */}
+				<div className={`mb-5${isPill ? " text-center px-3 sm:px-5" : ""}`}>
+					<h1 className="text-2xl font-bold text-[var(--color-text)] sm:text-3xl">Help Center</h1>
+					<p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
 						Use this page as a quick guide for common workflows in {schoolName} Marketplace.
 					</p>
-				</header>
+				</div>
 
-				<div className="space-y-4">
+				{/* Workflow cards */}
+				<div className="space-y-3">
 					{WORKFLOWS.map((workflow) => (
-						<section
+						<div
 							key={workflow.title}
-							className="rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-6 shadow-sm"
-							style={{ borderColor: "color-mix(in srgb, var(--color-primary) 18%, var(--color-border))" }}
+							className="rounded-lg border bg-[var(--color-surface)] p-4"
+							style={{
+								borderColor: "var(--color-border)",
+							}}
 						>
-							<h2 className="text-xl font-semibold text-[var(--color-text)]">{workflow.title}</h2>
-							<ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-7 text-[var(--color-text-muted)]">
+						<h2 className={`text-base font-semibold text-[var(--color-text)]${isPill ? " text-center px-3 sm:px-5" : ""}`}>{workflow.title}</h2>
+						<ul className={`mt-2 space-y-1.5${isPill ? " text-center px-3 sm:px-5" : ""}`}>
 								{workflow.steps.map((step) => (
-									<li key={step}>{step}</li>
+									<li key={step} className="flex items-start gap-2 text-sm text-[var(--color-text-muted)]">
+										<span className="mt-2 inline-block h-1 w-1 shrink-0 rounded-full bg-[var(--color-primary)]" />
+										{step}
+									</li>
 								))}
-							</ol>
-						</section>
+							</ul>
+						</div>
 					))}
+				</div>
+
+				{/* Action buttons */}
+				<div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+					<Link
+						to="/contact"
+						className="rounded-lg bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-4 py-2.5 text-center text-sm font-semibold text-[var(--color-text-on-primary)] transition hover:opacity-90"
+					>
+						Contact Us
+					</Link>
+					<Link
+						to="/login"
+						className="rounded-lg border bg-[var(--color-secondary)] px-4 py-2.5 text-center text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-background)]"
+						style={{ borderColor: "var(--color-border)" }}
+					>
+						Back to Login
+					</Link>
 				</div>
 			</div>
 		</section>

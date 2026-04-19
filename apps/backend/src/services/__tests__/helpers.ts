@@ -22,11 +22,49 @@ export async function createTestUser(displayName = "Test User"): Promise<TestUse
   const email = testEmail();
   const password = "TestPassword123!";
 
-  const result = await signUpWithEmail({
-    email,
-    password,
-    display_name: displayName,
-  });
+  const isRateLimitError = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.toLowerCase().includes("request rate limit reached");
+  };
+
+  let result: AuthResult;
+
+  try {
+    result = await signUpWithEmail({
+      email,
+      password,
+      display_name: displayName,
+    });
+  } catch (error) {
+    if (!isRateLimitError(error)) {
+      throw error;
+    }
+
+    const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { display_name: displayName },
+    });
+
+    if (adminError || !adminData.user) {
+      throw new Error(`Failed to create test user via admin API: ${adminError?.message ?? "unknown error"}`);
+    }
+
+    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      throw new Error(`Failed to sign in test user via admin fallback: ${signInError.message}`);
+    }
+
+    result = {
+      user: adminData.user,
+      session: sessionData.session ?? null,
+    };
+  }
 
   const cleanup = async () => {
     try {
