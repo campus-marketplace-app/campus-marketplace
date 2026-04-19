@@ -4,6 +4,8 @@ import { getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "../hooks/useProfile";
 import { useListingsByUser } from "../hooks/useListings";
+import { useConfirm } from "../contexts/ConfirmContext";
+import { useDeactivateAccount } from "../hooks/useAccount";
 
 type OutletContext = {
     user: SessionUser | null;
@@ -42,6 +44,8 @@ export default function Profile() {
     const { mutateAsync: uploadAvatarMutation } = useUploadAvatar();
     // Fetch the profile for whoever we're viewing (own profile or another user's).
     const { data: profileData } = useProfile(viewedUserId ?? user?.id);
+    const { confirm } = useConfirm();
+    const { mutateAsync: deactivateAccountMutation, isPending: isDeactivating } = useDeactivateAccount();
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -189,6 +193,28 @@ export default function Profile() {
 
         setIsEditing(false);
         onProfileSave?.();
+    };
+
+    const handleDeactivate = async () => {
+        if (!user) return;
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (!accessToken || !refreshToken) return;
+
+        const confirmed = await confirm(
+            'Deactivate Your Account',
+            'Are you sure you want to deactivate your account?\n\n' +
+            'Your listings will be hidden and you will not be able to log in. ' +
+            'Contact support to restore access.',
+            'Deactivate',
+        );
+        if (!confirmed) return;
+
+        try {
+            await deactivateAccountMutation({ userId: user.id, accessToken, refreshToken });
+        } catch (error) {
+            console.error('Failed to deactivate account:', error);
+        }
     };
 
     const hasValidationErrors = Boolean(usernameError || nameError || bioError || avatarError);
@@ -384,6 +410,28 @@ export default function Profile() {
                                 Back
                             </button>
                         </div>
+
+                        {isOwner && isEditing && (
+                            <div className="mt-6 rounded-[var(--radius-sm)] border border-red-200 bg-red-50 p-4">
+                                <p className="mb-1 text-sm font-semibold text-red-700">Danger Zone</p>
+                                <p className="mb-3 text-xs text-red-600">
+                                    Deactivating your account will hide your profile and all listings.
+                                    You will be signed out immediately.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleDeactivate}
+                                    disabled={isDeactivating}
+                                    className={`rounded-[var(--radius-sm)] px-4 py-2 text-sm font-semibold transition ${
+                                        isDeactivating
+                                            ? 'cursor-not-allowed bg-red-200 text-red-400'
+                                            : 'bg-red-600 text-white hover:bg-red-700'
+                                    }`}
+                                >
+                                    {isDeactivating ? 'Deactivating…' : 'Deactivate Account'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>

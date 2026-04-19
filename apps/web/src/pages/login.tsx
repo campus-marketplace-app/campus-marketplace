@@ -15,6 +15,7 @@ export default function Login() {
     const [emailMessage, setEmailMessage] = useState('');
     const [passwordMessage, setPasswordMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [deactivatedMessage, setDeactivatedMessage] = useState('');
 
     const checkEmail = (value: string) => {
         const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
@@ -59,8 +60,16 @@ export default function Login() {
                 localStorage.setItem("refresh_token", session.refresh_token);
                 navigate("/", { replace: true });
             } catch (error) {
-                //Needs to be hidden from users, but for now we will log it to the console for debugging purposes.
-                console.error("Error signing in:", error);
+                const message = error instanceof Error ? error.message : String(error);
+                if (message.startsWith('account_deactivated:')) {
+                    setDeactivatedMessage(
+                        'Your account has been deactivated. ' +
+                        'Contact support to restore access.',
+                    );
+                } else {
+                    //Needs to be hidden from users, but for now we will log it to the console for debugging purposes.
+                    console.error('Error signing in:', error);
+                }
             }
         }
         if (!isEmailValid || !isPasswordValid) {
@@ -118,6 +127,12 @@ export default function Login() {
                     <p className="mt-2 text-center text-sm text-gray-600">
                         Sign in to access the marketplace
                     </p>
+
+                    {deactivatedMessage && (
+                        <div className="mt-4 rounded-[var(--radius-sm)] border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {deactivatedMessage}
+                        </div>
+                    )}
 
                     <form className="mt-8 flex flex-col gap-5" onSubmit={handleSubmit}>
                         {/* Email field */}

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { authMock, upsertProfileMock } = vi.hoisted(() => ({
+const { authMock, upsertProfileMock, fromMock } = vi.hoisted(() => ({
   authMock: {
     signUp: vi.fn(),
     signInWithPassword: vi.fn(),
@@ -12,11 +12,13 @@ const { authMock, upsertProfileMock } = vi.hoisted(() => ({
     resetPasswordForEmail: vi.fn(),
   },
   upsertProfileMock: vi.fn(),
+  fromMock: vi.fn(),
 }));
 
 vi.mock("../../supabase-client.js", () => ({
   supabase: {
     auth: authMock,
+    from: fromMock,
   },
 }));
 
@@ -30,6 +32,7 @@ vi.mock("../profile.js", async () => {
 
 import {
   completePasswordReset,
+  deactivateAccount,
   ensureFreshSession,
   getSessionFromTokens,
   refreshSession,
@@ -68,6 +71,19 @@ describe("auth service unit", () => {
     authMock.exchangeCodeForSession.mockResolvedValue({ error: null });
     authMock.resetPasswordForEmail.mockResolvedValue({ error: null });
     upsertProfileMock.mockResolvedValue({ user_id: "u1" });
+
+    // Default from() chain: happy-path — profile is active (deactivated_at: null)
+    const makeSelectChain = () => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { deactivated_at: null }, error: null }),
+    });
+    const makeUpdateChain = () => ({
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockResolvedValue({ error: null }),
+    });
+    fromMock.mockImplementation(() => ({ ...makeSelectChain(), ...makeUpdateChain() }));
   });
 
   it("signUpWithEmail applies default account_type and upserts profile", async () => {
@@ -257,5 +273,106 @@ describe("auth service unit", () => {
 
   it("validates sendPasswordResetEmail required fields", async () => {
     await expect(sendPasswordResetEmail("")).rejects.toThrow("Email is required");
+  });
+});
+
+describe("deactivateAccount unit", () => {
+  it("throws when userId is empty", async () => {
+    await expect(deactivateAccount("", "tok", "ref")).rejects.toThrow("User ID is required");
+  });
+
+  it("throws when accessToken is empty", async () => {
+    await expect(deactivateAccount("uid", "", "ref")).rejects.toThrow("Access token is required");
+  });
+
+  it("throws when refreshToken is empty", async () => {
+    await expect(deactivateAccount("uid", "tok", "")).rejects.toThrow("Refresh token is required");
+  });
+
+  it("throws when profile update fails", async () => {
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: { message: "DB error" } }),
+      is: vi.fn().mockReturnThis(),
+    };
+    fromMock.mockImplementationOnce(() => chain);
+
+    await expect(deactivateAccount("uid", "tok", "ref")).rejects.toThrow(
+      "Failed to deactivate account: DB error",
+    );
+  });
+
+  it("throws when listings soft-delete fails", async () => {
+    const profileChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const listingsChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockResolvedValue({ error: { message: "listings error" } }),
+    };
+    fromMock
+      .mockImplementationOnce(() => profileChain)
+      .mockImplementationOnce(() => listingsChain);
+
+    await expect(deactivateAccount("uid", "tok", "ref")).rejects.toThrow(
+      "Failed to soft-delete listings: listings error",
+    );
+  });
+
+  it("resolves { success: true } on happy path", async () => {
+    const profileChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    };
+    const listingsChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockResolvedValue({ error: null }),
+    };
+    fromMock
+      .mockImplementationOnce(() => profileChain)
+      .mockImplementationOnce(() => listingsChain);
+
+    const result = await deactivateAccount("uid", "tok", "ref");
+    expect(result).toEqual({ success: true });
+  });
+});
+
+describe("signInWithEmail deactivation guard unit", () => {
+  it("throws account_deactivated when profile has deactivated_at set", async () => {
+    fromMock.mockImplementationOnce(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { deactivated_at: "2026-04-19T00:00:00Z" },
+        error: null,
+      }),
+    }));
+
+    await expect(
+      signInWithEmail({ email: "u@school.edu", password: "pass123" }),
+    ).rejects.toThrow("account_deactivated:");
+  });
+
+  it("signs out when deactivated_at is set", async () => {
+    fromMock.mockImplementationOnce(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { deactivated_at: "2026-04-19T00:00:00Z" },
+        error: null,
+      }),
+    }));
+
+    try { await signInWithEmail({ email: "u@school.edu", password: "pass123" }); } catch {}
+    expect(authMock.signOut).toHaveBeenCalled();
+  });
+
+  it("returns AuthResult when profile is active (deactivated_at is null)", async () => {
+    // Default fromMock in beforeEach already returns { deactivated_at: null }
+    const result = await signInWithEmail({ email: "u@school.edu", password: "pass123" });
+    expect(result.user.id).toBe("u1");
   });
 });

@@ -7,7 +7,9 @@ import {
   signOutWithTokens,
   updatePassword,
   sendPasswordResetEmail,
+  deactivateAccount,
 } from "../auth.js";
+import { getProfile } from "../profile.js";
 import { supabase } from "../../supabase-client.js";
 import { testEmail } from "./helpers.js";
 
@@ -222,5 +224,64 @@ describe("sendPasswordResetEmail", () => {
     if (!result) return;
 
     await expect(sendPasswordResetEmail(email)).resolves.toBeUndefined();
+  });
+});
+
+describe("deactivateAccount", () => {
+  it("sets deactivated_at on the profile", async ({ skip }: TaskContext) => {
+    const result = await signUpTestUser(testEmail(), "Password123!", "Deactivate Test", undefined, skip);
+    if (!result) return;
+    const { session } = result;
+    if (!session) { skip(); return; }
+
+    await deactivateAccount(result.user.id, session.access_token, session.refresh_token);
+
+    const profile = await getProfile(result.user.id);
+    expect(profile.deactivated_at).not.toBeNull();
+  });
+
+  it("soft-deletes the user's active listings", async ({ skip }: TaskContext) => {
+    const result = await signUpTestUser(testEmail(), "Password123!", "Deactivate Listings", undefined, skip);
+    if (!result) return;
+    const { session } = result;
+    if (!session) { skip(); return; }
+
+    await supabase.from("listings").insert({
+      user_id: result.user.id,
+      title: "Listing to hide",
+      description: "test",
+      price: 10,
+      status: "active",
+    });
+
+    await deactivateAccount(result.user.id, session.access_token, session.refresh_token);
+
+    const { data: listings } = await supabase
+      .from("listings")
+      .select("deleted_at")
+      .eq("user_id", result.user.id);
+
+    expect(listings?.every((l) => l.deleted_at !== null)).toBe(true);
+  });
+
+  it("throws with empty userId", async () => {
+    await expect(deactivateAccount("", "tok", "ref")).rejects.toThrow("User ID is required");
+  });
+});
+
+describe("signInWithEmail — deactivated account guard", () => {
+  it("blocks login and throws account_deactivated for a deactivated user", async ({ skip }: TaskContext) => {
+    const email = testEmail();
+    const password = "Password123!";
+    const result = await signUpTestUser(email, password, "Block Login User", undefined, skip);
+    if (!result) return;
+
+    // Stamp deactivated_at directly (avoids calling deactivateAccount which signs out).
+    await supabase
+      .from("profiles")
+      .update({ deactivated_at: new Date().toISOString() })
+      .eq("user_id", result.user.id);
+
+    await expect(signInWithEmail({ email, password })).rejects.toThrow("account_deactivated:");
   });
 });
