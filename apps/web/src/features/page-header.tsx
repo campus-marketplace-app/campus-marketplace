@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getAvatarUrl, type Notification } from '@campus-marketplace/backend';
-import ThemeModeToggle from './theme-mode-toggle';
 import NotificationBell from './notification-bell';
 import { AboutModal } from './about-modal';
 import { HelpModal } from './help-modal';
