@@ -366,7 +366,7 @@ describe("signInWithEmail deactivation guard unit", () => {
       }),
     }));
 
-    try { await signInWithEmail({ email: "u@school.edu", password: "pass123" }); } catch {}
+    try { await signInWithEmail({ email: "u@school.edu", password: "pass123" }); } catch { /* expected */ }
     expect(authMock.signOut).toHaveBeenCalled();
   });
 

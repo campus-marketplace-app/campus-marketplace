@@ -59,6 +59,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 }
 
 /** Returns `{ confirm, alert }` functions that render a branded in-app modal. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useConfirm() {
     return useContext(ConfirmContext);
 }

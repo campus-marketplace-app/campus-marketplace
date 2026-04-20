@@ -53,7 +53,7 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
   }
 
   const domain = input.email.split("@")[1]?.toLowerCase() ?? "";
-  if (!domain.endsWith(".edu")) {
+  if (process.env.REQUIRE_EDU_EMAIL === "true" && !domain.endsWith(".edu")) {
     throw new Error("Only .edu email addresses are allowed to sign up.");
   }
 
@@ -361,7 +361,7 @@ export async function sendPasswordResetEmail(email: string, redirectTo?: string)
   }
 
   const domain = email.split("@")[1]?.toLowerCase() ?? "";
-  if (!domain.endsWith(".edu")) {
+  if (process.env.REQUIRE_EDU_EMAIL === "true" && !domain.endsWith(".edu")) {
     throw new Error("Only .edu email addresses are allowed.");
   }
 
