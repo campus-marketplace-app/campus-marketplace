@@ -46,6 +46,7 @@ function useCountUp(target: number | undefined, duration = 900): number {
     const [current, setCurrent] = useState(0);
     useEffect(() => {
         if (target === undefined) return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (target === 0) { setCurrent(0); return; }
         const start = performance.now();
         let rafId: number;

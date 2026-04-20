@@ -23,11 +23,17 @@ export default function Signup() {
     const [loading, setLoading] = useState(false);
     const [serverError, setServerError] = useState('');
 
-    const checkEmail = (value: string) => {
-        const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
+    const requireEdu = import.meta.env.VITE_REQUIRE_EDU_EMAIL === 'true';
 
-        if (!emailRegex.test(value)) {
-            setEmailMessage('Please enter a valid NJIT email address ending in @njit.edu.');
+    const checkEmail = (value: string) => {
+        if (requireEdu) {
+            const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
+            if (!emailRegex.test(value)) {
+                setEmailMessage('Please enter a valid NJIT email address ending in @njit.edu.');
+                return false;
+            }
+        } else if (!value.includes('@') || !value.includes('.')) {
+            setEmailMessage('Please enter a valid email address.');
             return false;
         }
 

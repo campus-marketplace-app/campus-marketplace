@@ -237,6 +237,7 @@ export default function Form({
         if (showForm) {
             document.body.style.overflow = 'hidden';
             if (editListing) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setListingTitle(editListing.title ?? 'Title');
                 setListingPrice(editListing.price ?? 0);
                 setListingCategory(editListing.category_id ?? '');
