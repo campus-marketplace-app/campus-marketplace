@@ -2,8 +2,9 @@ import { getListingImageUrl } from "@campus-marketplace/backend";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark } from "lucide-react";
+import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark, MoreHorizontal } from "lucide-react";
 import { NoImagePlaceholder } from "../components/NoImagePlaceholder";
+import { useCategories } from "../hooks/useCategories";
 import { useSearchListings } from "../hooks/useListings";
 import { useProfile } from "../hooks/useProfile";
 import { useHomeStats } from "../hooks/useHomeStats";
@@ -18,13 +19,24 @@ type OutletContext = {
 
 const PAGE_SIZE = 12;
 
-const CATEGORIES = [
-    { label: "Electronics", id: "0d8e21f3-8e00-401a-aa28-9b013a9e8470", icon: Monitor, bgClass: "bg-blue-500" },
-    { label: "Clothing", id: "c49821a1-a4ed-4143-80aa-fc563717bf96", icon: Shirt, bgClass: "bg-violet-500" },
-    { label: "Furniture", id: "7e1c80e5-91c8-4e0a-be4d-74d178ee61a4", icon: Sofa, bgClass: "bg-orange-500" },
-    { label: "School Supplies", id: "37d5e9e1-dfd4-4b3d-876d-88142d05e58b", icon: BookOpen, bgClass: "bg-emerald-500" },
-    { label: "Free Stuff", id: "447df3d4-bde4-4ac9-bb89-19508018baf5", icon: Gift, bgClass: "bg-pink-500" },
-    { label: "Sports", id: "0d51becc-b8dc-420d-8092-221867bd54b0", icon: Dumbbell, bgClass: "bg-[var(--color-primary)]" },
+const CATEGORY_DISPLAY = {
+    Electronics: { label: "Electronics", icon: Monitor, bgClass: "bg-blue-500" },
+    Clothing: { label: "Clothing", icon: Shirt, bgClass: "bg-violet-500" },
+    Furniture: { label: "Furniture", icon: Sofa, bgClass: "bg-orange-500" },
+    "School Supplies": { label: "School Supplies", icon: BookOpen, bgClass: "bg-emerald-500" },
+    "Free Stuff": { label: "Free Stuff", icon: Gift, bgClass: "bg-pink-500" },
+    "Sports & Fitness": { label: "Sports", icon: Dumbbell, bgClass: "bg-[var(--color-primary)]" },
+    Other: { label: "Other", icon: MoreHorizontal, bgClass: "bg-slate-500" },
+} as const;
+
+const CATEGORY_ORDER = [
+    "Electronics",
+    "Clothing",
+    "Furniture",
+    "School Supplies",
+    "Free Stuff",
+    "Sports & Fitness",
+    "Other",
 ] as const;
 
 const shimmerStyle: React.CSSProperties = {
@@ -65,6 +77,7 @@ export default function Index() {
     const [toastExiting, setToastExiting] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+    const { categories } = useCategories();
     const { data: profile } = useProfile(user?.id);
     const { stats, isLoading: statsLoading } = useHomeStats();
 
@@ -80,6 +93,23 @@ export default function Index() {
     );
     const addMutation = useAddToWishlist();
     const removeMutation = useRemoveFromWishlist();
+
+    const categoryButtons = useMemo(() => {
+        const categoriesByName = new Map(categories.map((entry) => [entry.name, entry]));
+
+        return CATEGORY_ORDER.flatMap((name) => {
+            const categoryEntry = categoriesByName.get(name);
+            if (!categoryEntry) return [];
+
+            const display = CATEGORY_DISPLAY[name];
+            return [{
+                id: categoryEntry.id,
+                label: display.label,
+                icon: display.icon,
+                bgClass: display.bgClass,
+            }];
+        });
+    }, [categories]);
 
     const filters = useMemo(() => {
         const priceFilters =
@@ -229,23 +259,23 @@ export default function Index() {
                 </div>
 
                 {/* Category tiles */}
-                <div className="flex gap-4 overflow-x-auto px-1 py-2">
-                    {CATEGORIES.map(({ label, id, icon: Icon, bgClass }) => {
+                <div className="grid px-1 py-3" style={{ gridTemplateColumns: `repeat(${Math.max(categoryButtons.length, 1)}, minmax(0, 1fr))`, gap: "1rem" }}>
+                    {categoryButtons.map(({ label, id, icon: Icon, bgClass }) => {
                         const isActive = category === id;
                         return (
                             <button
                                 key={id}
                                 type="button"
                                 aria-pressed={isActive}
-                                className="flex min-w-[72px] flex-col items-center"
+                                className="flex flex-col items-center gap-2"
                                 onClick={() => setCategory(isActive ? "" : id)}
                             >
                                 <div
-                                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${bgClass}${isActive ? " ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-surface)]" : ""}`}
+                                    className={`flex h-16 w-16 items-center justify-center rounded-2xl ${bgClass}${isActive ? " ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-surface)]" : ""}`}
                                 >
-                                    <Icon size={26} color="white" />
+                                    <Icon size={32} color="white" />
                                 </div>
-                                <span className="mt-1.5 text-center text-xs font-medium leading-tight" style={{ color: "var(--color-text)" }}>{label}</span>
+                                <span className="text-center text-sm font-medium leading-tight" style={{ color: "var(--color-text)" }}>{label}</span>
                             </button>
                         );
                     })}

@@ -187,7 +187,7 @@ export default function Login() {
                             className="w-full rounded-[10px] py-3 text-base font-semibold text-white transition hover:opacity-90"
                             style={{
                                 ...interFont,
-                                background: 'linear-gradient(90deg, rgb(130,15,21) 0%, rgb(154,18,25) 100%)',
+                                background: 'linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
                             }}
                         >
                             Sign In
