@@ -106,6 +106,8 @@ export async function upsertProfile(input: UpsertProfileInput): Promise<UserProf
   return data;
 }
 
+const ALLOWED_AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
 // UPLOAD AVATAR: Uploads a file to Supabase Storage under avatars/<userId>/avatar.<ext>,
 // then persists the storage path to the profile row. Returns the updated profile.
 export async function uploadAvatar(userId: string,file: File | Blob | ArrayBuffer,contentType: string): Promise<UserProfile> {
@@ -113,7 +115,11 @@ export async function uploadAvatar(userId: string,file: File | Blob | ArrayBuffe
     throw new Error("Profile user_id is required");
   }
 
-  const ext = contentType.split("/")[1] ?? "jpg"; // Default to jpg if content type is missing
+  if (!ALLOWED_AVATAR_TYPES.includes(contentType as (typeof ALLOWED_AVATAR_TYPES)[number])) {
+    throw new Error("Unsupported avatar content type. Use JPEG, PNG, or WebP.");
+  }
+
+  const ext = contentType.split("/")[1]; // jpeg | png | webp
   const storagePath = `${userId}/avatar.${ext}`; //creates storage path like "12345/avatar.jpg"
 
   // Supabase Storage upsert: if the file already exists, it will be overwritten with the new one

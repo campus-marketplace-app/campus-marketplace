@@ -8,6 +8,7 @@ import { getSessionFromTokens, getNotifications, subscribeToNotifications, markA
 import { useProfile } from "../hooks/useProfile";
 import type { SessionUser } from "../features/types";
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function SidebarLayout() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +32,7 @@ export default function SidebarLayout() {
     // Profile is fetched via the cache — shared with profile.tsx and my-listings.tsx.
     const { data: profile } = useProfile(user?.id);
     const navigate = useNavigate();
+    const { resetToDefaults, loadPrefsForUser } = useTheme();
 
     const clearStoredTokens = () => {
         localStorage.removeItem("access_token");
@@ -41,6 +43,7 @@ export default function SidebarLayout() {
         clearStoredTokens();
         setIsLoggedIn(false);
         setUser(null);
+        resetToDefaults();
         navigate("/login", { replace: true });
     };
 
@@ -93,6 +96,7 @@ export default function SidebarLayout() {
                 }
 
                 setUser(user);
+                loadPrefsForUser(user.id);
                 const notifs = await getNotifications(user.id);
                 setNotifications(notifs);
                 setIsLoggedIn(true);
@@ -104,7 +108,7 @@ export default function SidebarLayout() {
         };
 
         void checkUserSession();
-    }, [location.pathname, profileRefreshKey]);
+    }, [location.pathname, profileRefreshKey, loadPrefsForUser]);
 
     // Subscribe to realtime notifications when user logs in.
     useEffect(() => {
@@ -115,6 +119,7 @@ export default function SidebarLayout() {
         });
 
         return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id]);
 
     return (
@@ -171,6 +176,7 @@ export default function SidebarLayout() {
             <ThemeCustomizer
                 open={showCustomizer}
                 onClose={() => setShowCustomizer(false)}
+                isLoggedIn={!!user}
             />
         </div>
     );

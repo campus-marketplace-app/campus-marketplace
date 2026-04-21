@@ -26,6 +26,7 @@ export default function Messages() {
     );
     const [messages, setMessages] = useState<Message[]>([]);
     const [messageInput, setMessageInput] = useState("");
+    const [isSending, setIsSending] = useState(false);
     const [searchFilter, setSearchFilter] = useState("");
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -164,10 +165,11 @@ export default function Messages() {
 
     // --- send a message ---
     async function handleSend() {
-        if (!activeConversationId || !user || !messageInput.trim()) return;
+        if (!activeConversationId || !user || !messageInput.trim() || isSending) return;
 
         const content = messageInput.trim();
         setMessageInput("");
+        setIsSending(true);
 
         try {
             const sent = await sendMessage(activeConversationId, user.id, content);
@@ -182,6 +184,8 @@ export default function Messages() {
         } catch (err) {
             console.error("Failed to send message:", err);
             setError("Failed to send message. Please try again.");
+        } finally {
+            setIsSending(false);
         }
     }
 
@@ -283,6 +287,7 @@ export default function Messages() {
                             messageInput={messageInput}
                             onInputChange={setMessageInput}
                             onSend={handleSend}
+                            isSending={isSending}
                             loading={chatLoading}
                             onBack={() => setMobileView("list")}
                             listingId={activeConvo.listing_id}

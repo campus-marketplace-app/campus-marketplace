@@ -31,7 +31,7 @@ export default function Listing() {
     // Show unavailable message when listing is inactive and viewer is not the owner.
     const unavailableMessage =
         listingData && listingData.status !== "active" && (!user || user.id !== listingData.user_id)
-            ? "This listing is no longer avaible"
+            ? "This listing is no longer available"
             : null;
 
     const formatDateTime = (value?: string | null) => {
@@ -112,6 +112,17 @@ export default function Listing() {
             missing.push("images");
         }
 
+        if (listingData.type === "item") {
+            if (!listingData.item_details?.condition) missing.push("item_condition");
+            if (!listingData.item_details?.quantity || listingData.item_details.quantity < 1) missing.push("item_quantity");
+        }
+
+        if (listingData.type === "service") {
+            if (!listingData.service_details?.duration_minutes || listingData.service_details.duration_minutes <= 0) {
+                missing.push("service_duration_minutes");
+            }
+        }
+
         return missing;
     };
 
@@ -154,6 +165,7 @@ export default function Listing() {
                 }
             } catch (error) {
                 console.error("Error publishing listing:", error);
+                await showAlert("Error", "Failed to publish listing. Please try again.");
             }
         }
         else if (listingData.status === "active") {
@@ -164,6 +176,7 @@ export default function Listing() {
                 await refetchListing();
             } catch (error) {
                 console.error("Error unpublishing listing:", error);
+                await showAlert("Error", "Failed to unpublish listing. Please try again.");
             }
         }
         setPublishLoading(false);

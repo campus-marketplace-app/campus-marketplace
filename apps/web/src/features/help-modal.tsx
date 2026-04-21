@@ -37,7 +37,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <span>Go to Sign Up and create your account using your student email.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">2.</span>
+                  <span className="text-[var(--color-primary)] mt-1">2.</span>
                   <span>Sign in and complete your profile so other users can recognize you.</span>
                 </li>
               </ul>
@@ -51,11 +51,11 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <span>Use the homepage search bar to find items or services.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">•</span>
+                  <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Filter by listing type and category to narrow results.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">•</span>
+                  <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Open a listing to view details, images, and price information.</span>
                 </li>
               </ul>
@@ -69,11 +69,11 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <span>Open the post form from the sidebar.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">•</span>
+                  <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Add a title, description, price, and category. Your draft listing is saved in My Listings.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">•</span>
+                  <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Fill out all required fields, then publish your listing so other students can contact you.</span>
                 </li>
               </ul>
@@ -87,11 +87,11 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <span>Open a listing and start a conversation.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">•</span>
+                  <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Use the Messages page to continue the chat.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">•</span>
+                  <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Keep communication clear by including pickup time and location details.</span>
                 </li>
               </ul>
@@ -105,7 +105,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                   <span>Use Wishlist to save listings you want to revisit.</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-[#9D4444] mt-1">•</span>
+                  <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Go to My Listings to edit, unpublish, or remove your own posts.</span>
                 </li>
               </ul>

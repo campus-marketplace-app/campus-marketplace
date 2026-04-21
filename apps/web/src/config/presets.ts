@@ -81,109 +81,13 @@ export const PRESETS: ThemePreset[] = [
     },
   },
 
-  // --- Generic ---
-  {
-    id: 'ocean',
-    name: 'Ocean',
-    category: 'generic',
-    light: {
-      primary: '#1a6eb5',
-      secondary: '#FFFFFF',
-      accent: '#93c5fd',
-      background: '#eef4fb',
-      textOnPrimary: '#FFFFFF',
-    },
-    dark: {
-      primary: '#2563eb',
-      secondary: '#0f172a',
-      accent: '#93c5fd',
-      background: '#0c1220',
-      textOnPrimary: '#FFFFFF',
-    },
-  },
-  {
-    id: 'forest',
-    name: 'Forest',
-    category: 'generic',
-    light: {
-      primary: '#2d6a4f',
-      secondary: '#FFFFFF',
-      accent: '#86efac',
-      background: '#eef7f1',
-      textOnPrimary: '#FFFFFF',
-    },
-    dark: {
-      primary: '#3a8c65',
-      secondary: '#0f1a13',
-      accent: '#86efac',
-      background: '#0c1510',
-      textOnPrimary: '#FFFFFF',
-    },
-  },
-  {
-    id: 'slate',
-    name: 'Slate',
-    category: 'generic',
-    light: {
-      primary: '#475569',
-      secondary: '#FFFFFF',
-      accent: '#94a3b8',
-      background: '#f1f5f9',
-      textOnPrimary: '#FFFFFF',
-    },
-    dark: {
-      primary: '#64748b',
-      secondary: '#0f172a',
-      accent: '#94a3b8',
-      background: '#0d1117',
-      textOnPrimary: '#FFFFFF',
-    },
-  },
-  {
-    id: 'sunset',
-    name: 'Sunset',
-    category: 'generic',
-    light: {
-      primary: '#c2410c',
-      secondary: '#FFFFFF',
-      accent: '#fdba74',
-      background: '#fdf4ee',
-      textOnPrimary: '#FFFFFF',
-    },
-    dark: {
-      primary: '#ea580c',
-      secondary: '#1a0f0a',
-      accent: '#fdba74',
-      background: '#160d08',
-      textOnPrimary: '#FFFFFF',
-    },
-  },
-  {
-    id: 'violet',
-    name: 'Violet',
-    category: 'generic',
-    light: {
-      primary: '#6d28d9',
-      secondary: '#FFFFFF',
-      accent: '#c4b5fd',
-      background: '#f5f3ff',
-      textOnPrimary: '#FFFFFF',
-    },
-    dark: {
-      primary: '#7c3aed',
-      secondary: '#0f0a1a',
-      accent: '#c4b5fd',
-      background: '#0d0a16',
-      textOnPrimary: '#FFFFFF',
-    },
-  },
 ];
 
 export const DEFAULT_PRESET_ID = 'njit-classic';
 
 // --- Radius options ---
 
-export type RadiusId = 'sharp' | 'default' | 'rounded' | 'pill';
+export type RadiusId = 'sharp' | 'default' | 'rounded';
 
 export interface RadiusOption {
   id: RadiusId;
@@ -204,13 +108,8 @@ export const RADIUS_OPTIONS: RadiusOption[] = [
   },
   {
     id: 'rounded',
-    name: 'Rounded',
+    name: 'Round',
     vars: { '--radius': '12px', '--radius-sm': '6px', '--radius-lg': '18px', '--radius-pill': '9999px' },
-  },
-  {
-    id: 'pill',
-    name: 'Pill',
-    vars: { '--radius': '9999px', '--radius-sm': '9999px', '--radius-lg': '9999px', '--radius-pill': '9999px' },
   },
 ];
 
