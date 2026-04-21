@@ -79,26 +79,26 @@ export default function Login() {
 
     return (
         <section
-                className="relative flex h-full min-h-[calc(100vh-64px)] w-full items-center bg-[var(--color-background-alt)] px-6 py-8"
+                className="relative flex h-[calc(100vh-64px)] w-full items-center overflow-hidden bg-[var(--color-background-alt)] px-5 py-5 lg:px-6 lg:py-6"
                 style={loginBgUrl ? { backgroundImage: `url(${loginBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
             >
             {/* Dark overlay — improves text contrast while keeping the background photo visible */}
             {loginBgUrl && <div className="absolute inset-0 bg-black/45" />}
 
-            <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-12 md:grid-cols-[1.4fr_1fr] md:items-center">
+            <div className="relative z-10 mx-auto grid w-full max-w-5xl gap-8 lg:gap-10 md:grid-cols-[1.2fr_0.95fr] md:items-center">
 
                 {/* Left side: welcome text + social media */}
-                <div className="px-0 sm:px-0 -ml-25" style={interFont}>
+                <div className="max-w-xl px-0" style={interFont}>
                     {/* "Welcome to NJIT / Marketplace" heading — Space Grotesk Bold */}
                     <h2
-                        className="text-5xl font-bold leading-[1.25] text-white sm:text-[49px]"
+                        className="text-4xl font-bold leading-[1.15] text-white lg:text-[52px]"
                         style={spaceGroteskFont}
                     >
                         Welcome to {schoolName} <span style={{ backgroundImage: 'linear-gradient(90deg, rgb(255,255,255) 0%, rgba(255,255,255,0.8) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Marketplace!</span>
                     </h2>
 
                     {/* Description */}
-                    <p className="mt-6 text-xl font-normal leading-relaxed text-white/90">
+                    <p className="mt-4 max-w-[34rem] text-lg font-normal leading-relaxed text-white/90 lg:text-[1.35rem]">
                         Campus Marketplace is a student-only platform where {schoolName} students can safely buy,
                         sell, and promote services using verified .edu accounts. Making campus transactions simple,
                         secure, and local.
@@ -107,7 +107,7 @@ export default function Login() {
 
                 {/* Right side: login card — glass morphism */}
                 <div
-                    className="mx-auto w-full max-w-[448px] rounded-[16px] border border-white/20 px-8 py-8 shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)]"
+                    className="mx-auto w-full max-w-[420px] rounded-[16px] border border-white/20 px-7 py-6 shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] lg:px-8 lg:py-7"
                     style={{
                         ...interFont,
                         background: 'linear-gradient(126deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)',
@@ -115,7 +115,7 @@ export default function Login() {
                 >
                     {/* Card header */}
                     <h1
-                        className="text-center text-[36px] font-bold leading-10 text-[var(--color-primary-dark)]"
+                        className="text-center text-[32px] font-bold leading-9 text-[var(--color-primary-dark)] lg:text-[34px]"
                         style={spaceGroteskFont}
                     >
                         Login
@@ -130,7 +130,7 @@ export default function Login() {
                         </div>
                     )}
 
-                    <form className="mt-8 flex flex-col gap-5" onSubmit={handleSubmit}>
+                    <form className="mt-6 flex flex-col gap-4.5" onSubmit={handleSubmit}>
                         {/* Email field */}
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -139,7 +139,7 @@ export default function Login() {
                             <input
                                 type="email"
                                 placeholder="e.g., jdoe@njit.edu"
-                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-2.5 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
                                 style={interFont}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -159,7 +159,7 @@ export default function Login() {
                             <input
                                 type="password"
                                 placeholder="Enter your password"
-                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-3 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                className="w-full rounded-[10px] border border-gray-300 bg-white/50 px-4 py-2.5 text-base text-gray-900 outline-none placeholder:text-gray-400 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
                                 style={interFont}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
@@ -184,10 +184,10 @@ export default function Login() {
                         {/* Sign In button — gradient matching Figma */}
                         <button
                             type="submit"
-                            className="w-full rounded-[10px] py-3 text-base font-semibold text-white transition hover:opacity-90"
+                            className="w-full rounded-[10px] py-2.5 text-base font-semibold text-white transition hover:opacity-90"
                             style={{
                                 ...interFont,
-                                background: 'linear-gradient(90deg, rgb(130,15,21) 0%, rgb(154,18,25) 100%)',
+                                background: 'linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
                             }}
                         >
                             Sign In
@@ -195,7 +195,7 @@ export default function Login() {
                     </form>
 
                     {/* "Don't have an account?" — horizontal divider with text overlay */}
-                    <div className="relative my-5 flex items-center">
+                    <div className="relative my-4 flex items-center">
                         <div className="flex-1 border-t border-gray-200" />
                         <span className="px-4 text-sm text-gray-500" style={{ ...interFont, background: 'linear-gradient(126deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)' }}>
                             Don't have an account?
@@ -206,7 +206,7 @@ export default function Login() {
                     {/* Create New Account button */}
                     <Link
                         to="/signup"
-                        className="block w-full rounded-[10px] border border-[var(--color-primary-dark)] py-3 text-center text-base font-semibold text-[var(--color-primary-dark)] transition hover:bg-[var(--color-primary-dark)]/5"
+                        className="block w-full rounded-[10px] border border-[var(--color-primary-dark)] py-2.5 text-center text-base font-semibold text-[var(--color-primary-dark)] transition hover:bg-[var(--color-primary-dark)]/5"
                         style={interFont}
                     >
                         Create New Account
