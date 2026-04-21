@@ -1,5 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useState, type ComponentProps } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { signInWithEmail } from "@campus-marketplace/backend";
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -9,6 +9,7 @@ const spaceGroteskFont = { fontFamily: "'Space Grotesk', sans-serif" };
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { loginBgUrl, schoolName } = useTheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -16,6 +17,15 @@ export default function Login() {
     const [passwordMessage, setPasswordMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [deactivatedMessage, setDeactivatedMessage] = useState('');
+    const [signupMessage, setSignupMessage] = useState('');
+
+    useEffect(() => {
+        const state = location.state as { signupMessage?: string } | null;
+        if (!state?.signupMessage) return;
+
+        setSignupMessage(state.signupMessage);
+        navigate(location.pathname, { replace: true, state: null });
+    }, [location.pathname, location.state, navigate]);
 
     const checkEmail = (value: string) => {
         const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
@@ -127,6 +137,12 @@ export default function Login() {
                     {deactivatedMessage && (
                         <div className="mt-4 rounded-[var(--radius-sm)] border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
                             {deactivatedMessage}
+                        </div>
+                    )}
+
+                    {signupMessage && (
+                        <div className="mt-4 rounded-[var(--radius-sm)] border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                            {signupMessage}
                         </div>
                     )}
 
