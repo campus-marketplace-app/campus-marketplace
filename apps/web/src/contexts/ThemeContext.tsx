@@ -154,6 +154,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const resolvedThemeMode = resolveMode(prefs.mode, sysDark);
   const activePreset = findPreset(prefs.presetId);
 
+  // Set page title from school name.
+  useEffect(() => {
+    document.title = `${NJIT_THEME.school_name} Marketplace`;
+  }, []);
+
   // Apply dark class to <html>.
   useEffect(() => {
     document.documentElement.classList.toggle('dark', resolvedThemeMode === 'dark');
