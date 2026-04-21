@@ -17,15 +17,12 @@ export default function Login() {
     const [passwordMessage, setPasswordMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [deactivatedMessage, setDeactivatedMessage] = useState('');
-    const [signupMessage, setSignupMessage] = useState('');
+    const signupMessage = (location.state as { signupMessage?: string } | null)?.signupMessage ?? '';
 
     useEffect(() => {
-        const state = location.state as { signupMessage?: string } | null;
-        if (!state?.signupMessage) return;
-
-        setSignupMessage(state.signupMessage);
+        if (!signupMessage) return;
         navigate(location.pathname, { replace: true, state: null });
-    }, [location.pathname, location.state, navigate]);
+    }, [signupMessage, location.pathname, navigate]);
 
     const checkEmail = (value: string) => {
         const emailRegex = /^[A-Z0-9._%+-]+@njit\.edu$/i;
