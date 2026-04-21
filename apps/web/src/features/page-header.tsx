@@ -46,7 +46,7 @@ export default function PageHeader({
             className="sticky top-0 z-50 w-full bg-[var(--color-primary)] border-b border-black/20 shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
             style={{ fontFamily: "'Inter', sans-serif" }}
         >
-            <div className="flex items-center gap-4 px-5 py-2">
+            <div className="relative flex items-center gap-4 px-5 py-2">
 
                 {/* Left — logo + school name */}
                 <Link to="/" className="flex items-center gap-3 shrink-0 text-[var(--color-text-on-primary)] hover:opacity-90 transition-opacity">
@@ -76,7 +76,7 @@ export default function PageHeader({
 
                 {/* Center — search bar (homepage only) */}
                 {showSearch && (
-                    <div className="flex-1 max-w-lg mx-2">
+                    <div className="flex-1 max-w-lg mx-2 lg:absolute lg:left-1/2 lg:top-1/2 lg:w-full lg:-translate-x-1/2 lg:-translate-y-1/2 lg:px-4">
                         <input
                             id="search"
                             name="search"

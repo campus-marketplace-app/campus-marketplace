@@ -11,6 +11,7 @@ import {
 } from '@campus-marketplace/backend';
 import type { ItemCondition, ListingImageContentType, ListingWithDetails } from '@campus-marketplace/backend';
 import type { ListingType, SessionUser } from './types';
+import { useCategories } from '../hooks/useCategories';
 
 type FormProps = {
     showForm: boolean;
@@ -51,6 +52,7 @@ export default function Form({
     const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const objectUrlRef = useRef<string | null>(null);
+    const { categories } = useCategories();
 
     const handleListingImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -427,16 +429,9 @@ export default function Form({
                                     size={1}
                                 >
                                     <option value="">-- Select --</option>
-                                    <option value="c49821a1-a4ed-4143-80aa-fc563717bf96">Clothing</option>
-                                    <option value="0d8e21f3-8e00-401a-aa28-9b013a9e8470">Electronics</option>
-                                    <option value="447df3d4-bde4-4ac9-bb89-19508018baf5">Free Stuff</option>
-                                    <option value="7e1c80e5-91c8-4e0a-be4d-74d178ee61a4">Furniture</option>
-                                    <option value="aa4402cc-e91a-458d-9f08-16b3c67e089c">Other</option>
-                                    <option value="37d5e9e1-dfd4-4b3d-876d-88142d05e58b">School Supplies</option>
-                                    <option value="9ce6d920-741b-4405-80cd-acf052eb4cd1">Services</option>
-                                    <option value="0d51becc-b8dc-420d-8092-221867bd54b0">Sports & Fitness</option>
-                                    <option value="6dc704c2-5f9c-4ed1-9bd7-cf1d5bccd24f">Textbooks</option>
-                                    <option value="652653d1-b087-407e-b8d8-ee48afe22740">Transportation</option>
+                                    {categories.map((category) => (
+                                        <option key={category.id} value={category.id}>{category.name}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
