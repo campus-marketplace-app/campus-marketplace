@@ -199,8 +199,12 @@ const displayName = profile?.display_name ?? user?.email ?? "there";
                 style={{ backgroundColor: "var(--color-primary)" }}
             >
                 <div>
-                    <p className="text-2xl font-bold">Welcome back, {displayName}!</p>
-                    <p className="mt-1 text-sm opacity-80">Discover great deals from fellow NJIT students</p>
+                    <p className="text-2xl font-bold">
+                        {user ? `Welcome back, ${displayName}!` : 'Find great deals at NJIT'}
+                    </p>
+                    <p className="mt-1 text-sm opacity-80">
+                        {user ? 'Discover great deals from fellow NJIT students' : 'Browse listings from students and businesses on campus'}
+                    </p>
                 </div>
                 {/* Stat tiles stay white-on-red — intentional design contrast */}
                 <div className="flex shrink-0 gap-3">
