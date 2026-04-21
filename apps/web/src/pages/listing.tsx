@@ -112,6 +112,17 @@ export default function Listing() {
             missing.push("images");
         }
 
+        if (listingData.type === "item") {
+            if (!listingData.item_details?.condition) missing.push("item_condition");
+            if (!listingData.item_details?.quantity || listingData.item_details.quantity < 1) missing.push("item_quantity");
+        }
+
+        if (listingData.type === "service") {
+            if (!listingData.service_details?.duration_minutes || listingData.service_details.duration_minutes <= 0) {
+                missing.push("service_duration_minutes");
+            }
+        }
+
         return missing;
     };
 
