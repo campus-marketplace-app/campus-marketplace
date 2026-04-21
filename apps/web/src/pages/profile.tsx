@@ -358,6 +358,7 @@ export default function Profile() {
 
                             {nameError && <p className="text-xs text-[var(--color-primary)]">{nameError}</p>}
 
+                            {/* Location — TODO: wire to backend before re-enabling
                             <div>
                                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Location</p>
                                 <input
@@ -369,6 +370,7 @@ export default function Profile() {
                                     style={{ borderColor: "var(--color-border)" }}
                                 />
                             </div>
+                            */}
 
                             <div>
                                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Bio</p>
