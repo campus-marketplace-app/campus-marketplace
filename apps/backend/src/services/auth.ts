@@ -84,24 +84,22 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     throw new Error("Sign up did not return a user");
   }
 
-  const profilePayload: UpsertProfileInput = {
-    user_id: data.user.id,
-    display_name: input.display_name,
-    first_name: input.first_name ?? null,
-    last_name: input.last_name ?? null,
-    bio: input.bio ?? null,
-    avatar_path: input.avatar_path ?? null,
-    account_type: accountType,
-  };
-
-  // The DB trigger `handle_new_user` also creates a profile on auth signup,
-  // including display_name/name metadata and account_type. This explicit upsert
-  // still applies optional profile fields like bio/avatar and remains safe
-  // because upsertProfile uses "on conflict do update".
-  //
-  // If this call fails, the auth user is left without a full profile.
-  // Fixing that requires the service role key (admin API), not available in browser.
-  await upsertProfile(profilePayload);
+  // When email confirmation is required, there is no session yet and RLS blocks
+  // the profile upsert. The DB trigger handle_new_user() already created the
+  // profile from user metadata, so we only upsert here when a session exists
+  // (email confirmation disabled) to apply optional fields like bio/avatar.
+  if (data.session) {
+    const profilePayload: UpsertProfileInput = {
+      user_id: data.user.id,
+      display_name: input.display_name,
+      first_name: input.first_name ?? null,
+      last_name: input.last_name ?? null,
+      bio: input.bio ?? null,
+      avatar_path: input.avatar_path ?? null,
+      account_type: accountType,
+    };
+    await upsertProfile(profilePayload);
+  }
   return {
     user: data.user,
     session: data.session ?? null,
