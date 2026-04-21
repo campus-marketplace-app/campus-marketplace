@@ -84,10 +84,10 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
     throw new Error("Sign up did not return a user");
   }
 
-  // When email confirmation is required, there is no session yet and RLS blocks
-  // the profile upsert. The DB trigger handle_new_user() already created the
-  // profile from user metadata, so we only upsert here when a session exists
-  // (email confirmation disabled) to apply optional fields like bio/avatar.
+  // When email confirmation is required (production), there is no session yet
+  // and RLS blocks the profile upsert. The DB trigger handle_new_user() already
+  // created the profile from user metadata. Only upsert here when a session
+  // exists (email confirmation disabled, e.g. development) to apply all fields.
   if (data.session) {
     const profilePayload: UpsertProfileInput = {
       user_id: data.user.id,
