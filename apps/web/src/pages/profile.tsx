@@ -44,7 +44,7 @@ export default function Profile() {
     const { mutateAsync: uploadAvatarMutation } = useUploadAvatar();
     // Fetch the profile for whoever we're viewing (own profile or another user's).
     const { data: profileData } = useProfile(viewedUserId ?? user?.id);
-    const { confirm } = useConfirm();
+    const { confirm, alert: showAlert } = useConfirm();
     const { mutateAsync: deactivateAccountMutation, isPending: isDeactivating } = useDeactivateAccount();
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
