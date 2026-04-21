@@ -189,6 +189,8 @@ export default function Profile() {
             });
         } catch (error) {
             console.error("Failed to save profile:", error);
+            await showAlert("Error", "Failed to save profile. Please try again.");
+            return;
         }
 
         setIsEditing(false);

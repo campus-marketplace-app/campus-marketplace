@@ -56,7 +56,7 @@ function useCountUp(target: number | undefined, duration = 900): number {
 export default function Index() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { searchQuery, listingsRefreshKey, user } = useOutletContext<OutletContext>();
+    const { searchQuery, user } = useOutletContext<OutletContext>();
 
     const [category, setCategory] = useState<string>("");
     const [listingType, setListingType] = useState<"" | "item" | "service">("");
@@ -122,7 +122,7 @@ export default function Index() {
         // Start exit animation at 2300ms so the slide-out completes at ~2600ms total.
         const timer = window.setTimeout(dismissToast, 2300);
         return () => window.clearTimeout(timer);
-    }, [wishlistToast]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [wishlistToast]);
 
     useEffect(() => {
         const target = loadMoreRef.current;
@@ -140,11 +140,7 @@ export default function Index() {
         return () => observer.disconnect();
     }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
-    // listingsRefreshKey increments when the user posts a new listing.
-    // TanStack Query handles the actual refetch via cache invalidation in the form component.
-    useEffect(() => {}, [listingsRefreshKey]);
-
-    const displayName = profile?.display_name ?? user?.email ?? "there";
+const displayName = profile?.display_name ?? user?.email ?? "there";
 
     async function handleWishlistToggle(e: React.MouseEvent, listing: ListingWithDetails) {
         e.preventDefault();

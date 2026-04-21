@@ -96,18 +96,28 @@ export default function Form({
             return;
         }
 
-        if(listingDescription.trim().length > 2000 && !regex.test(listingDescription)) {
+        if (listingDescription.trim().length > 2000) {
             alert('Description cannot exceed 2000 characters.');
             setIsSubmitting(false);
             return;
         }
 
-        if(listingTitle.trim().length === 0) {
-            if (regex.test(listingTitle)) {
-                alert('Title cannot be empty.');
-                setIsSubmitting(false);
-                return;
-            }
+        if (regex.test(listingDescription)) {
+            alert('Description contains invalid content.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (listingTitle.trim().length === 0) {
+            alert('Title cannot be empty.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (regex.test(listingTitle)) {
+            alert('Title contains invalid content.');
+            setIsSubmitting(false);
+            return;
         }
 
         if(listingPrice < 0) {
