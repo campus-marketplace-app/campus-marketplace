@@ -19,12 +19,12 @@ type OutletContext = {
 const PAGE_SIZE = 12;
 
 const CATEGORIES = [
-    { label: "Electronics", id: "b87122bf-36dc-418c-a489-cb8ad0497f34", icon: Monitor, bgClass: "bg-blue-500" },
-    { label: "Clothing", id: "9f280f6c-d4f8-4178-8e61-059243d5c930", icon: Shirt, bgClass: "bg-violet-500" },
-    { label: "Furniture", id: "6a90f825-6c3c-4060-b5e1-ff394162bb6c", icon: Sofa, bgClass: "bg-orange-500" },
-    { label: "School Supplies", id: "716836e6-f8a2-4cba-aa63-36445e70496e", icon: BookOpen, bgClass: "bg-emerald-500" },
-    { label: "Free Stuff", id: "854c925a-84f6-4280-9c9e-b1452167bb33", icon: Gift, bgClass: "bg-pink-500" },
-    { label: "Sports", id: "be4cc965-718d-4e7d-939f-9ace4dcc837c", icon: Dumbbell, bgClass: "bg-[var(--color-primary)]" },
+    { label: "Electronics", id: "0d8e21f3-8e00-401a-aa28-9b013a9e8470", icon: Monitor, bgClass: "bg-blue-500" },
+    { label: "Clothing", id: "c49821a1-a4ed-4143-80aa-fc563717bf96", icon: Shirt, bgClass: "bg-violet-500" },
+    { label: "Furniture", id: "7e1c80e5-91c8-4e0a-be4d-74d178ee61a4", icon: Sofa, bgClass: "bg-orange-500" },
+    { label: "School Supplies", id: "37d5e9e1-dfd4-4b3d-876d-88142d05e58b", icon: BookOpen, bgClass: "bg-emerald-500" },
+    { label: "Free Stuff", id: "447df3d4-bde4-4ac9-bb89-19508018baf5", icon: Gift, bgClass: "bg-pink-500" },
+    { label: "Sports", id: "0d51becc-b8dc-420d-8092-221867bd54b0", icon: Dumbbell, bgClass: "bg-[var(--color-primary)]" },
 ] as const;
 
 const shimmerStyle: React.CSSProperties = {

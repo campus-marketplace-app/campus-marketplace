@@ -417,15 +417,16 @@ export default function Form({
                                     size={1}
                                 >
                                     <option value="">-- Select --</option>
-                                    <option value="6a90f825-6c3c-4060-b5e1-ff394162bb6c">Furniture</option>
-                                    <option value="716836e6-f8a2-4cba-aa63-36445e70496e">School Supplies</option>
-                                    <option value="854c925a-84f6-4280-9c9e-b1452167bb33">Free Stuff</option>
-                                    <option value="95fe7a36-cb29-4c97-9a4d-56dccc56a7de">Transportation</option>
-                                    <option value="9f280f6c-d4f8-4178-8e61-059243d5c930">Clothing</option>
-                                    <option value="b87122bf-36dc-418c-a489-cb8ad0497f34">Electronics</option>
-                                    <option value="be4cc965-718d-4e7d-939f-9ace4dcc837c">Sports & Fitness</option>
-                                    <option value="dc2b319a-1068-4b06-bcb3-11c1f3dd3fa2">Textbooks</option>
-                                    <option value="744ab09f-350d-4f75-8b4a-cb84016545ef">Other</option>
+                                    <option value="c49821a1-a4ed-4143-80aa-fc563717bf96">Clothing</option>
+                                    <option value="0d8e21f3-8e00-401a-aa28-9b013a9e8470">Electronics</option>
+                                    <option value="447df3d4-bde4-4ac9-bb89-19508018baf5">Free Stuff</option>
+                                    <option value="7e1c80e5-91c8-4e0a-be4d-74d178ee61a4">Furniture</option>
+                                    <option value="aa4402cc-e91a-458d-9f08-16b3c67e089c">Other</option>
+                                    <option value="37d5e9e1-dfd4-4b3d-876d-88142d05e58b">School Supplies</option>
+                                    <option value="9ce6d920-741b-4405-80cd-acf052eb4cd1">Services</option>
+                                    <option value="0d51becc-b8dc-420d-8092-221867bd54b0">Sports & Fitness</option>
+                                    <option value="6dc704c2-5f9c-4ed1-9bd7-cf1d5bccd24f">Textbooks</option>
+                                    <option value="652653d1-b087-407e-b8d8-ee48afe22740">Transportation</option>
                                 </select>
                             </div>
                         </div>
