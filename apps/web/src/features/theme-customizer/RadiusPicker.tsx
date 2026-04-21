@@ -9,7 +9,7 @@ export default function RadiusPicker() {
       {RADIUS_OPTIONS.map(option => {
         const isActive = radiusId === option.id;
         /** Preview radius: cap at 12px so the visual box stays readable. */
-        const previewRadius = option.id === 'pill' ? '12px' : option.vars['--radius'];
+        const previewRadius = option.vars['--radius'];
         return (
           <button
             key={option.id}

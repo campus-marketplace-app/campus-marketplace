@@ -65,5 +65,9 @@ export async function getThemeBySchoolCode(schoolCode: number): Promise<SchoolTh
     );
   }
 
+  if (!data) {
+    throw new Error(`No theme found for school code "${schoolCode}"`);
+  }
+
   return data;
 }

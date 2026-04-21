@@ -102,8 +102,46 @@ export default function Navbar({
                     )}
                 </button>
 
-                {/* Login (when not logged in) */}
-                {!isloggedIn && (
+            </nav>
+
+            {/* Bottom section — Post + Logout (when logged in), Login (when logged out) */}
+            <div className="border-t border-white/20 p-3 flex flex-col gap-2">
+                {isloggedIn ? (
+                    <>
+                        {/* Post button */}
+                        <button
+                            type="button"
+                            onClick={openPostForm}
+                            className={[
+                                'flex items-center gap-2 rounded-lg bg-white text-[var(--color-primary)] font-semibold shadow hover:bg-gray-100 transition-colors',
+                                isSidebarOpen ? 'px-4 py-2.5' : 'justify-center p-2.5',
+                            ].join(' ')}
+                        >
+                            <Plus size={18} className="shrink-0" />
+                            {isSidebarOpen && <span className="text-sm">Post</span>}
+                        </button>
+
+                        {/* Logout */}
+                        <NavLink
+                            to="/login"
+                            onClick={logout}
+                            className={[
+                                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--color-text-on-primary)]/80 hover:bg-white/10 hover:text-[var(--color-text-on-primary)] transition-all relative group',
+                                !isSidebarOpen ? 'justify-center' : '',
+                            ].join(' ')}
+                        >
+                            <LogOut size={20} className="shrink-0" />
+                            {isSidebarOpen && (
+                                <span className="text-sm font-medium">Logout</span>
+                            )}
+                            {!isSidebarOpen && (
+                                <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                    Logout
+                                </span>
+                            )}
+                        </NavLink>
+                    </>
+                ) : (
                     <NavLink
                         to="/login"
                         className={({ isActive }) =>
@@ -127,45 +165,7 @@ export default function Navbar({
                         )}
                     </NavLink>
                 )}
-            </nav>
-
-            {/* Bottom section — Post + Logout (when logged in) */}
-            {isloggedIn && (
-                <div className="border-t border-white/20 p-3 flex flex-col gap-2">
-                    {/* Post button */}
-                    <button
-                        type="button"
-                        onClick={openPostForm}
-                        className={[
-                            'flex items-center gap-2 rounded-lg bg-white text-[var(--color-primary)] font-semibold shadow hover:bg-gray-100 transition-colors',
-                            isSidebarOpen ? 'px-4 py-2.5' : 'justify-center p-2.5',
-                        ].join(' ')}
-                    >
-                        <Plus size={18} className="shrink-0" />
-                        {isSidebarOpen && <span className="text-sm">Post</span>}
-                    </button>
-
-                    {/* Logout */}
-                    <NavLink
-                        to="/login"
-                        onClick={logout}
-                        className={[
-                            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--color-text-on-primary)]/80 hover:bg-white/10 hover:text-[var(--color-text-on-primary)] transition-all relative group',
-                            !isSidebarOpen ? 'justify-center' : '',
-                        ].join(' ')}
-                    >
-                        <LogOut size={20} className="shrink-0" />
-                        {isSidebarOpen && (
-                            <span className="text-sm font-medium">Logout</span>
-                        )}
-                        {!isSidebarOpen && (
-                            <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                Logout
-                            </span>
-                        )}
-                    </NavLink>
-                </div>
-            )}
+            </div>
         </div>
     );
 }

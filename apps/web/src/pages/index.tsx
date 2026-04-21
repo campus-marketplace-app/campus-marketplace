@@ -1,9 +1,11 @@
 import { getListingImageUrl } from "@campus-marketplace/backend";
+import type { Category } from "@campus-marketplace/backend";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark } from "lucide-react";
+import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark, BookText, Bike, Home, UtensilsCrossed, Gamepad2, Music, Package } from "lucide-react";
 import { NoImagePlaceholder } from "../components/NoImagePlaceholder";
+import { useCategories } from "../hooks/useCategories.ts";
 import { useSearchListings } from "../hooks/useListings";
 import { useProfile } from "../hooks/useProfile";
 import { useHomeStats } from "../hooks/useHomeStats";
@@ -12,20 +14,42 @@ import type { SessionUser } from "../features/types";
 
 type OutletContext = {
     searchQuery: string;
-    listingsRefreshKey: number;
     user: SessionUser | null;
 };
 
 const PAGE_SIZE = 12;
 
-const CATEGORIES = [
-    { label: "Electronics", id: "0d8e21f3-8e00-401a-aa28-9b013a9e8470", icon: Monitor, bgClass: "bg-blue-500" },
-    { label: "Clothing", id: "c49821a1-a4ed-4143-80aa-fc563717bf96", icon: Shirt, bgClass: "bg-violet-500" },
-    { label: "Furniture", id: "7e1c80e5-91c8-4e0a-be4d-74d178ee61a4", icon: Sofa, bgClass: "bg-orange-500" },
-    { label: "School Supplies", id: "37d5e9e1-dfd4-4b3d-876d-88142d05e58b", icon: BookOpen, bgClass: "bg-emerald-500" },
-    { label: "Free Stuff", id: "447df3d4-bde4-4ac9-bb89-19508018baf5", icon: Gift, bgClass: "bg-pink-500" },
-    { label: "Sports", id: "0d51becc-b8dc-420d-8092-221867bd54b0", icon: Dumbbell, bgClass: "bg-[var(--color-primary)]" },
-] as const;
+const CATEGORY_DISPLAY: Record<string, { label: string; icon: ComponentType<{ size?: number; color?: string }>; bgClass: string }> = {
+    Electronics:      { label: "Electronics",     icon: Monitor,         bgClass: "bg-blue-500"    },
+    Textbooks:        { label: "Textbooks",        icon: BookText,        bgClass: "bg-amber-500"   },
+    Clothing:         { label: "Clothing",         icon: Shirt,           bgClass: "bg-violet-500"  },
+    Furniture:        { label: "Furniture",        icon: Sofa,            bgClass: "bg-orange-500"  },
+    "School Supplies":{ label: "School Supplies",  icon: BookOpen,        bgClass: "bg-emerald-500" },
+    "Sports & Fitness":{ label: "Sports & Fitness",icon: Dumbbell,        bgClass: "bg-red-500"     },
+    "Free Stuff":     { label: "Free Stuff",       icon: Gift,            bgClass: "bg-pink-500"    },
+    Transportation:   { label: "Transportation",   icon: Bike,            bgClass: "bg-cyan-500"    },
+    Housing:          { label: "Housing",          icon: Home,            bgClass: "bg-teal-500"    },
+    "Food & Drinks":  { label: "Food & Drinks",    icon: UtensilsCrossed, bgClass: "bg-lime-500"    },
+    Gaming:           { label: "Gaming",           icon: Gamepad2,        bgClass: "bg-purple-500"  },
+    Music:            { label: "Music",            icon: Music,           bgClass: "bg-fuchsia-500" },
+    Other:            { label: "Other",            icon: Package,         bgClass: "bg-slate-500"   },
+};
+
+const CATEGORY_ORDER = [
+    "Electronics",
+    "Textbooks",
+    "Clothing",
+    "Furniture",
+    "School Supplies",
+    "Sports & Fitness",
+    "Free Stuff",
+    "Transportation",
+    "Housing",
+    "Food & Drinks",
+    "Gaming",
+    "Music",
+    "Other",
+];
 
 const shimmerStyle: React.CSSProperties = {
     background: "linear-gradient(90deg, var(--color-background-alt) 25%, var(--color-border) 50%, var(--color-background-alt) 75%)",
@@ -56,7 +80,7 @@ function useCountUp(target: number | undefined, duration = 900): number {
 export default function Index() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { searchQuery, listingsRefreshKey, user } = useOutletContext<OutletContext>();
+    const { searchQuery, user } = useOutletContext<OutletContext>();
 
     const [category, setCategory] = useState<string>("");
     const [listingType, setListingType] = useState<"" | "item" | "service">("");
@@ -65,6 +89,7 @@ export default function Index() {
     const [toastExiting, setToastExiting] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
+    const { categories } = useCategories();
     const { data: profile } = useProfile(user?.id);
     const { stats, isLoading: statsLoading } = useHomeStats();
 
@@ -80,6 +105,23 @@ export default function Index() {
     );
     const addMutation = useAddToWishlist();
     const removeMutation = useRemoveFromWishlist();
+
+    const categoryButtons = useMemo(() => {
+        const categoriesByName = new Map<string, Category>(categories.map((entry: Category) => [entry.name, entry]));
+
+        return CATEGORY_ORDER.flatMap((name) => {
+            const categoryEntry = categoriesByName.get(name);
+            if (!categoryEntry) return [];
+
+            const display = CATEGORY_DISPLAY[name];
+            return [{
+                id: categoryEntry.id,
+                label: display.label,
+                icon: display.icon,
+                bgClass: display.bgClass,
+            }];
+        });
+    }, [categories]);
 
     const filters = useMemo(() => {
         const priceFilters =
@@ -122,7 +164,7 @@ export default function Index() {
         // Start exit animation at 2300ms so the slide-out completes at ~2600ms total.
         const timer = window.setTimeout(dismissToast, 2300);
         return () => window.clearTimeout(timer);
-    }, [wishlistToast]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [wishlistToast]);
 
     useEffect(() => {
         const target = loadMoreRef.current;
@@ -140,11 +182,7 @@ export default function Index() {
         return () => observer.disconnect();
     }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
-    // listingsRefreshKey increments when the user posts a new listing.
-    // TanStack Query handles the actual refetch via cache invalidation in the form component.
-    useEffect(() => {}, [listingsRefreshKey]);
-
-    const displayName = profile?.display_name ?? user?.email ?? "there";
+const displayName = profile?.display_name ?? user?.email ?? "there";
 
     async function handleWishlistToggle(e: React.MouseEvent, listing: ListingWithDetails) {
         e.preventDefault();
@@ -199,53 +237,54 @@ export default function Index() {
 
             {/* ── Welcome Banner ── */}
             <div
-                className="flex flex-col gap-4 rounded-2xl p-5 text-white md:flex-row md:items-center md:justify-between"
-                style={{ backgroundColor: "var(--color-primary)" }}
+                className="rounded-2xl p-5 text-white shadow-[0_6px_28px_rgba(0,0,0,0.22)]"
+                style={{ background: "linear-gradient(150deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)" }}
             >
-                <div>
-                    <p className="text-2xl font-bold">Welcome back, {displayName}!</p>
-                    <p className="mt-1 text-sm opacity-80">Discover great deals from fellow NJIT students</p>
-                </div>
-                {/* Stat tiles stay white-on-red — intentional design contrast */}
-                <div className="flex shrink-0 gap-3">
+                <p className="text-xl sm:text-2xl font-bold">
+                    {user ? `Welcome back, ${displayName}!` : 'Find great deals at NJIT'}
+                </p>
+                <p className="mt-1 text-sm opacity-80">
+                    {user ? 'Discover great deals from fellow NJIT students' : 'Browse listings from students and businesses on campus'}
+                </p>
+                <div className="mt-4 grid grid-cols-3 gap-3">
                     {([
                         { value: statsLoading ? "—" : activeListingsCount, label: "Active Listings" },
                         { value: statsLoading ? "—" : activeUsersCount, label: "Active Users" },
                         { value: statsLoading ? "—" : newTodayCount, label: "New Today" },
                     ] as const).map((tile) => (
-                        <div key={tile.label} className="flex min-w-[80px] flex-col items-center rounded-xl bg-white px-3 py-2 text-black">
-                            <span className="text-lg font-bold leading-none">{String(tile.value)}</span>
-                            <span className="mt-0.5 text-center text-xs text-black/60">{tile.label}</span>
+                        <div key={tile.label} className="flex flex-col items-center rounded-xl bg-white/15 border border-white/20 px-3 py-3">
+                            <span className="text-xl font-bold leading-none text-white">{String(tile.value)}</span>
+                            <span className="mt-1 text-center text-xs text-white/70">{tile.label}</span>
                         </div>
                     ))}
                 </div>
             </div>
 
             {/* ── Browse by Category + Filters (merged) ── */}
-            <div className="rounded-2xl p-5 shadow-sm" style={{ backgroundColor: "var(--color-surface)" }}>
+            <div className="rounded-2xl p-3 sm:p-5 shadow-sm" style={{ backgroundColor: "var(--color-surface)" }}>
                 {/* Category header */}
                 <div className="mb-3">
                     <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>Browse by Category</p>
                 </div>
 
-                {/* Category tiles */}
-                <div className="flex gap-4 overflow-x-auto px-1 py-2">
-                    {CATEGORIES.map(({ label, id, icon: Icon, bgClass }) => {
+                {/* Category tiles — horizontal scroll on mobile, single-row grid on lg+ */}
+                <div className="flex gap-3 overflow-x-auto py-2 lg:grid lg:grid-cols-[repeat(13,minmax(0,1fr))] lg:gap-2 lg:overflow-visible">
+                    {categoryButtons.map(({ label, id, icon: Icon, bgClass }) => {
                         const isActive = category === id;
                         return (
                             <button
                                 key={id}
                                 type="button"
                                 aria-pressed={isActive}
-                                className="flex min-w-[72px] flex-col items-center"
+                                className="flex shrink-0 w-16 flex-col items-center lg:w-full"
                                 onClick={() => setCategory(isActive ? "" : id)}
                             >
                                 <div
-                                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${bgClass}${isActive ? " ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-surface)]" : ""}`}
+                                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${bgClass}${isActive ? " ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-surface)]" : ""}`}
                                 >
-                                    <Icon size={26} color="white" />
+                                    <Icon size={20} color="white" />
                                 </div>
-                                <span className="mt-1.5 text-center text-xs font-medium leading-tight" style={{ color: "var(--color-text)" }}>{label}</span>
+                                <span className="mt-1 w-16 text-center text-xs font-medium leading-tight line-clamp-2 lg:w-full" style={{ color: "var(--color-text)" }}>{label}</span>
                             </button>
                         );
                     })}
@@ -255,14 +294,14 @@ export default function Index() {
                 <div className="my-4 border-t" style={{ borderColor: "var(--color-border)" }} />
 
                 {/* Filters row */}
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
                     <div className="flex items-center gap-1.5">
                         <Zap size={16} style={{ color: "var(--color-primary)" }} />
                         <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Filters</span>
                     </div>
                     <select
                         aria-label="Listing type"
-                        className="rounded-lg border px-3 py-2 text-sm outline-none"
+                        className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
                         style={{ backgroundColor: "var(--color-background)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
                         value={listingType}
                         onChange={(e) => setListingType(e.target.value as "" | "item" | "service")}
@@ -272,8 +311,20 @@ export default function Index() {
                         <option value="service">Service</option>
                     </select>
                     <select
+                        aria-label="Category"
+                        className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
+                        style={{ backgroundColor: "var(--color-background)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                    >
+                        <option value="">All categories</option>
+                        {categoryButtons.map((categoryOption) => (
+                            <option key={categoryOption.id} value={categoryOption.id}>{categoryOption.label}</option>
+                        ))}
+                    </select>
+                    <select
                         aria-label="Price range"
-                        className="rounded-lg border px-3 py-2 text-sm outline-none"
+                        className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none"
                         style={{ backgroundColor: "var(--color-background)", borderColor: "var(--color-border)", color: "var(--color-text)" }}
                         value={priceRange}
                         onChange={(e) => setPriceRange(e.target.value as "" | "u25" | "25-100" | "100-500" | "o500")}
@@ -286,7 +337,7 @@ export default function Index() {
                     </select>
                     <button
                         type="button"
-                        className="ml-auto rounded-lg border px-3 py-2 text-sm font-medium transition hover:bg-[var(--color-background)]"
+                        className="rounded-lg border px-3 py-2 text-sm font-medium transition hover:bg-[var(--color-background)] lg:ml-auto"
                         style={{ borderColor: "var(--color-border)", color: "var(--color-text)" }}
                         onClick={() => { setListingType(""); setCategory(""); setPriceRange(""); }}
                     >
@@ -369,7 +420,7 @@ export default function Index() {
                                                     <button
                                                         type="button"
                                                         onClick={(e) => void handleWishlistToggle(e, listing)}
-                                                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-2 shadow-md transition ${saved ? "bg-[var(--color-primary)] text-white" : "hover:bg-[var(--color-primary)] hover:text-white"}`}
+                                                        className={`flex items-center rounded-full px-2.5 py-2 shadow-md transition ${saved ? "bg-[var(--color-primary)] text-white" : "hover:bg-[var(--color-primary)] hover:text-white"}`}
                                                         style={saved ? {} : { backgroundColor: "var(--color-surface)", color: "var(--color-text-muted)" }}
                                                         aria-label={saved ? "Remove from wishlist" : "Add to wishlist"}
                                                     >
@@ -378,7 +429,7 @@ export default function Index() {
                                                             className="shrink-0"
                                                             fill={saved ? "currentColor" : "none"}
                                                         />
-                                                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs font-medium transition-all duration-200 group-hover:max-w-[96px]">
+                                                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs font-medium transition-all duration-200 group-hover:max-w-[96px] group-hover:pl-1.5">
                                                             {saved ? "Saved" : "Add to wishlist"}
                                                         </span>
                                                     </button>

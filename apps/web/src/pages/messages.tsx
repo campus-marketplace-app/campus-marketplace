@@ -26,6 +26,7 @@ export default function Messages() {
     );
     const [messages, setMessages] = useState<Message[]>([]);
     const [messageInput, setMessageInput] = useState("");
+    const [isSending, setIsSending] = useState(false);
     const [searchFilter, setSearchFilter] = useState("");
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -164,10 +165,11 @@ export default function Messages() {
 
     // --- send a message ---
     async function handleSend() {
-        if (!activeConversationId || !user || !messageInput.trim()) return;
+        if (!activeConversationId || !user || !messageInput.trim() || isSending) return;
 
         const content = messageInput.trim();
         setMessageInput("");
+        setIsSending(true);
 
         try {
             const sent = await sendMessage(activeConversationId, user.id, content);
@@ -182,6 +184,8 @@ export default function Messages() {
         } catch (err) {
             console.error("Failed to send message:", err);
             setError("Failed to send message. Please try again.");
+        } finally {
+            setIsSending(false);
         }
     }
 
@@ -221,16 +225,17 @@ export default function Messages() {
     if (!user) {
         return (
             <div className="flex h-full min-h-[calc(100vh-64px)] w-full items-center justify-center bg-black/50">
-                <div className="mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-                    <h2 className="mb-4 text-center text-2xl font-bold text-black">
+                <div className="mx-auto w-full max-w-md rounded-xl p-8 shadow-lg" style={{ backgroundColor: "var(--color-surface)" }}>
+                    <h2 className="mb-4 text-center text-2xl font-bold" style={{ color: "var(--color-text)" }}>
                         Sign in required
                     </h2>
-                    <p className="mb-6 text-center text-gray-600">
+                    <p className="mb-6 text-center text-sm" style={{ color: "var(--color-text-muted)" }}>
                         You need to be logged in to view your messages.
                     </p>
                     <Link
                         to="/login"
-                        className="block rounded bg-[var(--color-primary)] px-4 py-2 text-center font-semibold text-[var(--color-text-on-primary)]"
+                        className="block rounded-lg px-4 py-2 text-center font-semibold"
+                        style={{ backgroundColor: "var(--color-primary)", color: "var(--color-text-on-primary)" }}
                     >
                         Go to Login
                     </Link>
@@ -282,6 +287,7 @@ export default function Messages() {
                             messageInput={messageInput}
                             onInputChange={setMessageInput}
                             onSend={handleSend}
+                            isSending={isSending}
                             loading={chatLoading}
                             onBack={() => setMobileView("list")}
                             listingId={activeConvo.listing_id}

@@ -189,6 +189,8 @@ export default function Profile() {
             });
         } catch (error) {
             console.error("Failed to save profile:", error);
+            await showAlert("Error", "Failed to save profile. Please try again.");
+            return;
         }
 
         setIsEditing(false);
@@ -223,14 +225,15 @@ export default function Profile() {
     if (!user) {
         return (
             <div className="flex h-full min-h-[calc(100vh-64px)] w-full items-center justify-center bg-black/50">
-                <div className="mx-auto w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-                    <h2 className="mb-4 text-center text-2xl font-bold text-black">Sign in required</h2>
-                    <p className="mb-6 text-center text-gray-600">
+                <div className="mx-auto w-full max-w-md rounded-xl p-8 shadow-lg" style={{ backgroundColor: "var(--color-surface)" }}>
+                    <h2 className="mb-4 text-center text-2xl font-bold" style={{ color: "var(--color-text)" }}>Sign in required</h2>
+                    <p className="mb-6 text-center text-sm" style={{ color: "var(--color-text-muted)" }}>
                         Please sign in to view and edit your profile.
                     </p>
                     <Link
                         to="/login"
-                        className="block rounded bg-[var(--color-primary)] px-4 py-2 text-center font-semibold text-[var(--color-text-on-primary)]"
+                        className="block rounded-lg px-4 py-2 text-center font-semibold"
+                        style={{ backgroundColor: "var(--color-primary)", color: "var(--color-text-on-primary)" }}
                     >
                         Go to Login
                     </Link>
@@ -358,6 +361,7 @@ export default function Profile() {
 
                             {nameError && <p className="text-xs text-[var(--color-primary)]">{nameError}</p>}
 
+                            {/* Location — TODO: wire to backend before re-enabling
                             <div>
                                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Location</p>
                                 <input
@@ -369,6 +373,7 @@ export default function Profile() {
                                     style={{ borderColor: "var(--color-border)" }}
                                 />
                             </div>
+                            */}
 
                             <div>
                                 <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Bio</p>

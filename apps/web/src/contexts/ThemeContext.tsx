@@ -4,12 +4,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
 import { adjustLightness, blendColors, desaturate } from '../lib/color-utils';
 import {
   LocalStoragePreferences,
+  UserLocalStoragePreferences,
   type PreferencesStorage,
   type StoredThemePrefs,
 } from '../lib/theme-storage';
@@ -39,13 +41,15 @@ function resolveMode(pref: ThemeModePreference, sysDark: boolean): ResolvedTheme
   return sysDark ? 'dark' : 'light';
 }
 
+const DEFAULT_PREFS: StoredThemePrefs = {
+  presetId: DEFAULT_PRESET_ID,
+  mode: 'system',
+  radius: DEFAULT_RADIUS_ID,
+  fontId: DEFAULT_FONT_ID,
+};
+
 function loadInitialPrefs(storage: PreferencesStorage): StoredThemePrefs {
-  return storage.load() ?? {
-    presetId: DEFAULT_PRESET_ID,
-    mode: 'system',
-    radius: DEFAULT_RADIUS_ID,
-    fontId: DEFAULT_FONT_ID,
-  };
+  return storage.load() ?? DEFAULT_PREFS;
 }
 
 function findPreset(id: string): ThemePreset {
@@ -128,19 +132,25 @@ type ThemeContextValue = {
 
   // Style controls
   radiusId: string;
-  setRadius: (radius: 'sharp' | 'default' | 'rounded' | 'pill') => void;
+  setRadius: (radius: 'sharp' | 'default' | 'rounded') => void;
   fontId: string;
   setFont: (id: string) => void;
+
+  // Auth lifecycle hooks
+  resetToDefaults: () => void;
+  loadPrefsForUser: (userId: string) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const storage: PreferencesStorage = new LocalStoragePreferences();
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // storageRef holds the active storage backend — swapped to per-user storage on login.
+  // Initialized separately from useState to avoid accessing the ref during render.
+  const storageRef = useRef<PreferencesStorage>(new LocalStoragePreferences());
+
   // Read prefs synchronously so useState is initialized with the right values —
   // prevents a flash of the default theme on load.
-  const [prefs, setPrefs] = useState<StoredThemePrefs>(() => loadInitialPrefs(storage));
+  const [prefs, setPrefs] = useState<StoredThemePrefs>(() => loadInitialPrefs(new LocalStoragePreferences()));
   const [sysDark, setSysDark] = useState(systemPrefersDark);
 
   // Listen for OS dark mode changes.
@@ -153,6 +163,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const resolvedThemeMode = resolveMode(prefs.mode, sysDark);
   const activePreset = findPreset(prefs.presetId);
+
+  // Set page title from school name.
+  useEffect(() => {
+    document.title = `${NJIT_THEME.school_name} Marketplace`;
+  }, []);
 
   // Apply dark class to <html>.
   useEffect(() => {
@@ -172,7 +187,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const updatePrefs = useCallback((patch: Partial<StoredThemePrefs>) => {
     setPrefs(prev => {
       const next = { ...prev, ...patch };
-      storage.save(next);
+      storageRef.current.save(next);
       return next;
     });
   }, []);
@@ -181,6 +196,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setPreset = useCallback((presetId: string) => updatePrefs({ presetId }), [updatePrefs]);
   const setRadius = useCallback((radius: StoredThemePrefs['radius']) => updatePrefs({ radius }), [updatePrefs]);
   const setFont = useCallback((fontId: string) => updatePrefs({ fontId }), [updatePrefs]);
+
+  /** Called on logout — reverts to default theme and switches back to anonymous storage. */
+  const resetToDefaults = useCallback(() => {
+    storageRef.current = new LocalStoragePreferences();
+    storageRef.current.save(DEFAULT_PREFS);
+    setPrefs(DEFAULT_PREFS);
+  }, []);
+
+  /** Called on login — switches to per-user storage and restores saved prefs if any. */
+  const loadPrefsForUser = useCallback((userId: string) => {
+    const userStorage = new UserLocalStoragePreferences(userId);
+    storageRef.current = userStorage;
+    const saved = userStorage.load();
+    setPrefs(saved ?? DEFAULT_PREFS);
+  }, []);
 
   const value = useMemo<ThemeContextValue>(() => ({
     schoolName: NJIT_THEME.school_name,
@@ -198,7 +228,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setRadius,
     fontId: prefs.fontId,
     setFont,
-  }), [prefs, resolvedThemeMode, setThemeMode, setPreset, setRadius, setFont]);
+    resetToDefaults,
+    loadPrefsForUser,
+  }), [prefs, resolvedThemeMode, setThemeMode, setPreset, setRadius, setFont, resetToDefaults, loadPrefsForUser]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

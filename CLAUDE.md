@@ -55,11 +55,12 @@ Verify no leaks: `grep -r "@supabase/supabase-js" apps/web/src/` must return not
 
 Services live in `apps/backend/src/services/`:
 - `auth.ts` — sign-up, sign-in, session restore, sign-out, password reset (fully implemented)
-- `profile.ts` — get/upsert/update profiles (fully implemented)
+- `profile.ts` — get/upsert/update profiles, avatar upload (fully implemented)
 - `theme.ts` — fetch school branding by school code (fully implemented)
 - `listings.ts` — CRUD + search for listings (fully implemented); types in `listings.types.ts`
-- `messaging.ts` — stub, not yet implemented
-- `search.ts` — stub, not yet implemented
+- `messaging.ts` — conversations, messages, realtime subscriptions (fully implemented)
+- `notifications.ts` — fetch and mark notifications read (fully implemented)
+- `wishlist.ts` — add/remove/query wishlist entries (fully implemented)
 
 All services are re-exported from `apps/backend/src/index.ts`.
 
@@ -69,7 +70,7 @@ Pages are in `apps/web/src/pages/`. All routes are wrapped in `<SidebarLayout />
 
 ### Theming (CSS Variables)
 
-School-specific branding is stored in the `school_themes` database table. The backend fetches it by `VITE_SCHOOL_CODE`; the frontend applies it as CSS variables at startup:
+School branding is stored in the `school_themes` database table and fetched by the backend using `VITE_SCHOOL_CODE`; the frontend applies it as CSS variables at startup:
 
 ```
 --color-primary, --color-secondary, --color-accent, --font-family, --logo-url, --button-style
@@ -81,11 +82,11 @@ Verify: `grep -rE "bg-\[#|text-\[#" apps/web/src/` must return nothing.
 
 ## Database
 
-Schema: `supabase/migrations/20260315120000_core_tables.sql` — 16 tables.
+Schema starts in `supabase/migrations/20260315120000_core_tables.sql` — currently **14 active tables** (favorites and school_themes were dropped in migration 20260408120000).
 
-Key tables: `profiles`, `listings`, `item_details`, `service_details`, `listing_images`, `listing_tags`, `categories`, `tags`, `conversations`, `conversation_participants`, `messages`, `notifications`, `favorites`, `reports`, `blocks`, `school_themes`.
+Key tables: `profiles`, `listings`, `item_details`, `service_details`, `listing_images`, `listing_tags`, `categories`, `tags`, `conversations`, `conversation_participants`, `messages`, `notifications`, `reports`, `blocks`, `wishlists`.
 
-All tables use UUIDs and auto-managed `updated_at` via trigger. Soft deletes (`deleted_at`) are present on `listings`, `item_details`, `service_details`, `listing_images`, `conversations`, `messages`, `categories`, and `tags` — but not on all tables.
+All tables use UUIDs. `updated_at` triggers exist on `profiles`, `listings`, `item_details`, `service_details`, `conversations`, and `reports`. Soft deletes (`deleted_at`) are present on `listings`, `item_details`, `service_details`, `listing_images`, `conversations`, `messages`, `categories`, and `tags`.
 
 **Migration rule:** Never edit existing migration files. Create new timestamped files for schema changes.
 

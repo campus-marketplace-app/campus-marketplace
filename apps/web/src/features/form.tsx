@@ -11,6 +11,7 @@ import {
 } from '@campus-marketplace/backend';
 import type { ItemCondition, ListingImageContentType, ListingWithDetails } from '@campus-marketplace/backend';
 import type { ListingType, SessionUser } from './types';
+import { useCategories } from '../hooks/useCategories';
 
 type FormProps = {
     showForm: boolean;
@@ -51,6 +52,7 @@ export default function Form({
     const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const objectUrlRef = useRef<string | null>(null);
+    const { categories } = useCategories();
 
     const handleListingImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -96,18 +98,28 @@ export default function Form({
             return;
         }
 
-        if(listingDescription.trim().length > 2000 && !regex.test(listingDescription)) {
+        if (listingDescription.trim().length > 2000) {
             alert('Description cannot exceed 2000 characters.');
             setIsSubmitting(false);
             return;
         }
 
-        if(listingTitle.trim().length === 0) {
-            if (regex.test(listingTitle)) {
-                alert('Title cannot be empty.');
-                setIsSubmitting(false);
-                return;
-            }
+        if (regex.test(listingDescription)) {
+            alert('Description contains invalid content.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (listingTitle.trim().length === 0) {
+            alert('Title cannot be empty.');
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (regex.test(listingTitle)) {
+            alert('Title contains invalid content.');
+            setIsSubmitting(false);
+            return;
         }
 
         if(listingPrice < 0) {
@@ -353,8 +365,11 @@ export default function Form({
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <p className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Listing Type</p>
-                                <div className="grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-white p-1">
+                                <p className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                    Listing Type
+                                    {editListing && <span className="ml-1.5 normal-case font-normal text-black/40">(cannot be changed after creation)</span>}
+                                </p>
+                                <div className={`grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-white p-1 ${editListing ? 'opacity-60' : ''}`}>
                                     <input
                                         type="radio"
                                         id="item"
@@ -362,11 +377,12 @@ export default function Form({
                                         value="item"
                                         checked={listingType === 'item'}
                                         onChange={() => setListingType('item')}
+                                        disabled={!!editListing}
                                         className="sr-only"
                                     />
                                     <label
                                         htmlFor="item"
-                                        className={`cursor-pointer rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'item' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
+                                        className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${editListing ? 'cursor-default' : 'cursor-pointer'} ${listingType === 'item' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
                                     >
                                         Item
                                     </label>
@@ -378,11 +394,12 @@ export default function Form({
                                         value="service"
                                         checked={listingType === 'service'}
                                         onChange={() => setListingType('service')}
+                                        disabled={!!editListing}
                                         className="sr-only"
                                     />
                                     <label
                                         htmlFor="service"
-                                        className={`cursor-pointer rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${listingType === 'service' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
+                                        className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${editListing ? 'cursor-default' : 'cursor-pointer'} ${listingType === 'service' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
                                     >
                                         Service
                                     </label>
@@ -417,16 +434,9 @@ export default function Form({
                                     size={1}
                                 >
                                     <option value="">-- Select --</option>
-                                    <option value="c49821a1-a4ed-4143-80aa-fc563717bf96">Clothing</option>
-                                    <option value="0d8e21f3-8e00-401a-aa28-9b013a9e8470">Electronics</option>
-                                    <option value="447df3d4-bde4-4ac9-bb89-19508018baf5">Free Stuff</option>
-                                    <option value="7e1c80e5-91c8-4e0a-be4d-74d178ee61a4">Furniture</option>
-                                    <option value="aa4402cc-e91a-458d-9f08-16b3c67e089c">Other</option>
-                                    <option value="37d5e9e1-dfd4-4b3d-876d-88142d05e58b">School Supplies</option>
-                                    <option value="9ce6d920-741b-4405-80cd-acf052eb4cd1">Services</option>
-                                    <option value="0d51becc-b8dc-420d-8092-221867bd54b0">Sports & Fitness</option>
-                                    <option value="6dc704c2-5f9c-4ed1-9bd7-cf1d5bccd24f">Textbooks</option>
-                                    <option value="652653d1-b087-407e-b8d8-ee48afe22740">Transportation</option>
+                                    {categories.map((category) => (
+                                        <option key={category.id} value={category.id}>{category.name}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

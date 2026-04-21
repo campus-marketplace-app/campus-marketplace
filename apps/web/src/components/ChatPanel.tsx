@@ -10,6 +10,7 @@ type ChatPanelProps = {
     messageInput: string;
     onInputChange: (value: string) => void;
     onSend: () => void;
+    isSending?: boolean;
     loading: boolean;
     onBack?: () => void;
     listingId?: string | null;
@@ -33,6 +34,7 @@ export default function ChatPanel({
     messageInput,
     onInputChange,
     onSend,
+    isSending = false,
     loading,
     onBack,
     listingId,
@@ -170,7 +172,7 @@ export default function ChatPanel({
                 <button
                     type="button"
                     onClick={onSend}
-                    disabled={!messageInput.trim() || isSold}
+                    disabled={!messageInput.trim() || isSold || isSending}
                     className="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-on-primary)] disabled:opacity-40 hover:opacity-90 transition-opacity"
                 >
                     <Send size={16} />
