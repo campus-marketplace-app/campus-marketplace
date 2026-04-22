@@ -307,7 +307,7 @@ export default function Form({
                 }}
             />
 
-            <div className="relative z-10 max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-b-2xl rounded-t-none bg-white p-5 shadow-xl sm:p-6">
+            <div className="relative z-10 max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
                         <button
@@ -326,22 +326,23 @@ export default function Form({
                     </div>
 
                     <div>
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Product Photos</p>
-                        <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-black/20 bg-white p-5 text-center text-sm text-black/60">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Product Photos</p>
+                        <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-5 text-center text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-muted)" }}>
                             {imagePreviewUrl ? (
                                 <img
                                     src={imagePreviewUrl}
                                     alt={listingImageLabel}
-                                    className="h-44 w-full max-w-xs rounded-lg border border-black/10 object-cover"
+                                    className="h-44 w-full max-w-xs rounded-lg border object-cover"
+                                    style={{ borderColor: "var(--color-border)" }}
                                 />
                             ) : (
                                 <>
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/5 text-2xl">📷</div>
-                                    <p className="font-semibold text-black">Add Product Photos</p>
-                                    <p className="text-xs text-black/50">or drag and drop (JPG, PNG • Max 10MB)</p>
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-full text-2xl" style={{ backgroundColor: "var(--color-surface)" }}>📷</div>
+                                    <p className="font-semibold" style={{ color: "var(--color-text)" }}>Add Product Photos</p>
+                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>or drag and drop (JPG, PNG • Max 10MB)</p>
                                 </>
                             )}
-                            <label className="cursor-pointer rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5">
+                            <label className="cursor-pointer rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-90" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                                 Choose Image
                                 <input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="hidden" onChange={handleListingImageChange} />
                             </label>
@@ -350,7 +351,7 @@ export default function Form({
 
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="title" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                            <label htmlFor="title" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                 Product Title
                             </label>
                             <input
@@ -359,17 +360,17 @@ export default function Form({
                                 value={listingTitle}
                                 onChange={(e) => setListingTitle(e.target.value)}
                                 placeholder="Enter a catchy title for your listing"
-                                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black/35 focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
+                                        className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary-dark)] focus:ring-1 focus:ring-[var(--color-primary-dark)]"
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <p className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                <p className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                     Listing Type
-                                    {editListing && <span className="ml-1.5 normal-case font-normal text-black/40">(cannot be changed after creation)</span>}
+                                    {editListing && <span className="ml-1.5 normal-case font-normal" style={{ color: "var(--color-text-muted)" }}>(cannot be changed after creation)</span>}
                                 </p>
-                                <div className={`grid grid-cols-2 gap-1 rounded-lg border border-black/10 bg-white p-1 ${editListing ? 'opacity-60' : ''}`}>
+                                <div className={`grid grid-cols-2 gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] p-1 ${editListing ? 'opacity-60' : ''}`}>
                                     <input
                                         type="radio"
                                         id="item"
@@ -382,7 +383,7 @@ export default function Form({
                                     />
                                     <label
                                         htmlFor="item"
-                                        className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${editListing ? 'cursor-default' : 'cursor-pointer'} ${listingType === 'item' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
+                                        className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${editListing ? 'cursor-default' : 'cursor-pointer'} ${listingType === 'item' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-[var(--color-text)] hover:bg-[var(--color-surface)]'}`}
                                     >
                                         Item
                                     </label>
@@ -399,18 +400,18 @@ export default function Form({
                                     />
                                     <label
                                         htmlFor="service"
-                                        className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${editListing ? 'cursor-default' : 'cursor-pointer'} ${listingType === 'service' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-black/75 hover:bg-black/5'}`}
+                                        className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${editListing ? 'cursor-default' : 'cursor-pointer'} ${listingType === 'service' ? 'border-[var(--color-primary-dark)] bg-[var(--color-primary)] text-white shadow-sm' : 'border-transparent bg-transparent text-[var(--color-text)] hover:bg-[var(--color-surface)]'}`}
                                     >
                                         Service
                                     </label>
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="price" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                <label htmlFor="price" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                     Price
                                 </label>
-                                <div className="relative rounded-lg border border-black/10 bg-white">
-                                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-black/70">$</span>
+                                <div className="relative rounded-lg border border-[var(--color-border)] bg-[var(--color-background)]">
+                                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-[var(--color-text-muted)]">$</span>
                                     <input
                                         id="price"
                                         type="number"
@@ -418,19 +419,19 @@ export default function Form({
                                         step="0.01"
                                         value={listingPrice}
                                         onChange={(e) => setListingPrice(parseFloat(e.target.value))}
-                                        className="w-full rounded-lg bg-transparent py-2.5 pl-7 pr-4 text-sm outline-none"
+                                        className="w-full rounded-lg bg-transparent py-2.5 pl-7 pr-4 text-sm text-[var(--color-text)] outline-none"
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="category" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                <label htmlFor="category" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                     Category
                                 </label>
                                 <select
                                     id="category"
                                     value={listingCategory}
                                     onChange={(e) => setListingCategory(e.target.value)}
-                                    className="w-full overflow-y-auto rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                    className="w-full overflow-y-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                     size={1}
                                 >
                                     <option value="">-- Select --</option>
@@ -445,14 +446,14 @@ export default function Form({
                             {listingType === 'item' ? (
                                 <>
                                     <div>
-                                        <label htmlFor="condition" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                        <label htmlFor="condition" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                             Condition
                                         </label>
                                         <select
                                             id="condition"
                                             value={listingCondition}
                                             onChange={(e) => setListingCondition(e.target.value as ItemCondition)}
-                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black"
+                                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         >
                                             <option value="new">New</option>
                                             <option value="like_new">Like New</option>
@@ -462,7 +463,7 @@ export default function Form({
                                         </select>
                                     </div>
                                     <div>
-                                        <label htmlFor="quantity" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                        <label htmlFor="quantity" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                             Quantity
                                         </label>
                                         <input
@@ -470,7 +471,7 @@ export default function Form({
                                             type="number"
                                             value={listingQuantity}
                                             onChange={(e) => setListingQuantity(parseInt(e.target.value, 10))}
-                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black"
+                                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                             min={1}
                                             max={99}
                                         />
@@ -479,7 +480,7 @@ export default function Form({
                             ) : (
                                 <>
                                     <div>
-                                        <label htmlFor="duration" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                        <label htmlFor="duration" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                             Duration (minutes)
                                         </label>
                                         <input
@@ -488,11 +489,11 @@ export default function Form({
                                             min={1}
                                             value={durationMinutes}
                                             onChange={(e) => setDurationMinutes(parseInt(e.target.value, 10) || 0)}
-                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="available-from" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                        <label htmlFor="available-from" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                             Available From
                                         </label>
                                         <input
@@ -500,11 +501,11 @@ export default function Form({
                                             type="time"
                                             value={availableFrom}
                                             onChange={(e) => setAvailableFrom(e.target.value)}
-                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         />
                                     </div>
                                     <div className="col-span-2">
-                                        <label htmlFor="available-to" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                        <label htmlFor="available-to" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                             Available To
                                         </label>
                                         <input
@@ -512,7 +513,7 @@ export default function Form({
                                             type="time"
                                             value={availableTo}
                                             onChange={(e) => setAvailableTo(e.target.value)}
-                                            className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         />
                                     </div>
                                 </>
@@ -521,7 +522,7 @@ export default function Form({
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="date" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                <label htmlFor="date" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                     Date Posted
                                 </label>
                                 <input
@@ -529,12 +530,12 @@ export default function Form({
                                     type="datetime-local"
                                     readOnly={true}
                                     value={listingDate}
-                                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black/70 outline-none"
+                                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text-muted)] outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label htmlFor="location" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                                <label htmlFor="location" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                     Location
                                 </label>
                                 <input
@@ -543,13 +544,13 @@ export default function Form({
                                     value={location}
                                     onChange={(e) => setLocation(e.target.value)}
                                     placeholder="e.g. Campus Center, Building A"
-                                    className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none placeholder:text-black/35"
+                                    className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label htmlFor="description" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">
+                            <label htmlFor="description" className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>
                                 Description
                             </label>
                             <textarea
@@ -558,16 +559,17 @@ export default function Form({
                                 value={listingDescription}
                                 onChange={(e) => setListingDescription(e.target.value)}
                                 placeholder="Provide a detailed description of your item..."
-                                className="w-full resize-none rounded-lg border border-black/10 bg-white px-3 py-3 text-sm outline-none placeholder:text-black/35"
+                                className="w-full resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-background)] px-3 py-3 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]"
                             />
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 border-t border-black/10 pt-2">
+                    <div className="grid grid-cols-2 gap-3 border-t pt-2" style={{ borderColor: "var(--color-border)" }}>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="rounded-lg border border-black/15 bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                            style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
                         >
                             Save as Draft
                         </button>

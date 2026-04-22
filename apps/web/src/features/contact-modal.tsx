@@ -10,8 +10,8 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="sticky top-0 bg-[var(--color-primary)] text-white px-8 py-6 rounded-t-2xl relative">
+      <div className="rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
+        <div className="bg-[var(--color-primary)] text-white px-8 py-6 rounded-t-2xl relative">
           <h2 className="text-2xl font-bold text-center">Contact NJIT Marketplace</h2>
           <button
             onClick={onClose}
@@ -21,16 +21,17 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
           </button>
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="max-h-[calc(80vh-88px)] overflow-y-auto mr-2 pr-2">
+          <div className="p-8 space-y-6">
           <div>
-            <p className="text-neutral-700 leading-relaxed">
+            <p className="leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
               If you have questions, feedback, or need help with the platform, you can reach out using the contact information below.
             </p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-neutral-900 mb-3">What to include</h3>
-            <ul className="space-y-2 text-neutral-700 text-sm">
+          <div className="border rounded-xl p-6" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)" }}>
+            <h3 className="text-lg font-bold mb-3" style={{ color: "var(--color-text)" }}>What to include</h3>
+            <ul className="space-y-2 text-sm" style={{ color: "var(--color-text-muted)" }}>
               <li className="flex items-start gap-2">
                 <span className="text-[var(--color-primary)] mt-1">•</span>
                 <span>Your name and school email</span>
@@ -54,14 +55,11 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
               <div>
                 <h3 className="text-xl font-bold mb-2">Email support</h3>
                 <a
-                  href="mailto:support@campusmarketplace.edu"
+                  href="mailto:campusmarketplace.dev@gmail.com"
                   className="text-lg underline hover:text-white/80 transition-colors"
                 >
-                  support@campusmarketplace.edu
+                  campusmarketplace.dev@gmail.com
                 </a>
-                <p className="text-white/90 text-sm mt-2">
-                  Use this placeholder email for now. You can swap it later with your real support address.
-                </p>
               </div>
             </div>
           </div>
@@ -73,6 +71,7 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
             >
               Close
             </button>
+          </div>
           </div>
         </div>
       </div>

@@ -43,7 +43,7 @@ export default function Wishlist() {
     return (
         <section className="p-6 sm:p-8">
             <div className="mx-auto max-w-7xl">
-                <h1 className="mb-6 text-2xl font-bold">Your Wishlist</h1>
+                <h1 className="mb-6 text-2xl font-bold" style={{ color: "var(--color-text)" }}>Your Wishlist</h1>
 
                 {error && (
                     <p className="mb-4 rounded-lg bg-red-100 px-4 py-3 text-sm text-red-700">
@@ -52,11 +52,11 @@ export default function Wishlist() {
                 )}
 
                 {isLoading && wishlistItems.length > 0 && (
-                    <p className="mb-4 text-sm font-medium text-black/70">Updating wishlist...</p>
+                    <p className="mb-4 text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>Updating wishlist...</p>
                 )}
 
                 {!isLoading && wishlistItems.length === 0 ? (
-                    <p>Your wishlist is empty.</p>
+                    <p style={{ color: "var(--color-text-muted)" }}>Your wishlist is empty.</p>
                 ) : wishlistItems.length > 0 ? (
                     <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
                         {isLoading && wishlistItems.length > 0 && (
@@ -73,7 +73,8 @@ export default function Wishlist() {
                                     <button
                                         type="button"
                                         aria-label="Remove from wishlist"
-                                        className="absolute right-3 top-3 z-10 rounded-full border border-black/15 bg-white px-3 py-1 text-xs font-semibold text-black shadow-sm transition hover:opacity-85"
+                                        className="absolute right-3 top-3 z-10 rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition hover:opacity-85"
+                                        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
                                         onClick={() => handleRemove(item.id, item.listing_id)}
                                     >
                                         Delete
@@ -82,16 +83,16 @@ export default function Wishlist() {
                                     <Link
                                         to={`/listing/${item.listing_id}`}
                                         state={{ backgroundLocation: location }}
-                                        className="block rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-black"
+                                        className="block rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md"
                                     >
                                         <article
-                                            className="rounded-xl border p-4 text-left text-black shadow-sm"
+                                            className="overflow-hidden rounded-2xl shadow-sm"
                                             style={{
-                                                background: "linear-gradient(180deg, color-mix(in srgb, var(--color-secondary) 26%, white), white)",
-                                                borderColor: "color-mix(in srgb, var(--color-primary) 30%, white)",
+                                                backgroundColor: "var(--color-surface)",
+                                                border: "1px solid var(--color-border)",
                                             }}
                                         >
-                                            <div className="mb-3 flex h-32 w-full items-center justify-center overflow-hidden rounded-lg bg-[var(--color-secondary)] text-xs text-black">
+                                            <div className="relative h-48 w-full" style={{ backgroundColor: "var(--color-background-alt)" }}>
                                                 {listing?.first_image_path ? (
                                                     <img
                                                         src={getListingImageUrl(listing.first_image_path)}
@@ -99,42 +100,59 @@ export default function Wishlist() {
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    <span className="text-3xl">📷</span>
+                                                    <div className="flex h-full w-full items-center justify-center text-3xl" style={{ color: "var(--color-text-muted)" }}>📷</div>
                                                 )}
                                             </div>
 
-                                            <p className="text-lg font-bold leading-tight">
-                                                {listing?.title ?? "Listing unavailable"}
-                                            </p>
+                                            <div className="p-3">
+                                                <p className="line-clamp-2 font-semibold leading-snug" style={{ color: "var(--color-text)" }}>
+                                                    {listing?.title ?? "Listing unavailable"}
+                                                </p>
 
-                                            <div className="mt-2 flex justify-between text-sm">
-                                                <span className="font-semibold">
+                                                <p className="mt-1.5 text-base font-bold" style={{ color: "var(--color-primary)" }}>
                                                     {listing
                                                         ? `${listing.price_unit ?? "$"}${listing.price ?? "0"}`
                                                         : "—"}
-                                                </span>
-                                                <span className="text-gray-700">
-                                                    {listing?.category_name ?? "N/A"}
-                                                </span>
-                                            </div>
+                                                </p>
 
-                                            <div className="mt-2 flex justify-between text-xs text-gray-700">
-                                                <span>
-                                                    {listing?.type === "service" ? "Service" : "Item"}
-                                                </span>
-                                                <span>{item.created_at?.split("T")[0] ?? "N/A"}</span>
-                                            </div>
+                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                    {listing?.category_name && (
+                                                        <span
+                                                            className="rounded-md px-2 py-0.5 text-xs font-medium"
+                                                            style={{
+                                                                backgroundColor: "color-mix(in srgb, var(--color-primary) 15%, var(--color-surface))",
+                                                                color: "var(--color-primary)",
+                                                            }}
+                                                        >
+                                                            {listing.category_name}
+                                                        </span>
+                                                    )}
+                                                    <span
+                                                        className="rounded-md px-2 py-0.5 text-xs font-medium"
+                                                        style={{
+                                                            backgroundColor: "color-mix(in srgb, var(--color-primary) 14%, var(--color-surface))",
+                                                            color: "var(--color-text)",
+                                                        }}
+                                                    >
+                                                        {listing?.type === "service" ? "Service" : "Item"}
+                                                    </span>
 
-                                            {/* Availability badge */}
-                                            <div
-                                                className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold"
-                                                style={
-                                                    isUnavailable
-                                                        ? { backgroundColor: "#e5e7eb", color: "#374151" }
-                                                        : { backgroundColor: "var(--color-primary)", color: "var(--color-text-on-primary)" }
-                                                }
-                                            >
-                                                {isUnavailable ? `✕ ${unavailabilityLabel}` : "✓ Available"}
+                                                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                                        {item.created_at?.split("T")[0] ?? "N/A"}
+                                                    </span>
+                                                </div>
+
+                                                {/* Availability badge */}
+                                                <div
+                                                    className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold"
+                                                    style={
+                                                        isUnavailable
+                                                            ? { backgroundColor: "var(--color-background)", color: "var(--color-text-muted)" }
+                                                            : { backgroundColor: "var(--color-primary)", color: "var(--color-text-on-primary)" }
+                                                    }
+                                                >
+                                                    {isUnavailable ? `✕ ${unavailabilityLabel}` : "✓ Available"}
+                                                </div>
                                             </div>
                                         </article>
                                     </Link>
@@ -143,7 +161,7 @@ export default function Wishlist() {
                         })}
                     </div>
                 ) : (
-                    <p>Loading...</p>
+                    <p style={{ color: "var(--color-text-muted)" }}>Loading...</p>
                 )}
             </div>
         </section>

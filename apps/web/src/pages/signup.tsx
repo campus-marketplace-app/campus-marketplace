@@ -102,7 +102,12 @@ export default function Signup() {
             } else {
                 // usually email-confirmation flow
                 setServerError("Account created. Please check your email to confirm your account.");
-                navigate("/login", { replace: true });
+                navigate("/login", {
+                    replace: true,
+                    state: {
+                        signupMessage: "Account created. Please check your email for a confirmation link before signing in.",
+                    },
+                });
             }
         } catch (err) {
             setServerError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
