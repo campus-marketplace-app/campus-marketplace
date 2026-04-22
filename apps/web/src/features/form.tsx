@@ -3,7 +3,10 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import {
     createListing,
     deleteListingImage,
+    ensureFreshSession,
+    getListingPublishReadiness,
     getListingImageUrl,
+    publishListing,
     updateListing,
     uploadListingImage,
     upsertItemDetails,
@@ -27,6 +30,9 @@ const getCurrentDateTimeLocal = () => {
     return new Date(now.getTime() - timezoneOffsetMs).toISOString().slice(0, 16);
 };
 
+const MAX_LISTING_IMAGE_SIZE_MB = 15;
+const MAX_LISTING_IMAGE_SIZE_BYTES = MAX_LISTING_IMAGE_SIZE_MB * 1024 * 1024;
+
 export default function Form({
     showForm,
     user,
@@ -49,10 +55,77 @@ export default function Form({
     const [listingType, setListingType] = useState<ListingType>('item');
     const [location, setLocation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitIntent, setSubmitIntent] = useState<'draft' | 'publish'>('draft');
     const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const objectUrlRef = useRef<string | null>(null);
     const { categories } = useCategories();
+
+    const formatMissingPublishFields = (fields: string[]) => {
+        const labels: Record<string, string> = {
+            title: 'Title',
+            category_id: 'Category',
+            price: 'Price',
+            location: 'Location',
+            images: 'At least one image',
+            item_condition: 'Item condition',
+            item_quantity: 'Item quantity',
+            service_duration_minutes: 'Service duration',
+        };
+
+        return fields.map((field) => labels[field] ?? field);
+    };
+
+    const getClientMissingPublishFields = () => {
+        const missing: string[] = [];
+        const hasExistingImage = (editListing?.images?.length ?? 0) > 0;
+        const hasImage = hasExistingImage || !!selectedImageFile;
+
+        if (!listingTitle || !listingTitle.trim()) {
+            missing.push('title');
+        }
+
+        if (listingPrice === null || listingPrice === undefined || Number.isNaN(Number(listingPrice))) {
+            missing.push('price');
+        }
+
+        if (!listingCategory) {
+            missing.push('category_id');
+        }
+
+        if (!location || !location.trim()) {
+            missing.push('location');
+        }
+
+        if (!hasImage) {
+            missing.push('images');
+        }
+
+        if (listingType === 'item') {
+            if (!listingCondition) {
+                missing.push('item_condition');
+            }
+            if (!listingQuantity || listingQuantity < 1) {
+                missing.push('item_quantity');
+            }
+        }
+
+        if (listingType === 'service') {
+            if (!durationMinutes || durationMinutes <= 0) {
+                missing.push('service_duration_minutes');
+            }
+        }
+
+        return missing;
+    };
+
+    const refreshTokens = async () => {
+        const { session } = await ensureFreshSession();
+        if (session) {
+            localStorage.setItem('access_token', session.access_token);
+            localStorage.setItem('refresh_token', session.refresh_token);
+        }
+    };
 
     const handleListingImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
         const selectedFile = event.target.files?.[0];
@@ -65,6 +138,12 @@ export default function Form({
         if (!allowedMimeTypes.includes(selectedFile.type as ListingImageContentType) || !allowedExtensions.includes(fileExtension)) {
             event.target.value = '';
             await showAlert('Invalid file type', 'Only jpg, jpeg, png, and webp files are allowed.');
+            return;
+        }
+
+        if (selectedFile.size > MAX_LISTING_IMAGE_SIZE_BYTES) {
+            event.target.value = '';
+            await showAlert('Image too large', `Image size must be ${MAX_LISTING_IMAGE_SIZE_MB}MB or smaller.`);
             return;
         }
 
@@ -82,6 +161,11 @@ export default function Form({
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+
+        const nativeSubmitEvent = e.nativeEvent as SubmitEvent;
+        const submitter = nativeSubmitEvent.submitter as HTMLButtonElement | null;
+        const intentFromSubmitter = submitter?.dataset.intent === 'publish' ? 'publish' : 'draft';
+        const intent = submitter ? intentFromSubmitter : submitIntent;
 
         setIsSubmitting(true);
         const regex = /<[^>]+>|javascript:|on\w+\s*=|data:text\/html|vbscript:/i;
@@ -234,6 +318,22 @@ export default function Form({
                 setImagePreviewUrl(uploadedUrl);
             }
 
+            if (intent === 'publish' && targetListingId) {
+                await refreshTokens();
+                const readiness = await getListingPublishReadiness(targetListingId, user.id);
+                const clientMissing = getClientMissingPublishFields();
+                const mergedMissing = Array.from(new Set([...(readiness.missingFields as string[]), ...clientMissing]));
+
+                if (!readiness.isPublishable || mergedMissing.length > 0) {
+                    const missingLabels = formatMissingPublishFields(mergedMissing);
+                    await showAlert('Missing fields', `This listing cannot be published yet. Please add:\n- ${missingLabels.join('\n- ')}`);
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                await publishListing(targetListingId, user.id);
+            }
+
             onSubmitSuccess?.();
             setIsSubmitting(false);
             onClose();
@@ -339,7 +439,7 @@ export default function Form({
                                 <>
                                     <div className="flex h-14 w-14 items-center justify-center rounded-full text-2xl" style={{ backgroundColor: "var(--color-surface)" }}>📷</div>
                                     <p className="font-semibold" style={{ color: "var(--color-text)" }}>Add Product Photos</p>
-                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>or drag and drop (JPG, PNG • Max 10MB)</p>
+                                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>or drag and drop (JPG, PNG • Max 15MB)</p>
                                 </>
                             )}
                             <label className="cursor-pointer rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-90" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
@@ -568,6 +668,8 @@ export default function Form({
                         <button
                             type="submit"
                             disabled={isSubmitting}
+                            onClick={() => setSubmitIntent('draft')}
+                            data-intent="draft"
                             className="rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                             style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}
                         >
@@ -576,6 +678,8 @@ export default function Form({
                         <button
                             type="submit"
                             disabled={isSubmitting}
+                            onClick={() => setSubmitIntent('publish')}
+                            data-intent="publish"
                             className="rounded-lg border border-[var(--color-primary-dark)] bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             + Publish Listing

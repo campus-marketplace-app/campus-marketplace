@@ -228,8 +228,8 @@ describe("listings service unit", () => {
     await expect(uploadListingImage("l1", "u1", new Uint8Array([1]), "text/plain")).rejects.toThrow(
       "Unsupported image content type. Allowed types: image/jpeg, image/png, image/webp",
     );
-    await expect(uploadListingImage("l1", "u1", new Uint8Array(6 * 1024 * 1024), "image/png")).rejects.toThrow(
-      "Listing image exceeds max size of 5 MB",
+    await expect(uploadListingImage("l1", "u1", new Uint8Array(16 * 1024 * 1024), "image/png")).rejects.toThrow(
+      "Listing image exceeds max size of 15 MB",
     );
     await expect(uploadListingImage("l1", "u1", new Uint8Array([1]), "image/png", { order_no: -1 })).rejects.toThrow(
       "Listing image order_no must be a non-negative integer",
