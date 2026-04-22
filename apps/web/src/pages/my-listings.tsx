@@ -115,7 +115,7 @@ const MyListings = () => {
         <section className="space-y-5 p-4 sm:p-6">
             {/* ── Header Banner ── */}
             <div
-                className="flex flex-col gap-4 rounded-2xl p-5 text-white md:flex-row md:items-center md:justify-between"
+                className="flex flex-col gap-4 rounded-2xl p-4 text-white sm:p-5 md:flex-row md:items-center md:justify-between"
                 style={{ backgroundColor: "var(--color-primary)" }}
             >
                 <div className="flex items-center gap-4">
@@ -134,18 +134,18 @@ const MyListings = () => {
                             {displayName.charAt(0).toUpperCase()}
                         </div>
                     )}
-                    <div>
-                        <p className="text-2xl font-bold">{displayName}'s Listings</p>
+                    <div className="min-w-0">
+                        <p className="text-xl font-bold leading-tight sm:text-2xl">{displayName}'s Listings</p>
                         <p className="mt-0.5 text-sm opacity-80">Manage and track all your listings</p>
                     </div>
                 </div>
-                <div className="flex shrink-0 gap-3">
+                <div className="grid w-full shrink-0 grid-cols-3 gap-2 sm:flex sm:w-auto sm:gap-3">
                     {([
                         { value: isLoading ? "—" : totalCount, label: "Total" },
                         { value: isLoading ? "—" : publishedCount, label: "Published" },
                         { value: isLoading ? "—" : draftCount, label: "Drafts" },
                     ] as const).map((tile) => (
-                        <div key={tile.label} className="flex min-w-[72px] flex-col items-center rounded-xl bg-white px-3 py-2 text-black">
+                        <div key={tile.label} className="flex min-w-0 flex-1 flex-col items-center rounded-xl bg-white px-2 py-2 text-black sm:min-w-[72px] sm:flex-none sm:px-3">
                             <span className="text-lg font-bold leading-none">{String(tile.value)}</span>
                             <span className="mt-0.5 text-center text-xs text-black/60">{tile.label}</span>
                         </div>
@@ -154,10 +154,10 @@ const MyListings = () => {
             </div>
 
             {/* ── Actions row ── */}
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 {/* Filter tabs with sliding pill */}
                 <div
-                    className="relative flex rounded-xl p-1"
+                    className="relative flex w-full rounded-xl p-1 sm:w-auto"
                     style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
                 >
                     {/* Animated slider pill — sized and positioned by measuring each button */}
@@ -178,7 +178,7 @@ const MyListings = () => {
                             ref={(el) => { tabRefs.current[i] = el; }}
                             type="button"
                             onClick={() => setActiveTab(value)}
-                            className="relative z-10 px-4 py-1.5 text-sm font-semibold transition-colors duration-200"
+                            className="relative z-10 flex-1 px-3 py-1.5 text-sm font-semibold transition-colors duration-200 sm:flex-none sm:px-4"
                             style={{
                                 color: activeTab === value ? "var(--color-text-on-primary)" : "var(--color-text-muted)",
                             }}
@@ -191,7 +191,7 @@ const MyListings = () => {
                 <button
                     type="button"
                     onClick={openPostForm}
-                    className="rounded-lg px-5 py-2 text-sm font-semibold transition hover:opacity-90"
+                    className="w-full rounded-lg px-5 py-2 text-sm font-semibold transition hover:opacity-90 sm:w-auto"
                     style={{ backgroundColor: "var(--color-primary)", color: "var(--color-text-on-primary)" }}
                 >
                     + New Listing

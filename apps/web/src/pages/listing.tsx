@@ -236,14 +236,15 @@ export default function Listing() {
                 <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
                 <section className="relative z-10 w-full max-w-[760px]">
-                    <div className="overflow-hidden rounded-b-2xl rounded-t-none bg-white shadow-xl">
+                    <div className="overflow-hidden rounded-b-2xl rounded-t-none shadow-xl" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                         <div className="bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 text-center sm:px-6">
                             <p className="text-2xl font-semibold text-[var(--color-text-on-primary)]">{unavailableMessage}</p>
                         </div>
                         <div className="px-5 py-5 text-center sm:px-6">
                             <button
                                 type="button"
-                                className="rounded-lg border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/5"
+                                className="rounded-lg border px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+                                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}
                                 onClick={() => navigate("/", { replace: true })}
                             >
                                 Back to marketplace
@@ -256,7 +257,7 @@ export default function Listing() {
     }
 
     if (!listingData) {
-        return <div className="flex h-screen items-center justify-center text-[var(--color-text-on-primary)]">Loading...</div>
+        return <div className="flex h-screen items-center justify-center" style={{ color: "var(--color-text)" }}>Loading...</div>
     }
 
     if (showForm) {
@@ -278,7 +279,7 @@ export default function Listing() {
             <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
             <section className="relative z-10 w-full max-w-[760px]">
-                <div className="max-h-[92vh] overflow-y-auto rounded-b-2xl rounded-t-none bg-white p-5 shadow-xl sm:p-6">
+                <div className="max-h-[92vh] overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                     <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
                         <button
                             type="button"
@@ -297,8 +298,8 @@ export default function Listing() {
 
                     <div className="mt-5 space-y-5">
                         <div>
-                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Product Image</p>
-                            <div className="flex min-h-72 items-center justify-center rounded-xl border border-dashed border-black/20 bg-white p-5 text-center text-sm uppercase text-black/60">
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Product Image</p>
+                            <div className="flex min-h-72 items-center justify-center rounded-xl border border-dashed p-5 text-center text-sm uppercase" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text-muted)" }}>
                                 {listingData?.images?.[0]?.path ? (
                                     <img
                                         src={getListingImageUrl(listingData.images[0].path)}
@@ -318,14 +319,16 @@ export default function Listing() {
                             {user && listingData.user_id === user.id ? (
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     <button
-                                        className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5"
+                                        className="inline-flex rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-90"
+                                        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}
                                         type="button"
                                         onClick={editListing}
                                     >
                                         Edit Listing
                                     </button>
                                     <button
-                                        className="inline-flex rounded-lg border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="inline-flex rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                                        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}
                                         type="button"
                                         disabled={publishLoading}
                                         onClick={handlePublish}
@@ -368,15 +371,15 @@ export default function Listing() {
                         <div className="space-y-5">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Price</p>
-                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Price</p>
+                                    <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                         {listingData?.price_unit ?? "$"}
                                         {listingData?.price ?? "0"}
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Category</p>
-                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Category</p>
+                                    <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                         {listingData?.category_name ?? "Uncategorized"}
                                     </div>
                                 </div>
@@ -386,14 +389,14 @@ export default function Listing() {
                                 {listingData.type === "item" ? (
                                     <>
                                         <div>
-                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Condition</p>
-                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Condition</p>
+                                            <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                                 {listingData.item_details?.condition ?? "N/A"}
                                             </div>
                                         </div>
                                         <div>
-                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Quantity</p>
-                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Quantity</p>
+                                            <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                                 {listingData.item_details?.quantity ?? "N/A"}
                                             </div>
                                         </div>
@@ -401,14 +404,14 @@ export default function Listing() {
                                 ) : (
                                     <>
                                         <div>
-                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Duration (minutes)</p>
-                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Duration (minutes)</p>
+                                            <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                                 {listingData.service_details?.duration_minutes ?? "N/A"}
                                             </div>
                                         </div>
                                         <div>
-                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available From</p>
-                                            <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Available From</p>
+                                            <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                                 {listingData.service_details?.available_from ?? "N/A"}
                                             </div>
                                         </div>
@@ -419,47 +422,48 @@ export default function Listing() {
                             <div className="grid grid-cols-2 gap-4">
                                 {listingData.type === "service" ? (
                                     <div>
-                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Available To</p>
-                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Available To</p>
+                                        <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                             {listingData.service_details?.available_to ?? "N/A"}
                                         </div>
                                     </div>
                                 ) : (
                                     <div>
-                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Type</p>
-                                        <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Type</p>
+                                        <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                             {listingData.type}
                                         </div>
                                     </div>
                                 )}
 
                                 <div>
-                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Date Posted</p>
-                                    <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Date Posted</p>
+                                    <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                         {formatDateTime(listingData.created_at)}
                                     </div>
                                 </div>
                             </div>
 
                             <div>
-                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Location</p>
-                                <div className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm text-black">
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Location</p>
+                                <div className="rounded-lg border px-3 py-2.5 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                     {listingData?.location ?? "N/A"}
                                 </div>
                             </div>
 
                             <div>
-                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-black/80">Description</p>
-                                <div className="min-h-36 rounded-lg border border-black/10 bg-white px-3 py-3 text-sm text-black">
+                                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--color-text)" }}>Description</p>
+                                <div className="min-h-36 rounded-lg border px-3 py-3 text-sm" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}>
                                     {listingData?.description ?? "No description provided."}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 pt-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
                             <button
                                 type="button"
-                                className="rounded-lg border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/5"
+                                className="rounded-lg border px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+                                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}
                                 onClick={() => navigate(-1)}
                             >
                                 Back
@@ -470,7 +474,8 @@ export default function Listing() {
                                 <button
                                     type="button"
                                     disabled={messagingLoading}
-                                    className="rounded-lg border border-black/15 bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-lg border px-4 py-2 text-sm font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                                    style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}
                                     onClick={async () => {
                                         setMessagingLoading(true);
                                         try {
@@ -502,7 +507,12 @@ export default function Listing() {
                             {user && listingData.user_id !== user.id ? (
                                 <button
                                     type="button"
-                                    className={`rounded-lg px-4 py-2 text-sm font-semibold text-black transition ${isInWishlist ? "border border-black/15 bg-black/10 hover:bg-black/5" : "border border-black/15 bg-white hover:bg-black/5"}`}
+                                    className="rounded-lg border px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+                                    style={{
+                                        borderColor: "var(--color-border)",
+                                        backgroundColor: isInWishlist ? "var(--color-surface)" : "var(--color-background)",
+                                        color: "var(--color-text)",
+                                    }}
                                     onClick={() => void toggleWishlist()}
                                 >
                                     {isInWishlist ? "Wishlisted" : "Wishlist"}

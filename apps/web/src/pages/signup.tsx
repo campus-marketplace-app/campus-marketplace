@@ -102,7 +102,12 @@ export default function Signup() {
             } else {
                 // usually email-confirmation flow
                 setServerError("Account created. Please check your email to confirm your account.");
-                navigate("/login", { replace: true });
+                navigate("/login", {
+                    replace: true,
+                    state: {
+                        signupMessage: "Account created. Please check your email for a confirmation link before signing in.",
+                    },
+                });
             }
         } catch (err) {
             setServerError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
@@ -116,15 +121,15 @@ export default function Signup() {
 
     return (
         <section
-            className="relative flex h-[calc(100vh-64px)] w-full items-start overflow-hidden bg-[var(--color-background-alt)] px-5 py-5 md:items-center lg:px-6 lg:py-6"
+            className="relative flex min-h-[calc(100vh-64px)] w-full items-start overflow-x-hidden bg-[var(--color-background-alt)] px-4 py-5 sm:px-5 md:items-center md:py-6 lg:px-6"
             style={signupBgUrl ? { backgroundImage: `url(${signupBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
         >
             {signupBgUrl && <div className="absolute inset-0 bg-black/45" />}
 
-            <div className="relative z-10 mx-auto grid w-full max-w-5xl items-start gap-8 lg:gap-10 md:grid-cols-[1.2fr_0.95fr] md:items-center">
-                <div className="max-w-xl px-0" style={interFont}>
+            <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-6 md:gap-8 lg:gap-10 md:grid-cols-[1.2fr_0.95fr] md:items-center">
+                <div className="max-w-xl px-0 text-center md:text-left" style={interFont}>
                     <h2
-                        className="text-4xl font-bold leading-[1.15] text-white lg:text-[52px]"
+                        className="w-full text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-4xl xl:text-5xl"
                         style={spaceGroteskFont}
                     >
                         Join {schoolName}
@@ -134,14 +139,14 @@ export default function Signup() {
                         </span>
                     </h2>
 
-                    <p className="mt-4 max-w-[34rem] text-lg font-normal leading-relaxed text-white/90 lg:text-[1.35rem]">
+                    <p className="mt-4 max-w-full text-base font-normal leading-relaxed text-white/90 sm:text-lg lg:text-[1.35rem]">
                         Create your account to start buying, selling, and connecting with students in your campus community.
                         Use your verified school email to get started.
                     </p>
                 </div>
 
                 <div
-                    className="mx-auto flex max-h-[calc(100vh-96px)] w-full max-w-[420px] flex-col rounded-[16px] border border-white/20 px-7 py-6 shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] lg:px-8 lg:py-7"
+                    className="mx-auto flex w-full max-w-[420px] flex-col rounded-[16px] border border-white/20 px-5 py-5 shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] sm:px-7 sm:py-6 md:max-h-[calc(100vh-96px)] lg:px-8 lg:py-7"
                     style={{
                         ...interFont,
                         background: 'linear-gradient(126deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)',

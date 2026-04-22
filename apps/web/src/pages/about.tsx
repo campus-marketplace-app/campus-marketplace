@@ -7,8 +7,8 @@ export default function About() {
 
 	return (
 		<section className="bg-[var(--color-background)] px-4 py-8 sm:px-6 sm:py-10">
-			<div className="mx-auto max-w-[760px] rounded-xl border border-black/10 bg-[var(--color-background)] p-4 shadow-lg sm:p-5">
-				<div className="space-y-4 rounded-lg border border-black/10 bg-[var(--color-background)] p-4 sm:p-5">
+			<div className="mx-auto max-w-[760px] rounded-xl border bg-[var(--color-background)] p-4 shadow-lg sm:p-5" style={{ borderColor: "var(--color-border)" }}>
+				<div className="space-y-4 rounded-lg border bg-[var(--color-background)] p-4 sm:p-5" style={{ borderColor: "var(--color-border)" }}>
 					<header>
 						<h1 className="text-center text-3xl font-bold text-[var(--color-text)]">About {schoolName} Marketplace</h1>
 						<p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
@@ -23,7 +23,7 @@ export default function About() {
 						</p>
 					</div>
 
-					<div className="rounded-lg border border-black/5 bg-[var(--color-surface)] p-3">
+					<div className="rounded-lg border bg-[var(--color-surface)] p-3" style={{ borderColor: "var(--color-border)" }}>
 						<div className={isPill ? "text-center px-3 sm:px-5" : undefined}>
 							<h2 className="text-2xl font-semibold text-[var(--color-text)]">What you can find</h2>
 							<ul className="mt-3 space-y-2 text-sm text-[var(--color-text-muted)]">
@@ -43,7 +43,7 @@ export default function About() {
 						</div>
 					</div>
 
-					<div className="rounded-lg border p-3" style={{ backgroundColor: 'color-mix(in srgb, var(--color-accent) 25%, #fff8dc)', borderColor: 'color-mix(in srgb, var(--color-primary) 16%, #d9c47f)' }}>
+					<div className="rounded-lg border p-3" style={{ backgroundColor: "color-mix(in srgb, var(--color-accent) 14%, var(--color-surface))", borderColor: "color-mix(in srgb, var(--color-primary) 26%, var(--color-border))" }}>
 						<div className={isPill ? "text-center px-3 sm:px-5" : undefined}>
 							<h2 className="text-2xl font-semibold text-[var(--color-text)]">More information</h2>
 							<p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">

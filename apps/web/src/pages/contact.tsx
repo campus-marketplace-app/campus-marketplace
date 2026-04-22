@@ -50,11 +50,11 @@ export default function Contact() {
 					<div className={isPill ? "text-center px-3 sm:px-5" : undefined}>
 							<p className="text-3xl font-semibold leading-tight">Email support</p>
 							<a
-								href="mailto:support@campusmarketplace.edu"
+								href="mailto:campusmarketplace.dev@gmail.com"
 								className="mt-1 inline-block text-lg underline underline-offset-4 transition hover:opacity-85"
 								style={{ textDecorationColor: "color-mix(in srgb, var(--color-text-on-primary) 70%, transparent)" }}
 							>
-								support@campusmarketplace.edu
+								campusmarketplace.dev@gmail.com
 							</a>
 							<p className="mt-2 text-sm text-[var(--color-text-on-primary)]/85">
 							</p>

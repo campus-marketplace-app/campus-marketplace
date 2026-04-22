@@ -10,8 +10,8 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="sticky top-0 bg-[var(--color-primary)] text-white px-8 py-6 rounded-t-2xl relative">
+      <div className="rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
+        <div className="bg-[var(--color-primary)] text-white px-8 py-6 rounded-t-2xl relative">
           <h2 className="text-2xl font-bold text-center">Help Center</h2>
           <button
             onClick={onClose}
@@ -21,17 +21,18 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
           </button>
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="max-h-[calc(80vh-88px)] overflow-y-auto mr-2 pr-2">
+          <div className="p-8 space-y-6">
           <div>
-            <p className="text-neutral-600 leading-relaxed">
+            <p className="leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
               Use this page as a quick guide for common workflows in NJIT Marketplace.
             </p>
           </div>
 
           <div className="space-y-5">
-            <div className="bg-neutral-50 rounded-xl p-5 border-l-4 border-[var(--color-primary)]">
-              <h3 className="text-lg font-bold text-neutral-900 mb-3">Create an account</h3>
-              <ul className="space-y-2 text-neutral-700 text-sm">
+            <div className="rounded-xl p-5 border-l-4 border" style={{ borderColor: "var(--color-primary)", backgroundColor: "var(--color-background)" }}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: "var(--color-text)" }}>Create an account</h3>
+              <ul className="space-y-2 text-sm" style={{ color: "var(--color-text-muted)" }}>
                 <li className="flex items-start gap-2">
                   <span className="text-[var(--color-primary)] mt-1">1.</span>
                   <span>Go to Sign Up and create your account using your student email.</span>
@@ -43,9 +44,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </ul>
             </div>
 
-            <div className="bg-neutral-50 rounded-xl p-5 border-l-4 border-[var(--color-primary)]">
-              <h3 className="text-lg font-bold text-neutral-900 mb-3">Browse and search listings</h3>
-              <ul className="space-y-2 text-neutral-700 text-sm">
+            <div className="rounded-xl p-5 border-l-4 border" style={{ borderColor: "var(--color-primary)", backgroundColor: "var(--color-background)" }}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: "var(--color-text)" }}>Browse and search listings</h3>
+              <ul className="space-y-2 text-sm" style={{ color: "var(--color-text-muted)" }}>
                 <li className="flex items-start gap-2">
                   <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Use the homepage search bar to find items or services.</span>
@@ -61,9 +62,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </ul>
             </div>
 
-            <div className="bg-neutral-50 rounded-xl p-5 border-l-4 border-[var(--color-primary)]">
-              <h3 className="text-lg font-bold text-neutral-900 mb-3">Post a listing</h3>
-              <ul className="space-y-2 text-neutral-700 text-sm">
+            <div className="rounded-xl p-5 border-l-4 border" style={{ borderColor: "var(--color-primary)", backgroundColor: "var(--color-background)" }}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: "var(--color-text)" }}>Post a listing</h3>
+              <ul className="space-y-2 text-sm" style={{ color: "var(--color-text-muted)" }}>
                 <li className="flex items-start gap-2">
                   <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Open the post form from the sidebar.</span>
@@ -79,9 +80,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </ul>
             </div>
 
-            <div className="bg-neutral-50 rounded-xl p-5 border-l-4 border-[var(--color-primary)]">
-              <h3 className="text-lg font-bold text-neutral-900 mb-3">Message a buyer or seller</h3>
-              <ul className="space-y-2 text-neutral-700 text-sm">
+            <div className="rounded-xl p-5 border-l-4 border" style={{ borderColor: "var(--color-primary)", backgroundColor: "var(--color-background)" }}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: "var(--color-text)" }}>Message a buyer or seller</h3>
+              <ul className="space-y-2 text-sm" style={{ color: "var(--color-text-muted)" }}>
                 <li className="flex items-start gap-2">
                   <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Open a listing and start a conversation.</span>
@@ -97,9 +98,9 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
               </ul>
             </div>
 
-            <div className="bg-neutral-50 rounded-xl p-5 border-l-4 border-[var(--color-primary)]">
-              <h3 className="text-lg font-bold text-neutral-900 mb-3">Save and manage listings</h3>
-              <ul className="space-y-2 text-neutral-700 text-sm">
+            <div className="rounded-xl p-5 border-l-4 border" style={{ borderColor: "var(--color-primary)", backgroundColor: "var(--color-background)" }}>
+              <h3 className="text-lg font-bold mb-3" style={{ color: "var(--color-text)" }}>Save and manage listings</h3>
+              <ul className="space-y-2 text-sm" style={{ color: "var(--color-text-muted)" }}>
                 <li className="flex items-start gap-2">
                   <span className="text-[var(--color-primary)] mt-1">•</span>
                   <span>Use Wishlist to save listings you want to revisit.</span>
@@ -119,6 +120,7 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
             >
               Got it, thanks!
             </button>
+          </div>
           </div>
         </div>
       </div>
