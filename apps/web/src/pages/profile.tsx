@@ -246,8 +246,12 @@ export default function Profile() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/45" onClick={() => navigate(-1)} />
 
-            <section className="relative z-10 w-full p-4 sm:p-6">
-                <div className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border bg-[var(--color-secondary)] shadow-xl" style={{ borderColor: "var(--color-border)" }}>
+            <section className="relative z-10 w-full p-4 sm:p-6" onClick={() => navigate(-1)}>
+                <div
+                    className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border bg-[var(--color-secondary)] shadow-xl"
+                    style={{ borderColor: "var(--color-border)" }}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
                         <div>
                             <h1 className="text-4xl font-semibold text-[var(--color-text)]">Profile</h1>
@@ -410,7 +414,7 @@ export default function Profile() {
                             <button
                                 type="button"
                                 onClick={() => navigate(-1)}
-                                className="text-sm font-medium text-[var(--color-text-muted)] transition hover:text-[var(--color-text)]"
+                                className="rounded-[var(--radius-sm)] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-dark)]"
                             >
                                 Back
                             </button>

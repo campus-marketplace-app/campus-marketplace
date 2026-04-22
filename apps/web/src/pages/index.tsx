@@ -414,6 +414,10 @@ const displayName = profile?.display_name ?? user?.email ?? "there";
                                         )}
                                         {/* Wishlist button */}
                                         {(() => {
+                                            const isOwner = !!user && listing.user_id === user.id;
+                                            if (isOwner) {
+                                                return null;
+                                            }
                                             const saved = wishlistedIds.has(listing.id);
                                             return (
                                                 <div className="group absolute right-3 top-3">
