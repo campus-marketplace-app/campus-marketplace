@@ -410,7 +410,7 @@ export default function Profile() {
                             <button
                                 type="button"
                                 onClick={() => navigate(-1)}
-                                className="text-sm font-medium text-[var(--color-text-muted)] transition hover:text-[var(--color-text)]"
+                                className="rounded-[var(--radius-sm)] bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-dark)]"
                             >
                                 Back
                             </button>
