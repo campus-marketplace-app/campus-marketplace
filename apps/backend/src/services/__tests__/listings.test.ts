@@ -584,7 +584,7 @@ describe("listing image storage", () => {
     ).rejects.toThrow("Unsupported image content type");
   });
 
-  it("rejects files over 5MB", async () => {
+  it("rejects files over 15MB", async () => {
     const listing = await createTestListing(testUser.user.id);
     trackListing(listing.id);
 
@@ -592,10 +592,10 @@ describe("listing image storage", () => {
       uploadListingImage(
         listing.id,
         testUser.user.id,
-        createPngBytes(5 * 1024 * 1024 + 1),
+        createPngBytes(15 * 1024 * 1024 + 1),
         "image/png",
       ),
-    ).rejects.toThrow("max size of 5 MB");
+    ).rejects.toThrow("max size of 15 MB");
   });
 
   it("soft-deletes listing image metadata and excludes it from details", async () => {
