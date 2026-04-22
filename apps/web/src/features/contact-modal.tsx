@@ -55,14 +55,11 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
               <div>
                 <h3 className="text-xl font-bold mb-2">Email support</h3>
                 <a
-                  href="mailto:support@campusmarketplace.edu"
+                  href="mailto:campusmarketplace.dev@gmail.com"
                   className="text-lg underline hover:text-white/80 transition-colors"
                 >
-                  support@campusmarketplace.edu
+                  campusmarketplace.dev@gmail.com
                 </a>
-                <p className="text-white/90 text-sm mt-2">
-                  Use this placeholder email for now. You can swap it later with your real support address.
-                </p>
               </div>
             </div>
           </div>
