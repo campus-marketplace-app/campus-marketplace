@@ -127,9 +127,9 @@ export default function Signup() {
             {signupBgUrl && <div className="absolute inset-0 bg-black/45" />}
 
             <div className="relative z-10 mx-auto grid w-full max-w-5xl items-start gap-8 lg:gap-10 md:grid-cols-[1.2fr_0.95fr] md:items-center">
-                <div className="max-w-xl px-0" style={interFont}>
+                <div className="max-w-xl px-0 text-center md:text-left" style={interFont}>
                     <h2
-                        className="text-4xl font-bold leading-[1.15] text-white lg:text-[52px]"
+                        className="w-full text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-4xl xl:text-5xl"
                         style={spaceGroteskFont}
                     >
                         Join {schoolName}
@@ -139,7 +139,7 @@ export default function Signup() {
                         </span>
                     </h2>
 
-                    <p className="mt-4 max-w-[34rem] text-lg font-normal leading-relaxed text-white/90 lg:text-[1.35rem]">
+                    <p className="mt-4 max-w-full text-base font-normal leading-relaxed text-white/90 sm:text-lg lg:text-[1.35rem]">
                         Create your account to start buying, selling, and connecting with students in your campus community.
                         Use your verified school email to get started.
                     </p>

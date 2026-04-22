@@ -95,7 +95,7 @@ export default function Login() {
             <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-6 md:gap-8 lg:gap-10 md:grid-cols-[1.2fr_0.95fr] md:items-center">
 
                 {/* Left side: welcome text + social media */}
-                <div className="ml-0 max-w-2xl px-0 md:-ml-12" style={interFont}>
+                <div className="ml-0 max-w-2xl px-0 text-center md:-ml-12 md:text-left" style={interFont}>
                     {/* "Welcome to NJIT / Marketplace" heading — Space Grotesk Bold */}
                     <h2
                         className="w-full text-3xl font-bold leading-[1.15] text-white sm:text-4xl lg:text-4xl xl:text-5xl md:whitespace-nowrap"
