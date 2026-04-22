@@ -105,7 +105,7 @@ export default function Login() {
                     </h2>
 
                     {/* Description */}
-                    <p className="mt-4 max-w-[34rem] text-base font-normal leading-relaxed text-white/90 sm:text-lg lg:text-[1.35rem]">
+                    <p className="mt-4 max-w-full text-base font-normal leading-relaxed text-white/90 sm:text-lg lg:text-[1.35rem]">
                         Campus Marketplace is a student-only platform where {schoolName} students can safely buy,
                         sell, and promote services using verified .edu accounts. Making campus transactions simple,
                         secure, and local.
