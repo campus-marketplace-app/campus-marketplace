@@ -53,7 +53,8 @@ type ListingImageDeleteRow = {
 };
 
 const LISTING_IMAGES_BUCKET = "listing-images";
-const MAX_LISTING_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_LISTING_IMAGE_SIZE_MB = 15;
+const MAX_LISTING_IMAGE_SIZE_BYTES = MAX_LISTING_IMAGE_SIZE_MB * 1024 * 1024;
 const allowedListingImageContentTypes: readonly ListingImageContentType[] = [
   "image/jpeg",
   "image/png",
@@ -583,7 +584,7 @@ export async function uploadListingImage(
 
   const fileSize = getBinarySize(file);
   if (fileSize > MAX_LISTING_IMAGE_SIZE_BYTES) {
-    throw new Error("Listing image exceeds max size of 5 MB");
+    throw new Error(`Listing image exceeds max size of ${MAX_LISTING_IMAGE_SIZE_MB} MB`);
   }
 
   if (options.order_no !== undefined && (!Number.isInteger(options.order_no) || options.order_no < 0)) {
