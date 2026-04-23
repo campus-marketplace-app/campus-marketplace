@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useOutletContext, useParams, Link } from "react-router-dom";
 import {
-    getListingWithDetails,
     getMessages,
     sendMessage,
     markMessagesRead,
+    markConversationNotificationsRead,
     subscribeToMessages,
     getSessionFromTokens,
     archiveConversation,
@@ -15,6 +15,7 @@ import type { OutletContext } from "../features/types";
 import ConversationList from "../components/ConversationList";
 import ChatPanel from "../components/ChatPanel";
 import { useConversations, useInvalidateConversations } from "../hooks/useConversations";
+import { useInvalidateNotifications } from '../hooks/useNotifications';
 
 export default function Messages() {
     const { user } = useOutletContext<OutletContext>();
@@ -31,11 +32,11 @@ export default function Messages() {
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mobileView, setMobileView] = useState<"list" | "chat">("list");
-    const [listingTitlesById, setListingTitlesById] = useState<Record<string, string>>({});
 
     // --- cached conversation list (replaces manual fetch + 15s polling) ---
     const { data: conversations = [], isLoading: loading } = useConversations(user?.id);
     const { invalidate: invalidateConversations } = useInvalidateConversations();
+    const { invalidate: invalidateNotifications } = useInvalidateNotifications();
 
     // --- restore Supabase session so RLS recognizes the user ---
     useEffect(() => {
@@ -85,6 +86,11 @@ export default function Messages() {
         // Mark incoming messages as read.
         markMessagesRead(activeConversationId, user.id).catch(console.error);
 
+        // Clear the bell for this conversation.
+        markConversationNotificationsRead(activeConversationId, user.id)
+            .then(() => invalidateNotifications(user.id))
+            .catch(console.error);
+
         // Subscribe to new messages in real time.
         const { unsubscribe } = subscribeToMessages(activeConversationId, (newMsg) => {
             if (cancelled) return;
@@ -100,6 +106,10 @@ export default function Messages() {
             // If the message is from the other person, mark it read.
             if (newMsg.sender_id !== user.id) {
                 markMessagesRead(activeConversationId, user.id).catch(console.error);
+                // Clear the bell for this conversation.
+                markConversationNotificationsRead(activeConversationId, user.id)
+                    .then(() => invalidateNotifications(user.id))
+                    .catch(console.error);
             }
         });
 
@@ -110,58 +120,6 @@ export default function Messages() {
         // invalidateConversations is a stable ref from useQueryClient; intentionally omitted.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeConversationId, user?.id]);
-
-    // --- fetch listing titles for conversations (manual cache kept — getListingWithDetails
-    //     is deduplicated by TanStack Query across the app but this sidebar needs the title
-    //     as a plain string without mounting a full hook per conversation row) ---
-    useEffect(() => {
-        const listingIds = Array.from(
-            new Set(
-                conversations
-                    .map((conversation) => conversation.listing_id)
-                    .filter((id): id is string => Boolean(id && id.trim())),
-            ),
-        );
-
-        const missingListingIds = listingIds.filter((id) => !listingTitlesById[id]);
-        if (missingListingIds.length === 0) {
-            return;
-        }
-
-        let cancelled = false;
-
-        const loadListingTitles = async () => {
-            const entries = await Promise.all(
-                missingListingIds.map(async (listingId) => {
-                    try {
-                        const listing = await getListingWithDetails(listingId);
-                        return [listingId, listing.title ?? "Untitled listing"] as const;
-                    }
-                    catch {
-                        return [listingId, "Unknown listing"] as const;
-                    }
-                }),
-            );
-
-            if (cancelled) {
-                return;
-            }
-
-            setListingTitlesById((prev) => {
-                const next = { ...prev };
-                for (const [listingId, title] of entries) {
-                    next[listingId] = title;
-                }
-                return next;
-            });
-        };
-
-        void loadListingTitles();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [conversations, listingTitlesById]);
 
     // --- send a message ---
     async function handleSend() {

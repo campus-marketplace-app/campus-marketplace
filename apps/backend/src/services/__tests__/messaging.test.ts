@@ -67,6 +67,7 @@ const { state, supabaseMock } = vi.hoisted(() => {
     };
 
     chain.single = async () => nextResponse(table, operation);
+    chain.maybeSingle = async () => nextResponse(table, operation);
 
     chain.then = (
       resolve: (value: { data: unknown; error: { message: string } | null; count: number | null }) => unknown,
@@ -237,11 +238,13 @@ describe("messaging service", () => {
       operation: "select",
       data: [{ id: "c1", listing_id: "l1", created_at: "2026-01-01", updated_at: "2026-01-03" }],
     });
-    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ user_id: "u2" }] });
-    enqueueResponse({ table: "profiles", operation: "select", data: { display_name: "Seller", avatar_path: "a.png" } });
-    enqueueResponse({ table: "messages", operation: "select", data: [{ content: "hello" }] });
-    enqueueResponse({ table: "messages", operation: "select", count: 1, data: null });
-    enqueueResponse({ table: "listings", operation: "select", data: { title: "Bike", user_id: "u1" } });
+    // Round 1 (Promise.all):
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ conversation_id: "c1", user_id: "u2" }] });
+    enqueueResponse({ table: "messages", operation: "select", data: [{ conversation_id: "c1", content: "hello" }] });
+    enqueueResponse({ table: "messages", operation: "select", data: [] });
+    enqueueResponse({ table: "listings", operation: "select", data: [{ id: "l1", title: "Bike", user_id: "u1", status: "active" }] });
+    // Round 2:
+    enqueueResponse({ table: "profiles", operation: "select", data: [{ user_id: "u2", display_name: "Seller", avatar_path: "a.png" }] });
 
     const rows = await getConversationsByUser("u1");
 

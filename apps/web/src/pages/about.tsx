@@ -7,7 +7,7 @@ export default function About() {
 
 	return (
 		<section className="bg-[var(--color-background)] px-4 py-8 sm:px-6 sm:py-10">
-			<div className="mx-auto max-w-[760px] rounded-xl border bg-[var(--color-background)] p-4 shadow-lg sm:p-5" style={{ borderColor: "var(--color-border)" }}>
+			<div className="mx-auto max-w-190 rounded-xl border bg-[var(--color-background)] p-4 shadow-lg sm:p-5" style={{ borderColor: "var(--color-border)" }}>
 				<div className="space-y-4 rounded-lg border bg-[var(--color-background)] p-4 sm:p-5" style={{ borderColor: "var(--color-border)" }}>
 					<header>
 						<h1 className="text-center text-3xl font-bold text-[var(--color-text)]">About {schoolName} Marketplace</h1>

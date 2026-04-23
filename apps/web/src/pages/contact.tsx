@@ -8,7 +8,7 @@ export default function Contact() {
 	return (
 		<section className="bg-[var(--color-secondary)] px-4 py-8 sm:px-6 sm:py-10">
 			<div
-				className="mx-auto max-w-[760px] rounded-xl border bg-[var(--color-secondary)] p-5 shadow-lg sm:p-6"
+				className="mx-auto max-w-190 rounded-xl border bg-[var(--color-secondary)] p-5 shadow-lg sm:p-6"
 				style={{ borderColor: "var(--color-border)" }}
 			>
 				<h1 className="text-center text-3xl font-bold text-[var(--color-text)]">Contact {schoolName} Marketplace</h1>

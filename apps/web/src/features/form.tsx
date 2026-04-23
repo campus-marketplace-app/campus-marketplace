@@ -407,7 +407,7 @@ export default function Form({
                 }}
             />
 
-            <div className="relative z-10 max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
+            <div className="relative z-10 max-h-[92vh] w-full max-w-190 overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
                         <button

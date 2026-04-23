@@ -235,7 +235,7 @@ export default function Listing() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
-                <section className="relative z-10 w-full max-w-[760px]">
+                <section className="relative z-10 w-full max-w-190">
                     <div className="overflow-hidden rounded-b-2xl rounded-t-none shadow-xl" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                         <div className="bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 text-center sm:px-6">
                             <p className="text-2xl font-semibold text-[var(--color-text-on-primary)]">{unavailableMessage}</p>
@@ -278,7 +278,7 @@ export default function Listing() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
-            <section className="relative z-10 w-full max-w-[760px]">
+            <section className="relative z-10 w-full max-w-190">
                 <div className="max-h-[92vh] overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                     <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
                         <button
