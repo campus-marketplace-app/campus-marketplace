@@ -271,6 +271,7 @@ const displayName = profile?.display_name ?? user?.email ?? "there";
                 <div className="flex gap-3 overflow-x-auto py-2 lg:grid lg:grid-cols-[repeat(13,minmax(0,1fr))] lg:gap-2 lg:overflow-visible">
                     {categoryButtons.map(({ label, id, icon: Icon, bgClass }) => {
                         const isActive = category === id;
+                        const isTransportation = label === "Transportation";
                         return (
                             <button
                                 key={id}
@@ -284,7 +285,14 @@ const displayName = profile?.display_name ?? user?.email ?? "there";
                                 >
                                     <Icon size={20} color="white" />
                                 </div>
-                                <span className="mt-1 w-16 text-center text-xs font-medium leading-tight line-clamp-2 lg:w-full" style={{ color: "var(--color-text)" }}>{label}</span>
+                                <span className="mt-1 w-16 text-center text-xs font-medium leading-tight line-clamp-2 lg:w-full" style={{ color: "var(--color-text)" }}>
+                                    {isTransportation ? (
+                                        <>
+                                            <span className="sm:hidden">Transport</span>
+                                            <span className="hidden sm:inline">Transportation</span>
+                                        </>
+                                    ) : label}
+                                </span>
                             </button>
                         );
                     })}
