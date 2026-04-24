@@ -355,7 +355,9 @@ const displayName = profile?.display_name ?? user?.email ?? "there";
                 )}
 
                 {!isLoading && listingsData.length === 0 && !isLoading ? (
-                    <p style={{ color: "var(--color-text-muted)" }}>No listings found.</p>
+                    <div className="flex min-h-[50vh] items-center justify-center px-4">
+                        <p className="text-center" style={{ color: "var(--color-text-muted)" }}>No listings found.</p>
+                    </div>
                 ) : (
                     <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {isLoading && listingsData.length > 0 && (
