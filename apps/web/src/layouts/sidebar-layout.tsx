@@ -26,6 +26,7 @@ export default function SidebarLayout() {
     const location = useLocation();
     const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
     const isHomePage = location.pathname === '/' || location.pathname === '/home';
+    const isMyListingsPage = location.pathname === '/my-listings';
     const [user, setUser] = useState<SessionUser | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [listingToast, setListingToast] = useState<string | null>(null);
@@ -133,7 +134,7 @@ export default function SidebarLayout() {
         <div className="flex h-screen flex-col overflow-x-hidden">
             {listingToast && (
                 <div
-                    className="fixed bottom-5 right-5 z-50 w-[min(92vw,28rem)] rounded-2xl border p-4 shadow-xl"
+                    className="fixed right-5 top-24 z-50 w-[min(92vw,28rem)] rounded-2xl border p-4 shadow-xl"
                     style={{
                         backgroundColor: "var(--color-surface)",
                         borderColor: "var(--color-primary)",
@@ -145,17 +146,19 @@ export default function SidebarLayout() {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{listingToast}</p>
-                            <button
-                                type="button"
-                                className="mt-2 text-sm font-semibold underline underline-offset-2"
-                                style={{ color: "var(--color-primary)" }}
-                                onClick={() => {
-                                    setListingToast(null);
-                                    navigate('/my-listings');
-                                }}
-                            >
-                                View My Listings
-                            </button>
+                            {!isMyListingsPage && (
+                                <button
+                                    type="button"
+                                    className="mt-2 text-sm font-semibold underline underline-offset-2"
+                                    style={{ color: "var(--color-primary)" }}
+                                    onClick={() => {
+                                        setListingToast(null);
+                                        navigate('/my-listings');
+                                    }}
+                                >
+                                    View My Listings
+                                </button>
+                            )}
                         </div>
                         <button
                             type="button"
