@@ -26,8 +26,10 @@ export default function SidebarLayout() {
     const location = useLocation();
     const isRegistering = !['/login', '/signup', '/reset-email', '/reset-password'].includes(location.pathname);
     const isHomePage = location.pathname === '/' || location.pathname === '/home';
+    const isMyListingsPage = location.pathname === '/my-listings';
     const [user, setUser] = useState<SessionUser | null>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [listingToast, setListingToast] = useState<string | null>(null);
 
     // Profile is fetched via the cache — shared with profile.tsx and my-listings.tsx.
     const { data: profile } = useProfile(user?.id);
@@ -122,8 +124,55 @@ export default function SidebarLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.id]);
 
+    useEffect(() => {
+        if (!listingToast) return;
+        const timer = window.setTimeout(() => setListingToast(null), 7000);
+        return () => window.clearTimeout(timer);
+    }, [listingToast]);
+
     return (
         <div className="flex h-screen flex-col overflow-x-hidden">
+            {listingToast && (
+                <div
+                    className="fixed right-5 top-24 z-50 w-[min(92vw,28rem)] rounded-2xl border p-4 shadow-xl"
+                    style={{
+                        backgroundColor: "var(--color-surface)",
+                        borderColor: "var(--color-primary)",
+                    }}
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="mt-0.5 rounded-full bg-[var(--color-primary)] px-2 py-1 text-xs font-bold text-[var(--color-text-on-primary)]">
+                            LISTING
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{listingToast}</p>
+                            {!isMyListingsPage && (
+                                <button
+                                    type="button"
+                                    className="mt-2 text-sm font-semibold underline underline-offset-2"
+                                    style={{ color: "var(--color-primary)" }}
+                                    onClick={() => {
+                                        setListingToast(null);
+                                        navigate('/my-listings');
+                                    }}
+                                >
+                                    View My Listings
+                                </button>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            className="text-sm font-bold transition"
+                            style={{ color: "var(--color-text-muted)" }}
+                            onClick={() => setListingToast(null)}
+                            aria-label="Dismiss notification"
+                        >
+                            x
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <PageHeader
                 isLoggedIn={isLoggedIn}
                 isRegistering={isRegistering}
@@ -170,7 +219,10 @@ export default function SidebarLayout() {
                 showForm={showForm}
                 user={user}
                 onClose={() => setShowForm(false)}
-                onSubmitSuccess={() => setListingsRefreshKey((prev) => prev + 1)}
+                onSubmitSuccess={({ intent }) => {
+                    setListingsRefreshKey((prev) => prev + 1);
+                    setListingToast(intent === 'publish' ? 'Listing published successfully.' : 'Draft saved successfully.');
+                }}
             />
 
             <ThemeCustomizer
