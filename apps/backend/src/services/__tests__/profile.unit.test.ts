@@ -14,6 +14,9 @@ const { state, supabaseMock } = vi.hoisted(() => {
     responses: [] as QueryResponse[],
     uploadError: null as { message: string } | null,
     publicUrl: "https://cdn.example/avatar.jpg",
+    authUserId: null as string | null,
+    authError: null as { message: string } | null,
+    setSessionError: null as { message: string } | null,
   };
 
   function nextResponse(table: string, operation: QueryOperation) {
@@ -61,6 +64,10 @@ const { state, supabaseMock } = vi.hoisted(() => {
     state: mockState,
     supabaseMock: {
       from: (table: string) => createChain(table),
+      auth: {
+        setSession: async () => ({ error: mockState.setSessionError }),
+        getUser: async () => ({ data: { user: mockState.authUserId ? { id: mockState.authUserId } : null }, error: mockState.authError }),
+      },
       storage: {
         from: () => ({
           upload: async () => ({ error: mockState.uploadError }),
@@ -92,6 +99,9 @@ describe("profile service unit", () => {
     state.responses.length = 0;
     state.uploadError = null;
     state.publicUrl = "https://cdn.example/avatar.jpg";
+    state.authUserId = null;
+    state.authError = null;
+    state.setSessionError = null;
     vi.restoreAllMocks();
   });
 

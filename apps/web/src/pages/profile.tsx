@@ -171,6 +171,51 @@ export default function Profile() {
         if (!viewedUserId && user?.email) setEmail(user.email);
     }, [user, viewedUserId]);
 
+    const getProfileSaveErrorMessage = (error: unknown) => {
+        const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+        if (
+            message.includes("session expired") ||
+            message.includes("auth session") ||
+            message.includes("jwt")
+        ) {
+            return {
+                title: "Session expired",
+                description: "Your session has expired. Please log in again.",
+            };
+        }
+
+        if (
+            message.includes("row-level security") ||
+            message.includes("rls") ||
+            message.includes("policy")
+        ) {
+            return {
+                title: "Upload blocked",
+                description: "Avatar upload was blocked by storage permissions. Please sign out and sign in again, then try once more.",
+            };
+        }
+
+        if (message.includes("unsupported avatar content type")) {
+            return {
+                title: "Unsupported file type",
+                description: "Avatar must be a PNG, JPG, JPEG, or WEBP file.",
+            };
+        }
+
+        if (message.includes("session user does not match profile user")) {
+            return {
+                title: "Session mismatch",
+                description: "Your active session does not match this profile. Please sign out and sign in again.",
+            };
+        }
+
+        return {
+            title: "Error",
+            description: "Failed to save profile. Please try again.",
+        };
+    };
+
     const saveProfile = async () => {
         if (!user) return;
 
@@ -186,45 +231,67 @@ export default function Profile() {
         if (!isUsernameValid || !isNameValid || !isBioValid || !isAvatarValid) return;
 
         try {
+            let effectiveUserId = user.id;
             let avatarPath: string | undefined;
 
-            if (avatar) {
-                // Storage RLS uses auth.uid(), which returns null when the JWT is
-                // expired. Two-step warm-up:
-                //   1) setSession from the localStorage tokens so the supabase client
-                //      knows which session to refresh.
-                //   2) refreshSession to mint a fresh, non-expired access token.
-                // Without step 2, an expired access token still gets sent to storage
-                // and Postgres rejects with the (misleading) RLS-violation 400.
-                const accessToken = localStorage.getItem("access_token");
-                const refreshToken = localStorage.getItem("refresh_token");
-                if (!accessToken || !refreshToken) {
-                    await showAlert("Session expired", "Please log in again to update your avatar.");
-                    return;
+            const accessToken = localStorage.getItem("access_token");
+            const refreshToken = localStorage.getItem("refresh_token");
+            if (!accessToken || !refreshToken) {
+                await showAlert("Session expired", "Please log in again to save your profile.");
+                return;
+            }
+
+            let activeAccessToken = accessToken;
+            let activeRefreshToken = refreshToken;
+
+            try {
+                const { user: restoredUser } = await getSessionFromTokens(accessToken, refreshToken);
+                const { user: freshUser, session: freshSession } = await ensureFreshSession();
+                if (freshSession) {
+                    activeAccessToken = freshSession.access_token;
+                    activeRefreshToken = freshSession.refresh_token;
+                    localStorage.setItem("access_token", freshSession.access_token);
+                    localStorage.setItem("refresh_token", freshSession.refresh_token);
                 }
 
-                try {
-                    await getSessionFromTokens(accessToken, refreshToken);
-                    const { session: freshSession } = await ensureFreshSession();
-                    if (freshSession) {
-                        localStorage.setItem("access_token", freshSession.access_token);
-                        localStorage.setItem("refresh_token", freshSession.refresh_token);
-                    }
-                } catch (sessionErr) {
-                    console.error("Failed to refresh session before avatar upload:", sessionErr);
+                const refreshedUserId = freshUser?.id ?? restoredUser?.id;
+                if (!refreshedUserId) {
                     await showAlert("Session expired", "Your session has expired. Please log in again.");
                     return;
                 }
 
-                const updatedProfile = await uploadAvatarMutation({ userId: user.id, file: avatar, contentType: avatar.type });
+                if (refreshedUserId !== user.id) {
+                    await showAlert("Session mismatch", "Your active session does not match this profile. Please sign out and sign in again.");
+                    return;
+                }
+
+                effectiveUserId = refreshedUserId;
+            } catch (sessionErr) {
+                console.error("Failed to refresh session before profile save:", sessionErr);
+                await showAlert("Session expired", "Your session has expired. Please log in again.");
+                return;
+            }
+
+            if (avatar) {
+                const updatedProfile = await uploadAvatarMutation({
+                    userId: effectiveUserId,
+                    file: avatar,
+                    contentType: avatar.type,
+                    accessToken: activeAccessToken,
+                    refreshToken: activeRefreshToken,
+                });
                 avatarPath = updatedProfile.avatar_path ?? undefined;
                 if (updatedProfile.avatar_path) {
+                    if (previewUrlRef.current) {
+                        URL.revokeObjectURL(previewUrlRef.current);
+                        previewUrlRef.current = null;
+                    }
                     setAvatarUrl(`${getAvatarUrl(updatedProfile.avatar_path)}?t=${Date.now()}`);
                 }
             }
 
             await updateProfileMutation({
-                userId: user.id,
+                userId: effectiveUserId,
                 updates: {
                     display_name: displayName,
                     first_name: firstName.trim() || null,
@@ -235,10 +302,13 @@ export default function Profile() {
             });
         } catch (error) {
             console.error("Failed to save profile:", error);
-            await showAlert("Error", "Failed to save profile. Please try again.");
+            const { title, description } = getProfileSaveErrorMessage(error);
+            await showAlert(title, description);
             return;
         }
 
+        setAvatar(null);
+        setAvatarError("");
         setIsEditing(false);
         onProfileSave?.();
     };
@@ -339,7 +409,7 @@ export default function Profile() {
                             <div className="mt-3">
                                 <label className="inline-flex cursor-pointer rounded-[var(--radius-sm)] border bg-[var(--color-background)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]" style={{ borderColor: "var(--color-border)" }}>
                                     Change avatar
-                                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                                    <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleAvatarChange} />
                                 </label>
                             </div>
                         )}

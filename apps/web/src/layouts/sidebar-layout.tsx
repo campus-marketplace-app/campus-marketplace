@@ -109,7 +109,8 @@ export default function SidebarLayout() {
                 setUser(user);
                 loadPrefsForUser(user.id);
                 setIsLoggedIn(true);
-            } catch {
+            } catch (error) {
+                console.error("Failed to restore session from stored tokens:", error);
                 clearStoredTokens();
                 setIsLoggedIn(false);
                 setUser(null);
@@ -117,7 +118,7 @@ export default function SidebarLayout() {
         };
 
         void checkUserSession();
-    }, [profileRefreshKey, loadPrefsForUser]);
+    }, [profileRefreshKey, loadPrefsForUser, location.pathname]);
 
     // Subscribe to realtime notifications when user logs in.
     useEffect(() => {

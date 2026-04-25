@@ -60,11 +60,15 @@ export function useUploadAvatar() {
       userId,
       file,
       contentType,
+      accessToken,
+      refreshToken,
     }: {
       userId: string
       file: File | Blob | ArrayBuffer
       contentType: string
-    }) => uploadAvatar(userId, file, contentType),
+      accessToken?: string
+      refreshToken?: string
+    }) => uploadAvatar(userId, file, contentType, accessToken, refreshToken),
     onSuccess: (_, { userId }) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.detail(userId) })
     },
