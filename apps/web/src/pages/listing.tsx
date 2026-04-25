@@ -268,6 +268,8 @@ export default function Listing() {
                 editListing={listingData}
                 onClose={() => navigate(-1)}
                 onSubmitSuccess={() => {
+                    invalidateDetail(listingData.id);
+                    invalidateByUser(user!.id);
                     navigate(-1);
                 }}
             />

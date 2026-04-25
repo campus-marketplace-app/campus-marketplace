@@ -76,7 +76,7 @@ School branding is stored in the `school_themes` database table and fetched by t
 --color-primary, --color-secondary, --color-accent, --font-family, --logo-url, --button-style
 ```
 
-**Never hardcode hex colors.** Use `className="bg-[var(--color-primary)]"` or `style={{ color: 'var(--color-primary)' }}`.
+**Never hardcode hex colors.** Use Tailwind v4 native CSS variable syntax: `className="bg-(--color-primary)"` or `style={{ color: 'var(--color-primary)' }}`. The bracket form `bg-[var(--color-primary)]` still works but `bg-(--color-primary)` is the preferred Tailwind v4 canonical syntax.
 
 Verify: `grep -rE "bg-\[#|text-\[#" apps/web/src/` must return nothing.
 
