@@ -1,6 +1,6 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate, useOutletContext, Link, useParams } from "react-router-dom";
-import { getAvatarUrl } from "@campus-marketplace/backend";
+import { getAvatarUrl, getSessionFromTokens, ensureFreshSession } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "../hooks/useProfile";
 import { useListingsByUser } from "../hooks/useListings";
@@ -41,7 +41,11 @@ export default function Profile() {
     };
 
     const { mutateAsync: updateProfileMutation } = useUpdateProfile();
-    const { mutateAsync: uploadAvatarMutation } = useUploadAvatar();
+    const { mutateAsync: uploadAvatarMutation, isPending: isUploadingAvatar } = useUploadAvatar();
+    // Track the blob URL we created for the avatar preview so we can revoke it
+    // when the user picks a different file or unmounts. Without this, every
+    // re-pick leaks a blob URL into browser memory until the tab closes.
+    const previewUrlRef = useRef<string | null>(null);
     // Fetch the profile for whoever we're viewing (own profile or another user's).
     const { data: profileData } = useProfile(viewedUserId ?? user?.id);
     const { confirm, alert: showAlert } = useConfirm();
@@ -50,8 +54,28 @@ export default function Profile() {
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         setAvatar(file);
-        setAvatarUrl(file ? URL.createObjectURL(file) : "");
+        if (previewUrlRef.current) {
+            URL.revokeObjectURL(previewUrlRef.current);
+            previewUrlRef.current = null;
+        }
+        if (file) {
+            const url = URL.createObjectURL(file);
+            previewUrlRef.current = url;
+            setAvatarUrl(url);
+        } else {
+            setAvatarUrl("");
+        }
     };
+
+    // Make sure the last preview URL gets revoked when the page unmounts.
+    useEffect(() => {
+        return () => {
+            if (previewUrlRef.current) {
+                URL.revokeObjectURL(previewUrlRef.current);
+                previewUrlRef.current = null;
+            }
+        };
+    }, []);
 
     const validateUsername = () => {
         if (!displayName.trim()) {
@@ -94,7 +118,6 @@ export default function Profile() {
 
     const validateAvatar = (value: File | null) => {
         const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-        const minSizeInBytes = 10 * 1024; // 10KB
 
         if (!value) {
             setAvatarError("");
@@ -110,10 +133,6 @@ export default function Profile() {
         }
         if (value.size > maxSizeInBytes) {
             setAvatarError("Avatar file size must be less than 5MB");
-            return false;
-        }
-        if (value.size < minSizeInBytes) {
-            setAvatarError("Avatar file size must be greater than 10KB");
             return false;
         }
         setAvatarError("");
@@ -170,6 +189,33 @@ export default function Profile() {
             let avatarPath: string | undefined;
 
             if (avatar) {
+                // Storage RLS uses auth.uid(), which returns null when the JWT is
+                // expired. Two-step warm-up:
+                //   1) setSession from the localStorage tokens so the supabase client
+                //      knows which session to refresh.
+                //   2) refreshSession to mint a fresh, non-expired access token.
+                // Without step 2, an expired access token still gets sent to storage
+                // and Postgres rejects with the (misleading) RLS-violation 400.
+                const accessToken = localStorage.getItem("access_token");
+                const refreshToken = localStorage.getItem("refresh_token");
+                if (!accessToken || !refreshToken) {
+                    await showAlert("Session expired", "Please log in again to update your avatar.");
+                    return;
+                }
+
+                try {
+                    await getSessionFromTokens(accessToken, refreshToken);
+                    const { session: freshSession } = await ensureFreshSession();
+                    if (freshSession) {
+                        localStorage.setItem("access_token", freshSession.access_token);
+                        localStorage.setItem("refresh_token", freshSession.refresh_token);
+                    }
+                } catch (sessionErr) {
+                    console.error("Failed to refresh session before avatar upload:", sessionErr);
+                    await showAlert("Session expired", "Your session has expired. Please log in again.");
+                    return;
+                }
+
                 const updatedProfile = await uploadAvatarMutation({ userId: user.id, file: avatar, contentType: avatar.type });
                 avatarPath = updatedProfile.avatar_path ?? undefined;
                 if (updatedProfile.avatar_path) {
@@ -220,7 +266,9 @@ export default function Profile() {
     };
 
     const hasValidationErrors = Boolean(usernameError || nameError || bioError || avatarError);
-    const isSaveDisabled = isEditing && hasValidationErrors;
+    // Block re-clicks while the avatar is uploading so two rapid Saves can't race
+    // and have the older upload finish last (overwriting the newer one).
+    const isSaveDisabled = isEditing && (hasValidationErrors || isUploadingAvatar);
 
     if (!user) {
         return (
@@ -248,7 +296,7 @@ export default function Profile() {
 
             <section className="relative z-10 w-full p-4 sm:p-6" onClick={() => navigate(-1)}>
                 <div
-                    className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border bg-[var(--color-secondary)] shadow-xl"
+                    className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border bg-[var(--color-surface)] shadow-xl"
                     style={{ borderColor: "var(--color-border)" }}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -276,7 +324,7 @@ export default function Profile() {
                     <div className="h-18 bg-[var(--color-primary)] sm:h-20" />
 
                     <div className="relative px-5 pb-6 sm:px-6 sm:pb-7">
-                        <div className="-mt-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-[var(--color-secondary)] bg-[var(--color-surface)] shadow-sm sm:h-24 sm:w-24">
+                        <div className="-mt-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-[var(--color-surface)] bg-[var(--color-background-alt)] shadow-sm sm:h-24 sm:w-24">
                             {avatarUrl ? (
                                 <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                             ) : (
@@ -317,7 +365,7 @@ export default function Profile() {
                                         value={displayName}
                                         readOnly={!isEditing}
                                         onChange={(e) => { setDisplayName(e.target.value); setUsernameError(""); }}
-                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         style={{ borderColor: "var(--color-border)" }}
                                     />
                                 </div>
@@ -345,7 +393,7 @@ export default function Profile() {
                                         value={firstName}
                                         readOnly={!isEditing}
                                         onChange={(e) => { setFirstName(e.target.value); setNameError(""); }}
-                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         style={{ borderColor: "var(--color-border)" }}
                                     />
                                 </div>
@@ -357,7 +405,7 @@ export default function Profile() {
                                         value={lastName}
                                         readOnly={!isEditing}
                                         onChange={(e) => { setLastName(e.target.value); setNameError(""); }}
-                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         style={{ borderColor: "var(--color-border)" }}
                                     />
                                 </div>
@@ -387,7 +435,7 @@ export default function Profile() {
                                     value={bio}
                                     readOnly={!isEditing}
                                     onChange={(e) => { setBio(e.target.value); validateBio(e.target.value); }}
-                                    className="min-h-28 w-full resize-none rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                    className="min-h-28 w-full resize-none rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                     placeholder="Tell us about yourself..."
                                     style={{ borderColor: "var(--color-border)" }}
                                 />

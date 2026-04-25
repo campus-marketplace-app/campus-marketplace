@@ -385,6 +385,6 @@ Stop and escalate if:
 - `.github/copilot-instructions.md` — Architecture, stack, commands
 - `.github/instructions/frontend.instructions.md` — Frontend-specific rules
 - `apps/backend/README.md` — Backend service layer setup (TBD—link when created)
-- `docs/GIT_WORKFLOW.md` — Branch strategy
+- `docs/dev/GIT_WORKFLOW.md` — Branch strategy
 - `supabase/migrations/20260315120000_core_tables.sql` — Initial schema, including `school_themes` table
 - [CSS Variables (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)

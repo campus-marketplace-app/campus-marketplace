@@ -2,10 +2,11 @@ import { useNavigate, useOutletContext, Link } from "react-router-dom";
 import type { ListingWithDetails } from "@campus-marketplace/backend";
 import { getListingImageUrl, getAvatarUrl } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useProfile } from "../hooks/useProfile";
 import { useListingsByUser } from "../hooks/useListings";
-import { NoImagePlaceholder } from "../components/NoImagePlaceholder";
+import { ListingThumb } from "../components/ListingThumb";
+import { useCountUp } from "../hooks/useCountUp";
 
 type OutletContext = {
     user: SessionUser | null;
@@ -39,26 +40,6 @@ function statusBadge(status: string, type?: string) {
         default:
             return { label: status, className: "bg-gray-400 text-white" };
     }
-}
-
-/** Counts from 0 to `target` over `duration` ms using an ease-out curve. */
-function useCountUp(target: number | undefined, duration = 900): number {
-    const [current, setCurrent] = useState(0);
-    useEffect(() => {
-        if (target === undefined) return;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (target === 0) { setCurrent(0); return; }
-        const start = performance.now();
-        let rafId: number;
-        const tick = (now: number) => {
-            const progress = Math.min((now - start) / duration, 1);
-            setCurrent(Math.round(target * Math.sqrt(progress)));
-            if (progress < 1) rafId = requestAnimationFrame(tick);
-        };
-        rafId = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(rafId);
-    }, [target, duration]);
-    return current;
 }
 
 const MyListings = () => {
@@ -263,23 +244,11 @@ const MyListings = () => {
                                     }}
                                 >
                                     <div className="relative h-48 w-full" style={{ backgroundColor: "var(--color-background-alt)" }}>
-                                        {listing.images?.[0]?.path ? (
-                                            <>
-                                                <img
-                                                    src={getListingImageUrl(listing.images[0].path)}
-                                                    alt={listing.images[0].alt_text ?? listing.title}
-                                                    className="h-full w-full object-cover"
-                                                    onError={(e) => {
-                                                        e.currentTarget.style.display = "none";
-                                                        const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                                        if (fb) fb.style.display = "flex";
-                                                    }}
-                                                />
-                                                <NoImagePlaceholder title={listing.title} hidden />
-                                            </>
-                                        ) : (
-                                            <NoImagePlaceholder title={listing.title} />
-                                        )}
+                                        <ListingThumb
+                                            src={listing.images?.[0]?.path ? getListingImageUrl(listing.images[0].path) : undefined}
+                                            alt={listing.images?.[0]?.alt_text ?? listing.title}
+                                            title={listing.title}
+                                        />
                                         {/* Status badge */}
                                         <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${badge.className}`}>
                                             {badge.label}

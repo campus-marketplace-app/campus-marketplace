@@ -9,10 +9,13 @@ export const notificationKeys = {
   byUser: (userId: string) => ['notifications', 'byUser', userId] as const,
 };
 
+// Default page size — the bell only shows recent notifications, not the full history.
+const DEFAULT_NOTIFICATIONS_LIMIT = 50;
+
 export function useNotifications(userId: string | undefined) {
   return useQuery({
     queryKey: notificationKeys.byUser(userId ?? ''),
-    queryFn: () => getNotifications(userId!),
+    queryFn: () => getNotifications(userId!, DEFAULT_NOTIFICATIONS_LIMIT, 0),
     staleTime: NOTIFICATIONS_STALE_TIME,
     enabled: !!userId,
   });

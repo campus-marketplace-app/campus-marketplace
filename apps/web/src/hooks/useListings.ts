@@ -67,11 +67,14 @@ export function useListingDetail(id: string | undefined) {
 // useListingsByUser
 // Fetches all listings (basic + details) owned by a given user.
 // ---------------------------------------------------------------------------
+// Default page size — covers the seller dashboard's first screen comfortably.
+const DEFAULT_LISTINGS_BY_USER_LIMIT = 50
+
 export function useListingsByUser(userId: string | undefined) {
   return useQuery({
     queryKey: listingKeys.byUser(userId ?? ''),
     queryFn: async () => {
-      const listings = await getListingsByUser(userId!)
+      const listings = await getListingsByUser(userId!, undefined, DEFAULT_LISTINGS_BY_USER_LIMIT, 0)
       const detailed = await Promise.all(
         listings.map((listing) => getListingWithDetails(listing.id)),
       )

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 type QueryResponse = {
   table: string;
-  operation: "select" | "insert" | "update" | "delete";
+  operation: "select" | "insert" | "update" | "delete" | "rpc";
   data?: unknown;
   error?: { message: string } | null;
   count?: number | null;
@@ -50,6 +50,7 @@ const { state, supabaseMock } = vi.hoisted(() => {
     chain.or = () => chain;
     chain.order = () => chain;
     chain.limit = () => chain;
+    chain.range = () => chain;
 
     chain.insert = () => {
       operation = "insert";
@@ -79,6 +80,10 @@ const { state, supabaseMock } = vi.hoisted(() => {
 
   const mockSupabase = {
     from: (table: string) => createChain(table),
+    rpc: async (name: string) => {
+      const response = nextResponse(name, "rpc");
+      return { data: response.data, error: response.error };
+    },
     channel: (name: string) => {
       const channel = {
         name,
@@ -151,11 +156,14 @@ describe("messaging service", () => {
     );
   });
 
-  it("returns existing conversation when found", async () => {
+  it("returns existing conversation when the RPC reports one", async () => {
     enqueueResponse({ table: "blocks", operation: "select", data: [] });
-    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ conversation_id: "c-existing" }] });
-    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ conversation_id: "c-existing" }] });
-    enqueueResponse({ table: "conversations", operation: "select", data: [{ id: "c-existing" }] });
+    enqueueResponse({
+      table: "find_or_create_conversation",
+      operation: "rpc",
+      data: { id: "c-existing", listing_id: null, created_at: "2026-01-01", updated_at: "2026-01-02", deleted_at: null },
+    });
+    // getConversation hydration queries follow the RPC.
     enqueueResponse({
       table: "conversations",
       operation: "select",
@@ -174,17 +182,17 @@ describe("messaging service", () => {
     expect(convo.unread_count).toBe(2);
   });
 
-  it("creates a new conversation when no existing conversation is found", async () => {
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-0000-0000-000000000001");
-
+  it("creates a new conversation via the RPC when none exists", async () => {
     enqueueResponse({ table: "blocks", operation: "select", data: [] });
-    enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
-    enqueueResponse({ table: "conversations", operation: "insert", data: null });
-    enqueueResponse({ table: "conversation_participants", operation: "insert", data: null });
+    enqueueResponse({
+      table: "find_or_create_conversation",
+      operation: "rpc",
+      data: { id: "c-new", listing_id: null, created_at: "2026-01-01", updated_at: "2026-01-01", deleted_at: null },
+    });
     enqueueResponse({
       table: "conversations",
       operation: "select",
-      data: { id: "00000000-0000-0000-0000-000000000001", listing_id: null, created_at: "2026-01-01", updated_at: "2026-01-01" },
+      data: { id: "c-new", listing_id: null, created_at: "2026-01-01", updated_at: "2026-01-01" },
     });
     enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ user_id: "u2" }] });
     enqueueResponse({ table: "profiles", operation: "select", data: { display_name: "Other User", avatar_path: null } });
@@ -193,27 +201,19 @@ describe("messaging service", () => {
 
     const convo = await createConversation("u1", "u2");
 
-    expect(convo.id).toBe("00000000-0000-0000-0000-000000000001");
+    expect(convo.id).toBe("c-new");
     expect(convo.unread_count).toBe(0);
   });
 
-  it("throws when creating a conversation fails during insert or participant add", async () => {
-    vi.spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-0000-0000-000000000002");
-
+  it("throws when the find_or_create_conversation RPC fails", async () => {
     enqueueResponse({ table: "blocks", operation: "select", data: [] });
-    enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
-    enqueueResponse({ table: "conversations", operation: "insert", error: { message: "insert convo failed" } });
+    enqueueResponse({
+      table: "find_or_create_conversation",
+      operation: "rpc",
+      error: { message: "rpc boom" },
+    });
 
-    await expect(createConversation("u1", "u2")).rejects.toThrow("Failed to create conversation: insert convo failed");
-
-    enqueueResponse({ table: "blocks", operation: "select", data: [] });
-    enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
-    enqueueResponse({ table: "conversations", operation: "insert", data: null });
-    enqueueResponse({ table: "conversation_participants", operation: "insert", error: { message: "insert participant failed" } });
-
-    await expect(createConversation("u1", "u2")).rejects.toThrow(
-      "Failed to add participants: insert participant failed",
-    );
+    await expect(createConversation("u1", "u2")).rejects.toThrow("Failed to create conversation: rpc boom");
   });
 
   it("returns empty list when user has no conversations", async () => {
@@ -273,6 +273,8 @@ describe("messaging service", () => {
   });
 
   it("gets messages sorted query path and validates conversation existence", async () => {
+    // Participant check (isParticipant) runs first now.
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
     enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1" } });
     enqueueResponse({
       table: "messages",
@@ -290,17 +292,24 @@ describe("messaging service", () => {
       ],
     });
 
-    const messages = await getMessages("c1");
+    const messages = await getMessages("c1", "u1");
     expect(messages).toHaveLength(1);
 
-    await expect(getMessages("")).rejects.toThrow("Conversation ID is required");
+    await expect(getMessages("", "u1")).rejects.toThrow("Conversation ID is required");
+    await expect(getMessages("c1", "")).rejects.toThrow("User ID is required");
+  });
+
+  it("throws when caller is not a participant in getMessages", async () => {
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [] });
+    await expect(getMessages("c1", "u1")).rejects.toThrow("You are not a participant in this conversation");
   });
 
   it("throws when fetching messages fails", async () => {
+    enqueueResponse({ table: "conversation_participants", operation: "select", data: [{ id: "p1" }] });
     enqueueResponse({ table: "conversations", operation: "select", data: { id: "c1" } });
     enqueueResponse({ table: "messages", operation: "select", error: { message: "messages query failed" } });
 
-    await expect(getMessages("c1")).rejects.toThrow("Failed to fetch messages: messages query failed");
+    await expect(getMessages("c1", "u1")).rejects.toThrow("Failed to fetch messages: messages query failed");
   });
 
   it("sends a message for participants and trims content", async () => {
@@ -414,24 +423,24 @@ describe("messaging service", () => {
     );
   });
 
-  it("subscribes to conversation updates and filters payload ids", () => {
+  it("subscribes to conversation updates and emits the changed id", () => {
     const changed: string[] = [];
 
-    const subscription = subscribeToConversations(["c1", "c2"], () => {
-      changed.push("changed");
+    const subscription = subscribeToConversations("u1", (id) => {
+      changed.push(id);
     });
 
-    state.realtimeHandlers["conversations:c1,c2"]?.({ new: { id: "c3" } });
-    state.realtimeHandlers["conversations:c1,c2"]?.({ new: { id: "c2" } });
+    state.realtimeHandlers["conversations:user:u1"]?.({ new: { id: "c3" } });
+    state.realtimeHandlers["conversations:user:u1"]?.({ new: { id: "c2" } });
 
     subscription.unsubscribe();
 
-    expect(changed).toHaveLength(1);
-    expect(state.removedChannels).toContain("conversations:c1,c2");
+    expect(changed).toEqual(["c3", "c2"]);
+    expect(state.removedChannels).toContain("conversations:user:u1");
   });
 
-  it("returns no-op unsubscribe for empty subscribeToConversations input", () => {
-    const subscription = subscribeToConversations([], () => undefined);
+  it("returns no-op unsubscribe for empty userId in subscribeToConversations", () => {
+    const subscription = subscribeToConversations("", () => undefined);
     expect(() => subscription.unsubscribe()).not.toThrow();
   });
 });

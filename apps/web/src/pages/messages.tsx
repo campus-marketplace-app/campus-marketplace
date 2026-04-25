@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOutletContext, useParams, Link } from "react-router-dom";
 import {
     getMessages,
@@ -6,7 +6,6 @@ import {
     markMessagesRead,
     markConversationNotificationsRead,
     subscribeToMessages,
-    getSessionFromTokens,
     archiveConversation,
     subscribeToConversations,
 } from "@campus-marketplace/backend";
@@ -38,31 +37,33 @@ export default function Messages() {
     const { invalidate: invalidateConversations } = useInvalidateConversations();
     const { invalidate: invalidateNotifications } = useInvalidateNotifications();
 
-    // --- restore Supabase session so RLS recognizes the user ---
-    useEffect(() => {
-        const accessToken = localStorage.getItem("access_token");
-        const refreshToken = localStorage.getItem("refresh_token");
-        if (accessToken && refreshToken) {
-            getSessionFromTokens(accessToken, refreshToken).catch(console.error);
-        }
-    }, []);
+    // SidebarLayout already restores the session on app init — no need to do it again here.
 
     // --- realtime subscription on conversations (replaces 15s setInterval polling) ---
     // When any conversation we're in gets updated (new message, read status), we invalidate
     // the TanStack Query cache so it refetches — without polling.
+    //
+    // We subscribe once per user session. A ref holds the latest conversation IDs so the
+    // callback can filter without forcing the effect to re-run (and therefore re-subscribe)
+    // every time the list changes.
+    const conversationIdsRef = useRef<Set<string>>(new Set());
     useEffect(() => {
-        if (!user || conversations.length === 0) return;
+        conversationIdsRef.current = new Set(conversations.map((c) => c.id));
+    }, [conversations]);
 
-        const conversationIds = conversations.map((c) => c.id);
-        const { unsubscribe } = subscribeToConversations(conversationIds, () => {
-            invalidateConversations(user.id);
+    useEffect(() => {
+        if (!user) return;
+
+        const { unsubscribe } = subscribeToConversations(user.id, (changedId) => {
+            if (conversationIdsRef.current.has(changedId)) {
+                invalidateConversations(user.id);
+            }
         });
 
         return unsubscribe;
-        // conversations.length is intentional — re-subscribe when the list grows.
-        // invalidateConversations is a stable ref from useQueryClient; user is stable per session.
+        // invalidateConversations is a stable ref from useQueryClient; intentionally omitted.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id, conversations.length]);
+    }, [user?.id]);
 
     // --- load messages + realtime subscription when active conversation changes ---
     useEffect(() => {
@@ -72,7 +73,7 @@ export default function Messages() {
 
         // Fetch messages for the selected conversation.
         setChatLoading(true);
-        getMessages(activeConversationId)
+        getMessages(activeConversationId, user.id)
             .then((msgs) => {
                 if (!cancelled) setMessages(msgs);
             })

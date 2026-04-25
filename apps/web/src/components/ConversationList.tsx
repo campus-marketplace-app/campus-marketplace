@@ -146,14 +146,24 @@ export default function ConversationList({
                     const isExpanded = expandedGroups.has(group.other_user_id);
                     const groupIsActive = !isMulti && group.conversations[0].id === activeId;
 
+                    // Outer row is a div + role="button" so the inner Archive button isn't
+                    // nested inside another <button>, which is invalid HTML and breaks
+                    // React hydration.
                     return (
                         <div key={group.other_user_id}>
                             {/* Group row */}
-                            <button
-                                type="button"
+                            <div
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => handleGroupClick(group)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        handleGroupClick(group);
+                                    }
+                                }}
                                 className={[
-                                    'group w-full flex items-center gap-3 px-3 py-3 border-b border-[var(--color-border)] transition-colors text-left',
+                                    'group w-full flex items-center gap-3 px-3 py-3 border-b border-[var(--color-border)] transition-colors text-left cursor-pointer',
                                     groupIsActive
                                         ? 'border-l-4 border-l-[var(--color-primary)] bg-[var(--color-primary)]/5'
                                         : 'border-l-4 border-l-transparent hover:bg-[var(--color-surface)]',
@@ -212,18 +222,25 @@ export default function ConversationList({
                                         </span>
                                     )}
                                 </div>
-                            </button>
+                            </div>
 
                             {/* Sub-list — shown when group is expanded */}
                             {isMulti && isExpanded && (
                                 <div className="bg-[var(--color-surface-alt)]">
                                     {group.conversations.map((convo) => (
-                                        <button
+                                        <div
                                             key={convo.id}
-                                            type="button"
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={() => onSelect(convo.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    onSelect(convo.id);
+                                                }
+                                            }}
                                             className={[
-                                                'group w-full flex items-center gap-2 pl-14 pr-3 py-2.5 border-b border-[var(--color-border)] transition-colors text-left',
+                                                'group w-full flex items-center gap-2 pl-14 pr-3 py-2.5 border-b border-[var(--color-border)] transition-colors text-left cursor-pointer',
                                                 convo.id === activeId
                                                     ? 'border-l-4 border-l-[var(--color-primary)] bg-[var(--color-primary)]/5'
                                                     : 'border-l-4 border-l-transparent hover:bg-[var(--color-surface)]',
@@ -258,7 +275,7 @@ export default function ConversationList({
                                                     <ArchiveX size={13} />
                                                 </button>
                                             </div>
-                                        </button>
+                                        </div>
                                     ))}
                                 </div>
                             )}

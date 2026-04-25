@@ -23,8 +23,13 @@ export interface Notification {
 
 const notificationSelect = "id,user_id,type,payload,is_read,read_at,created_at";
 
-// Get all notifications for a user, sorted newest-first.
-export async function getNotifications(userId: string): Promise<Notification[]> {
+// Get notifications for a user, sorted newest-first.
+// Pagination is offset-based; default page is the first 50 notifications.
+export async function getNotifications(
+  userId: string,
+  limit = 50,
+  offset = 0,
+): Promise<Notification[]> {
 
   if (!userId.trim()) {
     throw new Error("User ID is required");
@@ -34,7 +39,8 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
     .from("notifications")
     .select(notificationSelect)
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     throw new Error(`Failed to fetch notifications: ${error.message}`);

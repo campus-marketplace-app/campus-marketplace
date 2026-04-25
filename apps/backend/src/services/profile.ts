@@ -132,8 +132,20 @@ export async function uploadAvatar(userId: string,file: File | Blob | ArrayBuffe
     throw new Error(`Failed to upload avatar: ${uploadError.message}`);
   }
 
-  //auto-updates the profile's avatar_path with the new storage path, then returns the updated profile data
-  return updateProfile(userId, { avatar_path: storagePath });
+  // If the profile update fails, clean up the just-uploaded object so we don't
+  // leave orphans in the avatars bucket. Surface a cleanup failure too — a
+  // silent storage leak is exactly what we want to avoid.
+  try {
+    return await updateProfile(userId, { avatar_path: storagePath });
+  } catch (updateErr) {
+    const { error: removeErr } = await supabase.storage.from("avatars").remove([storagePath]);
+    if (removeErr) {
+      console.error(
+        `[uploadAvatar] orphaned object at avatars/${storagePath} after profile update failed: ${removeErr.message}`,
+      );
+    }
+    throw updateErr;
+  }
 }
 
 // GET AVATAR URL: Returns the public URL for a stored avatar path.

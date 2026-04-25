@@ -107,15 +107,15 @@ VITE_SUPABASE_ANON_KEY=
 
 ## Auth Pattern
 
-Session tokens are stored in `localStorage` and restored on app init via `getSessionFromTokens`. See `docs/AUTH_USAGE.md` for the full integration example.
+Session tokens are stored in `localStorage` and restored on app init via `getSessionFromTokens`. See `docs/usage/AUTH_USAGE.md` for the full integration example.
 
 ## Key Docs
 
-- `docs/GIT_WORKFLOW.md` — branch naming, PR process
-- `docs/MIGRATIONS.md` — migration management
-- `docs/AUTH_USAGE.md` — auth integration examples
-- `docs/LISTINGS_USAGE.md` — listings service integration examples
-- `docs/PROFILE_USAGE.md` — profile + avatar upload integration examples
+- `docs/dev/GIT_WORKFLOW.md` — branch naming, PR process
+- `docs/dev/MIGRATIONS.md` — migration management
+- `docs/usage/AUTH_USAGE.md` — auth integration examples
+- `docs/usage/LISTINGS_USAGE.md` — listings service integration examples
+- `docs/usage/PROFILE_USAGE.md` — profile + avatar upload integration examples
 - `.github/copilot-instructions.md` — detailed architecture rules
 - `.github/instructions/frontend.instructions.md` — frontend-specific rules
 - `AGENTS.md` — pre/post-edit verification checklist

@@ -137,7 +137,10 @@ export async function signInWithEmail(input: SignInInput): Promise<AuthResult> {
     .single<{ deactivated_at: string | null }>();
 
   if (profile?.deactivated_at) {
-    await supabase.auth.signOut({ scope: "local" });
+    // Use "global" scope so the just-issued refresh token is revoked everywhere,
+    // not just in this browser. Closes the race where a profile is reactivated
+    // between signInWithPassword and the deactivation check.
+    await supabase.auth.signOut({ scope: "global" });
     throw new Error(
       "account_deactivated: This account has been deactivated. Contact support to restore access.",
     );

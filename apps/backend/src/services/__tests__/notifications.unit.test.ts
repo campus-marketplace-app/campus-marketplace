@@ -44,6 +44,7 @@ const { state, supabaseMock } = vi.hoisted(() => {
     chain.select = () => chain;
     chain.eq = () => chain;
     chain.order = () => chain;
+    chain.range = () => chain;
 
     chain.update = () => {
       operation = "update";
