@@ -1,6 +1,6 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useNavigate, useOutletContext, Link, useParams } from "react-router-dom";
-import { getAvatarUrl } from "@campus-marketplace/backend";
+import { getAvatarUrl, getSessionFromTokens, ensureFreshSession } from "@campus-marketplace/backend";
 import type { SessionUser } from "../features/types";
 import { useProfile, useUpdateProfile, useUploadAvatar } from "../hooks/useProfile";
 import { useListingsByUser } from "../hooks/useListings";
@@ -41,7 +41,11 @@ export default function Profile() {
     };
 
     const { mutateAsync: updateProfileMutation } = useUpdateProfile();
-    const { mutateAsync: uploadAvatarMutation } = useUploadAvatar();
+    const { mutateAsync: uploadAvatarMutation, isPending: isUploadingAvatar } = useUploadAvatar();
+    // Track the blob URL we created for the avatar preview so we can revoke it
+    // when the user picks a different file or unmounts. Without this, every
+    // re-pick leaks a blob URL into browser memory until the tab closes.
+    const previewUrlRef = useRef<string | null>(null);
     // Fetch the profile for whoever we're viewing (own profile or another user's).
     const { data: profileData } = useProfile(viewedUserId ?? user?.id);
     const { confirm, alert: showAlert } = useConfirm();
@@ -50,8 +54,28 @@ export default function Profile() {
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         setAvatar(file);
-        setAvatarUrl(file ? URL.createObjectURL(file) : "");
+        if (previewUrlRef.current) {
+            URL.revokeObjectURL(previewUrlRef.current);
+            previewUrlRef.current = null;
+        }
+        if (file) {
+            const url = URL.createObjectURL(file);
+            previewUrlRef.current = url;
+            setAvatarUrl(url);
+        } else {
+            setAvatarUrl("");
+        }
     };
+
+    // Make sure the last preview URL gets revoked when the page unmounts.
+    useEffect(() => {
+        return () => {
+            if (previewUrlRef.current) {
+                URL.revokeObjectURL(previewUrlRef.current);
+                previewUrlRef.current = null;
+            }
+        };
+    }, []);
 
     const validateUsername = () => {
         if (!displayName.trim()) {
@@ -94,7 +118,6 @@ export default function Profile() {
 
     const validateAvatar = (value: File | null) => {
         const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-        const minSizeInBytes = 10 * 1024; // 10KB
 
         if (!value) {
             setAvatarError("");
@@ -110,10 +133,6 @@ export default function Profile() {
         }
         if (value.size > maxSizeInBytes) {
             setAvatarError("Avatar file size must be less than 5MB");
-            return false;
-        }
-        if (value.size < minSizeInBytes) {
-            setAvatarError("Avatar file size must be greater than 10KB");
             return false;
         }
         setAvatarError("");
@@ -152,6 +171,51 @@ export default function Profile() {
         if (!viewedUserId && user?.email) setEmail(user.email);
     }, [user, viewedUserId]);
 
+    const getProfileSaveErrorMessage = (error: unknown) => {
+        const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+        if (
+            message.includes("session expired") ||
+            message.includes("auth session") ||
+            message.includes("jwt")
+        ) {
+            return {
+                title: "Session expired",
+                description: "Your session has expired. Please log in again.",
+            };
+        }
+
+        if (
+            message.includes("row-level security") ||
+            message.includes("rls") ||
+            message.includes("policy")
+        ) {
+            return {
+                title: "Upload blocked",
+                description: "Avatar upload was blocked by storage permissions. Please sign out and sign in again, then try once more.",
+            };
+        }
+
+        if (message.includes("unsupported avatar content type")) {
+            return {
+                title: "Unsupported file type",
+                description: "Avatar must be a PNG, JPG, JPEG, or WEBP file.",
+            };
+        }
+
+        if (message.includes("session user does not match profile user")) {
+            return {
+                title: "Session mismatch",
+                description: "Your active session does not match this profile. Please sign out and sign in again.",
+            };
+        }
+
+        return {
+            title: "Error",
+            description: "Failed to save profile. Please try again.",
+        };
+    };
+
     const saveProfile = async () => {
         if (!user) return;
 
@@ -167,18 +231,67 @@ export default function Profile() {
         if (!isUsernameValid || !isNameValid || !isBioValid || !isAvatarValid) return;
 
         try {
+            let effectiveUserId = user.id;
             let avatarPath: string | undefined;
 
+            const accessToken = localStorage.getItem("access_token");
+            const refreshToken = localStorage.getItem("refresh_token");
+            if (!accessToken || !refreshToken) {
+                await showAlert("Session expired", "Please log in again to save your profile.");
+                return;
+            }
+
+            let activeAccessToken = accessToken;
+            let activeRefreshToken = refreshToken;
+
+            try {
+                const { user: restoredUser } = await getSessionFromTokens(accessToken, refreshToken);
+                const { user: freshUser, session: freshSession } = await ensureFreshSession();
+                if (freshSession) {
+                    activeAccessToken = freshSession.access_token;
+                    activeRefreshToken = freshSession.refresh_token;
+                    localStorage.setItem("access_token", freshSession.access_token);
+                    localStorage.setItem("refresh_token", freshSession.refresh_token);
+                }
+
+                const refreshedUserId = freshUser?.id ?? restoredUser?.id;
+                if (!refreshedUserId) {
+                    await showAlert("Session expired", "Your session has expired. Please log in again.");
+                    return;
+                }
+
+                if (refreshedUserId !== user.id) {
+                    await showAlert("Session mismatch", "Your active session does not match this profile. Please sign out and sign in again.");
+                    return;
+                }
+
+                effectiveUserId = refreshedUserId;
+            } catch (sessionErr) {
+                console.error("Failed to refresh session before profile save:", sessionErr);
+                await showAlert("Session expired", "Your session has expired. Please log in again.");
+                return;
+            }
+
             if (avatar) {
-                const updatedProfile = await uploadAvatarMutation({ userId: user.id, file: avatar, contentType: avatar.type });
+                const updatedProfile = await uploadAvatarMutation({
+                    userId: effectiveUserId,
+                    file: avatar,
+                    contentType: avatar.type,
+                    accessToken: activeAccessToken,
+                    refreshToken: activeRefreshToken,
+                });
                 avatarPath = updatedProfile.avatar_path ?? undefined;
                 if (updatedProfile.avatar_path) {
+                    if (previewUrlRef.current) {
+                        URL.revokeObjectURL(previewUrlRef.current);
+                        previewUrlRef.current = null;
+                    }
                     setAvatarUrl(`${getAvatarUrl(updatedProfile.avatar_path)}?t=${Date.now()}`);
                 }
             }
 
             await updateProfileMutation({
-                userId: user.id,
+                userId: effectiveUserId,
                 updates: {
                     display_name: displayName,
                     first_name: firstName.trim() || null,
@@ -189,10 +302,13 @@ export default function Profile() {
             });
         } catch (error) {
             console.error("Failed to save profile:", error);
-            await showAlert("Error", "Failed to save profile. Please try again.");
+            const { title, description } = getProfileSaveErrorMessage(error);
+            await showAlert(title, description);
             return;
         }
 
+        setAvatar(null);
+        setAvatarError("");
         setIsEditing(false);
         onProfileSave?.();
     };
@@ -220,7 +336,9 @@ export default function Profile() {
     };
 
     const hasValidationErrors = Boolean(usernameError || nameError || bioError || avatarError);
-    const isSaveDisabled = isEditing && hasValidationErrors;
+    // Block re-clicks while the avatar is uploading so two rapid Saves can't race
+    // and have the older upload finish last (overwriting the newer one).
+    const isSaveDisabled = isEditing && (hasValidationErrors || isUploadingAvatar);
 
     if (!user) {
         return (
@@ -248,7 +366,7 @@ export default function Profile() {
 
             <section className="relative z-10 w-full p-4 sm:p-6" onClick={() => navigate(-1)}>
                 <div
-                    className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border bg-[var(--color-secondary)] shadow-xl"
+                    className="mx-auto max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border bg-[var(--color-surface)] shadow-xl"
                     style={{ borderColor: "var(--color-border)" }}
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -276,7 +394,7 @@ export default function Profile() {
                     <div className="h-18 bg-[var(--color-primary)] sm:h-20" />
 
                     <div className="relative px-5 pb-6 sm:px-6 sm:pb-7">
-                        <div className="-mt-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-[var(--color-secondary)] bg-[var(--color-surface)] shadow-sm sm:h-24 sm:w-24">
+                        <div className="-mt-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-[var(--color-surface)] bg-[var(--color-background-alt)] shadow-sm sm:h-24 sm:w-24">
                             {avatarUrl ? (
                                 <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                             ) : (
@@ -291,7 +409,7 @@ export default function Profile() {
                             <div className="mt-3">
                                 <label className="inline-flex cursor-pointer rounded-[var(--radius-sm)] border bg-[var(--color-background)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface)]" style={{ borderColor: "var(--color-border)" }}>
                                     Change avatar
-                                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                                    <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleAvatarChange} />
                                 </label>
                             </div>
                         )}
@@ -317,7 +435,7 @@ export default function Profile() {
                                         value={displayName}
                                         readOnly={!isEditing}
                                         onChange={(e) => { setDisplayName(e.target.value); setUsernameError(""); }}
-                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         style={{ borderColor: "var(--color-border)" }}
                                     />
                                 </div>
@@ -345,7 +463,7 @@ export default function Profile() {
                                         value={firstName}
                                         readOnly={!isEditing}
                                         onChange={(e) => { setFirstName(e.target.value); setNameError(""); }}
-                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         style={{ borderColor: "var(--color-border)" }}
                                     />
                                 </div>
@@ -357,7 +475,7 @@ export default function Profile() {
                                         value={lastName}
                                         readOnly={!isEditing}
                                         onChange={(e) => { setLastName(e.target.value); setNameError(""); }}
-                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                        className="w-full rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                         style={{ borderColor: "var(--color-border)" }}
                                     />
                                 </div>
@@ -387,7 +505,7 @@ export default function Profile() {
                                     value={bio}
                                     readOnly={!isEditing}
                                     onChange={(e) => { setBio(e.target.value); validateBio(e.target.value); }}
-                                    className="min-h-28 w-full resize-none rounded-[var(--radius-sm)] border bg-[var(--color-secondary)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
+                                    className="min-h-28 w-full resize-none rounded-[var(--radius-sm)] border bg-[var(--color-background-alt)] px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none"
                                     placeholder="Tell us about yourself..."
                                     style={{ borderColor: "var(--color-border)" }}
                                 />

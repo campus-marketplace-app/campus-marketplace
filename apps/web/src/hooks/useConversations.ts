@@ -35,13 +35,16 @@ export function useConversations(userId: string | undefined) {
 // staleTime=0 means the cache is immediately considered stale — combined with
 // the realtime subscription in messages.tsx, this ensures messages are always
 // current when an active conversation is opened.
+//
+// userId is required: the backend now enforces a participant check on getMessages
+// instead of relying on RLS, since the backend uses the service role key.
 // ---------------------------------------------------------------------------
-export function useMessages(conversationId: string | null | undefined) {
+export function useMessages(conversationId: string | null | undefined, userId: string | undefined) {
   return useQuery({
     queryKey: conversationKeys.messages(conversationId ?? ''),
-    queryFn: () => getMessages(conversationId!),
+    queryFn: () => getMessages(conversationId!, userId!),
     staleTime: MESSAGES_STALE_TIME,
-    enabled: !!conversationId,
+    enabled: !!conversationId && !!userId,
   })
 }
 

@@ -15,12 +15,14 @@ import {
 import type { ItemCondition, ListingImageContentType, ListingWithDetails } from '@campus-marketplace/backend';
 import type { ListingType, SessionUser } from './types';
 import { useCategories } from '../hooks/useCategories';
+import { useInvalidateListings } from '../hooks/useListings';
+import { compressImage } from '../utils/compressImage';
 
 type FormProps = {
     showForm: boolean;
     user: SessionUser | null;
     onClose: () => void;
-    onSubmitSuccess?: () => void;
+    onSubmitSuccess?: (result: { intent: 'draft' | 'publish'; listingId: string }) => void;
     editListing?: ListingWithDetails | null;
 };
 
@@ -60,6 +62,7 @@ export default function Form({
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const objectUrlRef = useRef<string | null>(null);
     const { categories } = useCategories();
+    const { invalidateAll, invalidateByUser, invalidateDetail } = useInvalidateListings();
 
     const formatMissingPublishFields = (fields: string[]) => {
         const labels: Record<string, string> = {
@@ -162,6 +165,10 @@ export default function Form({
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
+        // Cheap re-entrancy guard: a fast double-click on Submit can fire two
+        // handlers before the disabled prop on the button takes effect.
+        if (isSubmitting) return;
+
         const nativeSubmitEvent = e.nativeEvent as SubmitEvent;
         const submitter = nativeSubmitEvent.submitter as HTMLButtonElement | null;
         const intentFromSubmitter = submitter?.dataset.intent === 'publish' ? 'publish' : 'draft';
@@ -170,63 +177,60 @@ export default function Form({
         setIsSubmitting(true);
         const regex = /<[^>]+>|javascript:|on\w+\s*=|data:text\/html|vbscript:/i;
 
+        // Single point that aborts a submit with the in-app modal so we never
+        // fall back to the native browser alert (which the existing call sites used).
+        const failValidation = async (title: string, message: string) => {
+            await showAlert(title, message);
+            setIsSubmitting(false);
+        };
+
         if (!user) {
-            alert('You must be logged in to create a listing.');
-            setIsSubmitting(false);
-            return;
-        }
-
-        if(listingCategory === '') {
-            alert('Please select a category for your listing.');
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (listingDescription.trim().length > 2000) {
-            alert('Description cannot exceed 2000 characters.');
-            setIsSubmitting(false);
-            return;
-        }
-
-        if (regex.test(listingDescription)) {
-            alert('Description contains invalid content.');
-            setIsSubmitting(false);
+            await failValidation('Sign in required', 'You must be logged in to create a listing.');
             return;
         }
 
         if (listingTitle.trim().length === 0) {
-            alert('Title cannot be empty.');
-            setIsSubmitting(false);
+            await failValidation('Missing title', 'Title cannot be empty.');
             return;
         }
 
         if (regex.test(listingTitle)) {
-            alert('Title contains invalid content.');
-            setIsSubmitting(false);
+            await failValidation('Invalid title', 'Title contains invalid content.');
             return;
         }
 
-        if(listingPrice < 0) {
-            alert('Price cannot be negative.');
-            setIsSubmitting(false);
+        if (listingCategory === '') {
+            await failValidation('Missing category', 'Please select a category for your listing.');
             return;
         }
 
-        if (listingType === 'item' && listingQuantity < 1) {
-            alert('Quantity must be at least 1.');
-            setIsSubmitting(false);
+        if (listingDescription.trim().length > 2000) {
+            await failValidation('Description too long', 'Description cannot exceed 2000 characters.');
             return;
         }
 
-        if (listingType === 'service' && durationMinutes <= 0) {
-            alert('Duration must be greater than 0.');
-            setIsSubmitting(false);
+        if (regex.test(listingDescription)) {
+            await failValidation('Invalid description', 'Description contains invalid content.');
+            return;
+        }
+
+        if (listingPrice < 0) {
+            await failValidation('Invalid price', 'Price cannot be negative.');
+            return;
+        }
+
+        if (listingType === 'item' && (!Number.isFinite(listingQuantity) || listingQuantity < 1)) {
+            await failValidation('Missing quantity', 'Quantity must be at least 1.');
+            return;
+        }
+
+        if (listingType === 'service' && (!Number.isFinite(durationMinutes) || durationMinutes <= 0)) {
+            await failValidation('Missing duration', 'Service duration must be greater than 0.');
             return;
         }
 
         if (regex.test(location) || location.trim().length > 100) {
-            alert('Location cannot exceed 100 characters.');
-            setIsSubmitting(false);
+            await failValidation('Invalid location', 'Location cannot exceed 100 characters.');
             return;
         }
 
@@ -293,15 +297,18 @@ export default function Form({
                     await deleteListingImage(existingImage.id, user.id);
                 }
 
-                const extension = selectedImageFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-                const baseName = selectedImageFile.name.replace(/\.[^/.]+$/, '');
+                // Resize/recompress before upload so we don't ship 8 MB phone photos.
+                // Falls back to the original file for unsupported types or any pipeline error.
+                const fileForUpload = await compressImage(selectedImageFile);
+                const extension = fileForUpload.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+                const baseName = fileForUpload.name.replace(/\.[^/.]+$/, '');
                 const cacheSafeFilename = `${baseName}-${Date.now()}.${extension}`;
 
                 const uploadedImage = await uploadListingImage(
                     targetListingId,
                     user.id,
-                    selectedImageFile,
-                    selectedImageFile.type as ListingImageContentType,
+                    fileForUpload,
+                    fileForUpload.type as ListingImageContentType,
                     {
                         alt_text: selectedImageFile.name,
                         filename: cacheSafeFilename,
@@ -334,7 +341,15 @@ export default function Form({
                 await publishListing(targetListingId, user.id);
             }
 
-            onSubmitSuccess?.();
+            await invalidateAll();
+            await invalidateByUser(user.id);
+            if (targetListingId) {
+                await invalidateDetail(targetListingId);
+            }
+
+            if (targetListingId) {
+                onSubmitSuccess?.({ intent, listingId: targetListingId });
+            }
             setIsSubmitting(false);
             onClose();
         } catch (error) {
@@ -407,7 +422,7 @@ export default function Form({
                 }}
             />
 
-            <div className="relative z-10 max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
+            <div className="relative z-10 max-h-[92vh] w-full max-w-190 overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
                         <button

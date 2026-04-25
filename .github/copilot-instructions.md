@@ -191,7 +191,7 @@ const { data } = await supabase.from("listings").select("*"); // Don't query dir
 
 ## References
 
-- `docs/GIT_WORKFLOW.md` — Branch & PR strategy
+- `docs/dev/GIT_WORKFLOW.md` — Branch & PR strategy
 - `supabase/migrations/20260315120000_core_tables.sql` — Initial schema including `school_themes` table
 - [Tailwind CSS Docs](https://tailwindcss.com)
 - [CSS Variables (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)

@@ -1,291 +1,220 @@
 # Campus Marketplace
 
-**A multi-school campus marketplace platform** enabling students to buy, sell, and offer services within a secure university ecosystem.
+A multi-school student marketplace for buying, selling, and offering services
+within a single university community. Each school gets its own branded
+instance, gated by `.edu` email and a per-school theme.
 
-![Status](https://img.shields.io/badge/status-Early%20Prototyping-yellow) ![License](https://img.shields.io/badge/license-MIT-blue)
-
----
-
-## 📋 About
-
-Campus Marketplace is a React-based web application that allows students to:
-
-- **Buy & Sell Items** — Listings with images, pricing, and condition details
-- **Offer Services** — Academic help, tutoring, moving assistance, etc.
-- **Direct Messaging** — Communicate securely with other users
-- **Multi-School Support** — Different branding per university via theme system
-- **User Profiles & Reviews** — Build reputation and trust
+[![Status](https://img.shields.io/badge/status-feature%20complete%20%E2%80%94%20polishing-green)](#status) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ---
 
-## 🏗️ Architecture
+## What it does
 
-**Frontend → Service Layer → Supabase**
+- **Listings** — Items (with condition + quantity) and services (with duration
+  + availability windows). Drafts, publish guard, soft-delete, sold flag.
+- **Image uploads** — Listing photos and avatars stored in Supabase Storage,
+  client-side compressed to 1920px JPEG before upload.
+- **Search & browse** — Full-text search via Postgres `tsvector`, plus
+  category, type, and price-range filters.
+- **Wishlist** — Save listings; auto-notify when a wishlisted item is sold.
+- **Messaging** — Per-listing conversations with realtime delivery, unread
+  counts, archive, and a sold-listing guard (sellers can keep messaging the
+  buyer to coordinate; buyers can't initiate after a sale).
+- **Notifications** — In-app bell + realtime push on new messages and
+  wishlist-sold events.
+- **Profiles** — Display name, avatar, bio, listing stats. Self-service
+  account deactivation.
+- **Reports + blocks** — User-to-user blocking and content reporting.
+- **Multi-school theming** — School-specific colors, fonts, and logos via
+  CSS variables; light/dark toggle.
+
+---
+
+## Architecture
+
+This is an npm monorepo with two workspaces and a Supabase project.
 
 ```
-apps/web/                    # React 19 + Vite (frontend)
-  └── src/
-      ├── pages/            # Route components
-      ├── features/         # Reusable UI components
-      ├── layouts/          # Page wrappers
-      └── shared/           # Utilities, types
-
-apps/backend/                # TypeScript service layer
-  └── src/
-      ├── services/         # Domain functions (theme, listings, etc.)
-      ├── supabase-client.ts # Only place Supabase SDK is imported
-      └── index.ts          # Service exports
-
-supabase/
-  ├── migrations/           # Database schema (PostgreSQL)
-  └── config.toml          # Supabase CLI config
+apps/web/        React 19 + Vite 8 + Tailwind v4 frontend
+apps/backend/    TypeScript service layer (compiled to dist/, exported as @campus-marketplace/backend)
+supabase/        Postgres migrations + Supabase CLI config
 ```
 
-**Key Principle:** Frontend **never** imports Supabase directly. All database queries go through backend service functions.
+### One hard rule: Supabase access is backend-only
+
+The frontend never imports `@supabase/supabase-js`. Every database, auth,
+storage, and realtime call goes through a service function exported from
+`apps/backend/src/index.ts`. The frontend imports those functions like any
+other library.
+
+```
+React component
+  ↓ import { signInWithEmail, getListingById, ... } from "@campus-marketplace/backend"
+Backend service (apps/backend/src/services/*.ts)
+  ↓ supabase-client.ts     ← the only file that imports @supabase/supabase-js
+Supabase (Postgres + Auth + Storage + Realtime)
+```
+
+Verify nothing leaks: `grep -r "@supabase/supabase-js" apps/web/src/` must
+return nothing.
+
+The same `supabase-client.ts` is reused on the frontend bundle (with the anon
+key) so realtime subscriptions and storage uploads share one client. Backend
+service functions running in Node use the service-role key.
+
+### Backend services
+
+`apps/backend/src/services/` — each file owns one domain:
+
+| Service | What it covers |
+|---|---|
+| `auth.ts` | sign-up, sign-in, session restore, password reset, account deactivation |
+| `profile.ts` | get/update profile, avatar upload (with orphan cleanup) |
+| `listings.ts` | CRUD + search, item/service details, image storage, publish-readiness, mark-sold, wishlist |
+| `messaging.ts` | conversations (`find_or_create_conversation` RPC), messages with pagination, realtime subscriptions |
+| `notifications.ts` | bell feed with pagination + realtime |
+| `theme.ts` | per-school branding fetch |
+| `reports.ts` | content reports |
+| `blocks.ts` | user blocks |
+| `stats.ts` | homepage counters |
+
+All re-exported from `apps/backend/src/index.ts`.
+
+### Database
+
+Schema starts at `supabase/migrations/20260315120000_core_tables.sql`. Currently
+14 active tables. Key ones: `profiles`, `listings` + `item_details` /
+`service_details`, `listing_images`, `listing_tags`, `categories`, `tags`,
+`conversations` + `conversation_participants`, `messages`, `notifications`,
+`wishlists`, `reports`, `blocks`. UUID PKs, soft-deletes (`deleted_at`) on most
+tables, `updated_at` triggers where appropriate.
+
+Migration rule: **never edit existing migration files** — always add a new
+timestamped one.
+
+### Theming
+
+School branding is stored in the `school_themes` table, fetched at app start by
+`VITE_SCHOOL_CODE`, and exposed as CSS variables (`--color-primary`,
+`--color-surface`, `--color-text`, `--font-family`, `--logo-url`, etc.). Use
+the Tailwind v4 form `bg-(--color-primary)` rather than hex literals.
 
 ---
 
-## 🛠️ Tech Stack
-
-- **Frontend:** React 19, Vite 8, TypeScript, Tailwind CSS 4, React Router 7
-- **Backend:** TypeScript service layer
-- **Database:** Supabase (PostgreSQL + Auth + Storage)
-- **Build:** TypeScript compiler, ESLint
-- **Linting:** ESLint 9 + TypeScript ESLint
-
----
-
-## 🚀 Quick Start
+## Quick start
 
 ### Prerequisites
 
-- Node.js 18+
-- npm (comes with Node.js)
+- Node 18+ (the repo pins a version via `.nvmrc`; `nvm use` will pick it up)
+- A Supabase project (or the staging credentials for this one)
 
-### Run Locally (One Command)
-
-**Windows:**
-
-```powershell
-.\dev.ps1
-```
-
-**macOS/Linux:**
-
-```bash
-bash dev.sh
-```
-
-**or use Node.js (any OS):**
-
-```bash
-node dev.mjs
-```
-
-This will:
-
-1. Install all dependencies
-2. Start the development server
-3. Open the app at `http://localhost:5173`
-
----
-
-## 📚 Setup Guides
-
-- **[SETUP.md](SETUP.md)** — How to run the app locally (3 options)
-- **[SUPABASE_CONNECT.md](SUPABASE_CONNECT.md)** — Connect Supabase (credentials, auth, push migrations)
-- **[MIGRATIONS.md](MIGRATIONS.md)** — Create & manage database migrations
-
----
-
-## 📦 Project Structure
-
-```
-campus-marketplace/
-├── apps/
-│   ├── web/                  # React frontend
-│   │   ├── src/
-│   │   ├── package.json
-│   │   └── vite.config.ts
-│   └── backend/              # Service layer
-│       ├── src/services/     # theme.ts, listings.ts, etc.
-│       └── package.json
-├── supabase/
-│   ├── migrations/           # 20260315120000_core_tables.sql
-│   └── config.toml
-├── docs/                     # Architecture docs
-│── .github/
-│   ├── copilot-instructions.md
-│   └── instructions/
-├── dev.ps1 / dev.sh / dev.mjs  # Setup scripts
-├── SETUP.md
-├── SUPABASE_CONNECT.md
-└── MIGRATIONS.md
-```
-
----
-
-## 💻 Development
-
-### Install Dependencies
+### Install + run
 
 ```bash
 npm install
-```
-
-### Start Dev Server
-
-```bash
+cp apps/web/.env.example     apps/web/.env.local
+cp apps/backend/.env.example apps/backend/.env.local
+# fill in the env values — see docs/dev/SUPABASE_CONNECT.md
 npm run dev
 ```
 
-### Build & Lint
+The frontend serves at `http://localhost:5173`. Restart the dev server after
+editing `.env.local` so Vite reloads env vars.
+
+### Common scripts
 
 ```bash
-npm run build      # Build both frontend and backend
-npm run lint       # Run ESLint checks
-npm run typecheck  # TypeScript strict mode check
+npm run dev         # frontend dev server
+npm run build       # tsc backend + vite build frontend
+npm run lint        # ESLint across both workspaces
+npm run typecheck   # tsc --noEmit across both workspaces
+npm run test        # backend tests (hits a real Supabase — point at staging, never prod)
 ```
 
-### Connect Supabase
+Workspace-scoped variants exist too:
 
 ```bash
-# See SUPABASE_CONNECT.md for full details
-npx supabase login
-npx supabase link --project-ref your-project-ref
-npx supabase db push
+npm run dev   --workspace=apps/web
+npm run build --workspace=apps/backend
+npm run test  --workspace=apps/backend
 ```
 
 ---
 
-## 📊 Database Schema
+## Environment variables
 
-16 tables including:
+`apps/backend/.env.local`:
+```
+SUPABASE_URL=
+SUPABASE_SERVICE_KEY=
+```
 
-- **profiles** — User accounts (linked to Supabase Auth)
-- **listings** — Items/services for sale
-- **categories, subcategories, tags** — Metadata
-- **messages, conversations** — Direct messaging
-- **school_themes** — Multi-school branding (colors, fonts, logos)
-- **favorites, reviews, reports** — Feature support tables
+`apps/web/.env.local`:
+```
+VITE_SCHOOL_CODE=
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
 
-All tables use UUID primary keys and auto-managed `created_at`/`updated_at` timestamps.
-
-See [supabase/migrations/20260315120000_core_tables.sql](supabase/migrations/20260315120000_core_tables.sql) for full schema.
+Never commit `.env.local`. Templates live in `.env.example`.
 
 ---
 
-## 🔧 Backend Services
+## Project layout
 
-Services are TypeScript functions that wrap Supabase queries. All in `apps/backend/src/services/`:
+```
+apps/web/                         React frontend
+├── src/pages/                    Route components (one per top-level URL)
+├── src/features/                 Larger feature widgets (listing form, modals)
+├── src/components/               Small reusable bits (Avatar, ListingThumb, …)
+├── src/hooks/                    TanStack Query wrappers for backend services
+├── src/contexts/                 ThemeContext, ConfirmContext
+├── src/layouts/                  SidebarLayout (handles session restore)
+├── src/utils/                    compressImage, etc.
+└── src/index.css                 Tailwind v4 entrypoint
 
-- **theme.ts** — `getThemeBySchoolCode()` — Fetch school branding
-- **listings.ts** — CRUD for item listings (stubs: implement as needed)
-- **profile.ts** — User profile queries (stubs)
-- **messaging.ts** — Conversations and messages (stubs)
-- **search.ts** — Advanced filtering (stubs)
+apps/backend/                     Service layer (compiled, published as @campus-marketplace/backend)
+├── src/services/                 Domain modules (auth, listings, messaging, …)
+├── src/supabase-client.ts        Single supabase client (anon in browser, service role in node)
+└── src/__tests__/                Vitest tests (some hit real Supabase)
 
-Frontend imports these directly:
+supabase/
+├── migrations/                   Timestamped SQL migrations (append-only)
+└── config.toml                   Supabase CLI config
 
-```typescript
-import { getThemeBySchoolCode } from "@campus-marketplace/backend";
-const theme = await getThemeBySchoolCode("njit");
+docs/                             Architecture + per-service usage guides (see docs/README.md)
 ```
 
 ---
 
-## 🎨 Styling & Theming
+## Documentation
 
-- **Tailwind CSS** for component styling
-- **CSS Variables** for dynamic theme colors
-- Theme fetched from `school_themes` table on app startup
-- Colors (primary, secondary, accent) set per school
+A short index lives at [docs/README.md](docs/README.md). Highlights:
 
-Example:
+- [docs/dev/SETUP.md](docs/dev/SETUP.md) — local environment
+- [docs/dev/SUPABASE_CONNECT.md](docs/dev/SUPABASE_CONNECT.md) — how to wire credentials
+- [docs/dev/MIGRATIONS.md](docs/dev/MIGRATIONS.md) — adding new migrations
+- [docs/dev/GIT_WORKFLOW.md](docs/dev/GIT_WORKFLOW.md) — branches and PRs
+- [docs/architecture/CACHING.md](docs/architecture/CACHING.md) — TanStack Query + realtime
+- [docs/architecture/THEME_CONTEXT_EXPLAINED.md](docs/architecture/THEME_CONTEXT_EXPLAINED.md) — theming
+- [docs/usage/](docs/usage/) — per-service integration examples (auth, listings, messaging, …)
 
-```typescript
-// Component uses CSS variable
-style={{ backgroundColor: 'var(--color-primary)' }}
-```
+Project-level rules also live in:
 
----
-
-## 🔐 Environment Variables
-
-**Frontend** (`apps/web/.env.local`):
-
-```env
-VITE_SCHOOL_CODE=njit
-```
-
-**Backend** (`apps/backend/.env.local`):
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
-NODE_ENV=development
-```
-
-**Never commit `.env.local` files!** See `.env.example` for templates.
+- [CLAUDE.md](CLAUDE.md) — assistant-facing rules (apply to humans too)
+- [.github/copilot-instructions.md](.github/copilot-instructions.md) — detailed architecture rules
+- [.github/instructions/frontend.instructions.md](.github/instructions/frontend.instructions.md) — frontend conventions
+- [AGENTS.md](AGENTS.md) — pre/post-edit verification checklist
 
 ---
 
-## 📝 Git Workflow
+## Status
 
-Branch naming: `type/ticket-description`
+The app is feature-complete and currently in a polish + bug-fix phase. The
+`fix/perf-bugs` branch carries the most recent advisor sweep (RLS hardening,
+storage policy cleanup, function `search_path` lock-down, conversation race
+fix, listing-image client-side compression, etc.). See `git log` for details.
 
-- `feat/CM-123-item-posting`
-- `fix/CM-124-message-bug`
-- `chore/CM-125-update-deps`
-- `docs/CM-126-readme`
-
-See [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) for full details.
-
----
-
-## 🚧 Current Status
-
-✅ **Done:**
-
-- Frontend scaffolding (pages, routes, layouts)
-- Backend service layer foundation
-- Supabase connection & authentication
-- Database schema (16 tables)
-- Development setup scripts
-- TypeScript strict mode
-- ESLint & Tailwind CSS configured
-
-⏳ **In Progress:**
-
-- Backend service implementations
-- Frontend form handlers
-- Theme system integration
-- User authentication UI
-
-❌ **Not Yet:**
-
-- RLS (Row-Level Security) policies
-- Image upload/storage
-- Seed data
-- Advanced search filters
-- Messaging real-time updates
-- Deployment pipeline
-
----
-
-## 📖 References
-
-- [Architecture & Rules](.github/copilot-instructions.md) — Read before coding
-- [Setup Instructions](SETUP.md)
-- [Supabase Connection Guide](SUPABASE_CONNECT.md)
-- [Migration Management](MIGRATIONS.md)
-- [Git Workflow](docs/GIT_WORKFLOW.md)
-- [Supabase Docs](https://supabase.com/docs)
-- [React Docs](https://react.dev)
-- [Tailwind CSS](https://tailwindcss.com)
-
----
-
-## 📄 License
+## License
 
 MIT

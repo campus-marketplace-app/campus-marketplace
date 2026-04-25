@@ -53,7 +53,7 @@ export async function signUpWithEmail(input: SignUpInput): Promise<AuthResult> {
   }
 
   const domain = input.email.split("@")[1]?.toLowerCase() ?? "";
-  if (process.env.REQUIRE_EDU_EMAIL === "true" && !domain.endsWith(".edu")) {
+  if (!domain.endsWith(".edu")) {
     throw new Error("Only .edu email addresses are allowed to sign up.");
   }
 
@@ -137,7 +137,10 @@ export async function signInWithEmail(input: SignInInput): Promise<AuthResult> {
     .single<{ deactivated_at: string | null }>();
 
   if (profile?.deactivated_at) {
-    await supabase.auth.signOut({ scope: "local" });
+    // Use "global" scope so the just-issued refresh token is revoked everywhere,
+    // not just in this browser. Closes the race where a profile is reactivated
+    // between signInWithPassword and the deactivation check.
+    await supabase.auth.signOut({ scope: "global" });
     throw new Error(
       "account_deactivated: This account has been deactivated. Contact support to restore access.",
     );
@@ -359,7 +362,7 @@ export async function sendPasswordResetEmail(email: string, redirectTo?: string)
   }
 
   const domain = email.split("@")[1]?.toLowerCase() ?? "";
-  if (process.env.REQUIRE_EDU_EMAIL === "true" && !domain.endsWith(".edu")) {
+  if (!domain.endsWith(".edu")) {
     throw new Error("Only .edu email addresses are allowed.");
   }
 

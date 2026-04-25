@@ -17,6 +17,7 @@ export default function Login() {
     const [passwordMessage, setPasswordMessage] = useState('');
     const [submitted, setSubmitted] = useState(false);
     const [deactivatedMessage, setDeactivatedMessage] = useState('');
+    const [signInError, setSignInError] = useState('');
     const signupMessage = (location.state as { signupMessage?: string } | null)?.signupMessage ?? '';
 
     useEffect(() => {
@@ -37,10 +38,8 @@ export default function Login() {
     }
 
     const checkPassword = (value: string) => {
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
-
-        if (!passwordRegex.test(value)) {
-            setPasswordMessage('password incorrect');
+        if (!value.trim()) {
+            setPasswordMessage('Password is required.');
             return false;
         }
 
@@ -52,6 +51,8 @@ export default function Login() {
         e.preventDefault();
 
         setSubmitted(true);
+        setSignInError('');
+        setDeactivatedMessage('');
         const isEmailValid = checkEmail(email);
         const isPasswordValid = checkPassword(password);
 
@@ -73,8 +74,10 @@ export default function Login() {
                         'Your account has been deactivated. ' +
                         'Contact support to restore access.',
                     );
+                } else if (message.startsWith('Failed to sign in:')) {
+                    setSignInError('Sign in failed. Check your email/password and try again.');
                 } else {
-                    //Needs to be hidden from users, but for now we will log it to the console for debugging purposes.
+                    setSignInError('Unable to sign in right now. Please try again in a moment.');
                     console.error('Error signing in:', error);
                 }
             }
@@ -134,6 +137,12 @@ export default function Login() {
                     {deactivatedMessage && (
                         <div className="mt-4 rounded-[var(--radius-sm)] border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
                             {deactivatedMessage}
+                        </div>
+                    )}
+
+                    {signInError && (
+                        <div className="mt-4 rounded-[var(--radius-sm)] border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {signInError}
                         </div>
                     )}
 

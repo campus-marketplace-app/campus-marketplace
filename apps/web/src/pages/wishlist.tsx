@@ -56,7 +56,9 @@ export default function Wishlist() {
                 )}
 
                 {!isLoading && wishlistItems.length === 0 ? (
-                    <p style={{ color: "var(--color-text-muted)" }}>Your wishlist is empty.</p>
+                    <div className="flex min-h-[50vh] items-center justify-center px-4">
+                        <p className="text-center" style={{ color: "var(--color-text-muted)" }}>Your wishlist is empty.</p>
+                    </div>
                 ) : wishlistItems.length > 0 ? (
                     <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
                         {isLoading && wishlistItems.length > 0 && (
@@ -80,18 +82,22 @@ export default function Wishlist() {
                                         Delete
                                     </button>
 
-                                    <Link
-                                        to={`/listing/${item.listing_id}`}
-                                        state={{ backgroundLocation: location }}
-                                        className="block rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md"
-                                    >
-                                        <article
-                                            className="overflow-hidden rounded-2xl shadow-sm"
-                                            style={{
-                                                backgroundColor: "var(--color-surface)",
-                                                border: "1px solid var(--color-border)",
-                                            }}
+                                    {/* Unavailable listings (sold/closed/archived/removed) often
+                                        no longer satisfy listings_select_visible RLS, so the detail
+                                        fetch 406s. Render the card as a non-clickable div in that case. */}
+                                    {isUnavailable ? (
+                                        <div
+                                            aria-disabled="true"
+                                            className="block rounded-2xl cursor-not-allowed"
+                                            title={`This listing is ${unavailabilityLabel?.toLowerCase() ?? "no longer available"}.`}
                                         >
+                                            <article
+                                                className="overflow-hidden rounded-2xl shadow-sm"
+                                                style={{
+                                                    backgroundColor: "var(--color-surface)",
+                                                    border: "1px solid var(--color-border)",
+                                                }}
+                                            >
                                             <div className="relative h-48 w-full" style={{ backgroundColor: "var(--color-background-alt)" }}>
                                                 {listing?.first_image_path ? (
                                                     <img
@@ -155,7 +161,80 @@ export default function Wishlist() {
                                                 </div>
                                             </div>
                                         </article>
-                                    </Link>
+                                        </div>
+                                    ) : (
+                                        <Link
+                                            to={`/listing/${item.listing_id}`}
+                                            state={{ backgroundLocation: location }}
+                                            className="block rounded-2xl transition hover:-translate-y-0.5 hover:shadow-md"
+                                        >
+                                            <article
+                                                className="overflow-hidden rounded-2xl shadow-sm"
+                                                style={{
+                                                    backgroundColor: "var(--color-surface)",
+                                                    border: "1px solid var(--color-border)",
+                                                }}
+                                            >
+                                                <div className="relative h-48 w-full" style={{ backgroundColor: "var(--color-background-alt)" }}>
+                                                    {listing?.first_image_path ? (
+                                                        <img
+                                                            src={getListingImageUrl(listing.first_image_path)}
+                                                            alt={listing.first_image_alt ?? listing.title}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center text-3xl" style={{ color: "var(--color-text-muted)" }}>📷</div>
+                                                    )}
+                                                </div>
+
+                                                <div className="p-3">
+                                                    <p className="line-clamp-2 font-semibold leading-snug" style={{ color: "var(--color-text)" }}>
+                                                        {listing?.title ?? "Listing unavailable"}
+                                                    </p>
+
+                                                    <p className="mt-1.5 text-base font-bold" style={{ color: "var(--color-primary)" }}>
+                                                        {listing
+                                                            ? `${listing.price_unit ?? "$"}${listing.price ?? "0"}`
+                                                            : "—"}
+                                                    </p>
+
+                                                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                        {listing?.category_name && (
+                                                            <span
+                                                                className="rounded-md px-2 py-0.5 text-xs font-medium"
+                                                                style={{
+                                                                    backgroundColor: "color-mix(in srgb, var(--color-primary) 15%, var(--color-surface))",
+                                                                    color: "var(--color-primary)",
+                                                                }}
+                                                            >
+                                                                {listing.category_name}
+                                                            </span>
+                                                        )}
+                                                        <span
+                                                            className="rounded-md px-2 py-0.5 text-xs font-medium"
+                                                            style={{
+                                                                backgroundColor: "color-mix(in srgb, var(--color-primary) 14%, var(--color-surface))",
+                                                                color: "var(--color-text)",
+                                                            }}
+                                                        >
+                                                            {listing?.type === "service" ? "Service" : "Item"}
+                                                        </span>
+
+                                                        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                                            {item.created_at?.split("T")[0] ?? "N/A"}
+                                                        </span>
+                                                    </div>
+
+                                                    <div
+                                                        className="mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold"
+                                                        style={{ backgroundColor: "var(--color-primary)", color: "var(--color-text-on-primary)" }}
+                                                    >
+                                                        ✓ Available
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        </Link>
+                                    )}
                                 </div>
                             );
                         })}

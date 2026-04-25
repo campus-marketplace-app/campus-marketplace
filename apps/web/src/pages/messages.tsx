@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOutletContext, useParams, Link } from "react-router-dom";
 import {
-    getListingWithDetails,
     getMessages,
     sendMessage,
     markMessagesRead,
+    markConversationNotificationsRead,
     subscribeToMessages,
-    getSessionFromTokens,
     archiveConversation,
     subscribeToConversations,
 } from "@campus-marketplace/backend";
@@ -15,6 +14,7 @@ import type { OutletContext } from "../features/types";
 import ConversationList from "../components/ConversationList";
 import ChatPanel from "../components/ChatPanel";
 import { useConversations, useInvalidateConversations } from "../hooks/useConversations";
+import { useInvalidateNotifications } from '../hooks/useNotifications';
 
 export default function Messages() {
     const { user } = useOutletContext<OutletContext>();
@@ -31,37 +31,39 @@ export default function Messages() {
     const [chatLoading, setChatLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mobileView, setMobileView] = useState<"list" | "chat">("list");
-    const [listingTitlesById, setListingTitlesById] = useState<Record<string, string>>({});
 
     // --- cached conversation list (replaces manual fetch + 15s polling) ---
     const { data: conversations = [], isLoading: loading } = useConversations(user?.id);
     const { invalidate: invalidateConversations } = useInvalidateConversations();
+    const { invalidate: invalidateNotifications } = useInvalidateNotifications();
 
-    // --- restore Supabase session so RLS recognizes the user ---
-    useEffect(() => {
-        const accessToken = localStorage.getItem("access_token");
-        const refreshToken = localStorage.getItem("refresh_token");
-        if (accessToken && refreshToken) {
-            getSessionFromTokens(accessToken, refreshToken).catch(console.error);
-        }
-    }, []);
+    // SidebarLayout already restores the session on app init — no need to do it again here.
 
     // --- realtime subscription on conversations (replaces 15s setInterval polling) ---
     // When any conversation we're in gets updated (new message, read status), we invalidate
     // the TanStack Query cache so it refetches — without polling.
+    //
+    // We subscribe once per user session. A ref holds the latest conversation IDs so the
+    // callback can filter without forcing the effect to re-run (and therefore re-subscribe)
+    // every time the list changes.
+    const conversationIdsRef = useRef<Set<string>>(new Set());
     useEffect(() => {
-        if (!user || conversations.length === 0) return;
+        conversationIdsRef.current = new Set(conversations.map((c) => c.id));
+    }, [conversations]);
 
-        const conversationIds = conversations.map((c) => c.id);
-        const { unsubscribe } = subscribeToConversations(conversationIds, () => {
-            invalidateConversations(user.id);
+    useEffect(() => {
+        if (!user) return;
+
+        const { unsubscribe } = subscribeToConversations(user.id, (changedId) => {
+            if (conversationIdsRef.current.has(changedId)) {
+                invalidateConversations(user.id);
+            }
         });
 
         return unsubscribe;
-        // conversations.length is intentional — re-subscribe when the list grows.
-        // invalidateConversations is a stable ref from useQueryClient; user is stable per session.
+        // invalidateConversations is a stable ref from useQueryClient; intentionally omitted.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id, conversations.length]);
+    }, [user?.id]);
 
     // --- load messages + realtime subscription when active conversation changes ---
     useEffect(() => {
@@ -71,7 +73,7 @@ export default function Messages() {
 
         // Fetch messages for the selected conversation.
         setChatLoading(true);
-        getMessages(activeConversationId)
+        getMessages(activeConversationId, user.id)
             .then((msgs) => {
                 if (!cancelled) setMessages(msgs);
             })
@@ -84,6 +86,11 @@ export default function Messages() {
 
         // Mark incoming messages as read.
         markMessagesRead(activeConversationId, user.id).catch(console.error);
+
+        // Clear the bell for this conversation.
+        markConversationNotificationsRead(activeConversationId, user.id)
+            .then(() => invalidateNotifications(user.id))
+            .catch(console.error);
 
         // Subscribe to new messages in real time.
         const { unsubscribe } = subscribeToMessages(activeConversationId, (newMsg) => {
@@ -100,6 +107,10 @@ export default function Messages() {
             // If the message is from the other person, mark it read.
             if (newMsg.sender_id !== user.id) {
                 markMessagesRead(activeConversationId, user.id).catch(console.error);
+                // Clear the bell for this conversation.
+                markConversationNotificationsRead(activeConversationId, user.id)
+                    .then(() => invalidateNotifications(user.id))
+                    .catch(console.error);
             }
         });
 
@@ -110,58 +121,6 @@ export default function Messages() {
         // invalidateConversations is a stable ref from useQueryClient; intentionally omitted.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeConversationId, user?.id]);
-
-    // --- fetch listing titles for conversations (manual cache kept — getListingWithDetails
-    //     is deduplicated by TanStack Query across the app but this sidebar needs the title
-    //     as a plain string without mounting a full hook per conversation row) ---
-    useEffect(() => {
-        const listingIds = Array.from(
-            new Set(
-                conversations
-                    .map((conversation) => conversation.listing_id)
-                    .filter((id): id is string => Boolean(id && id.trim())),
-            ),
-        );
-
-        const missingListingIds = listingIds.filter((id) => !listingTitlesById[id]);
-        if (missingListingIds.length === 0) {
-            return;
-        }
-
-        let cancelled = false;
-
-        const loadListingTitles = async () => {
-            const entries = await Promise.all(
-                missingListingIds.map(async (listingId) => {
-                    try {
-                        const listing = await getListingWithDetails(listingId);
-                        return [listingId, listing.title ?? "Untitled listing"] as const;
-                    }
-                    catch {
-                        return [listingId, "Unknown listing"] as const;
-                    }
-                }),
-            );
-
-            if (cancelled) {
-                return;
-            }
-
-            setListingTitlesById((prev) => {
-                const next = { ...prev };
-                for (const [listingId, title] of entries) {
-                    next[listingId] = title;
-                }
-                return next;
-            });
-        };
-
-        void loadListingTitles();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [conversations, listingTitlesById]);
 
     // --- send a message ---
     async function handleSend() {
