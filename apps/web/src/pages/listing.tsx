@@ -8,6 +8,7 @@ import { useListingDetail, useInvalidateListings } from "../hooks/useListings";
 import { useProfile } from "../hooks/useProfile";
 import { useIsWishlisted, wishlistKeys } from "../hooks/useWishlist";
 import { useQueryClient } from "@tanstack/react-query";
+import { ListingManagementPanel } from "../components/ListingManagementPanel";
 
 
 export default function Listing() {
@@ -19,6 +20,7 @@ export default function Listing() {
     const [publishLoading, setPublishLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [soldLoading, setSoldLoading] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState<"draft" | "active" | "sold">("draft");
     const [showForm, setShowForm] = useState(false);
 
     // Cached data fetches — no manual useEffect needed.
@@ -27,6 +29,14 @@ export default function Listing() {
     const isInWishlist = useIsWishlisted(user?.id, listingData?.id);
     const { invalidateDetail, invalidateByUser, invalidateAll } = useInvalidateListings();
     const queryClient = useQueryClient();
+
+    const toOwnerStatus = (status?: string): "draft" | "active" | "sold" => {
+        if (status === "active" || status === "sold") return status;
+        return "draft";
+    };
+
+    const ownerStatus = toOwnerStatus(listingData?.status);
+    const statusLocked = ownerStatus === "sold";
 
     // Show unavailable message when listing is inactive and viewer is not the owner.
     const unavailableMessage =
@@ -134,21 +144,50 @@ export default function Listing() {
         }
     };
 
-    const handlePublish = async () => {
+    const applyStatusChange = async (nextStatus: "draft" | "active" | "sold") => {
         if (!listingData) return;
         if (!user) {
-            await showAlert("Login required", "You must be logged in to publish a listing.");
+            await showAlert("Login required", "You must be logged in to update listing status.");
             navigate("/login");
             return;
         }
         await refreshTokens();
         if (listingData.user_id !== user.id) {
-            await showAlert("Not allowed", "You can only publish your own listings.");
+            await showAlert("Not allowed", "You can only update your own listing status.");
             return;
         }
-        setPublishLoading(true);
-        if (listingData.status === "draft") {
+
+        const currentStatus = toOwnerStatus(listingData.status);
+        if (currentStatus === nextStatus) return;
+
+        if (currentStatus === "sold") {
+            await showAlert("Status locked", "Completed listings cannot be reopened.");
+            return;
+        }
+
+        if (nextStatus === "sold") {
+            const confirmed = await confirm(
+                "Mark as Complete?",
+                "This will archive the listing and lock all messages on it. This cannot be undone.",
+                "Archive"
+            );
+            if (!confirmed) return;
+
+            setSoldLoading(true);
             try {
+                await handleMarkAsSold(listingData.id, user.id);
+            } catch (error) {
+                console.error("Error marking listing as complete:", error);
+                await showAlert("Error", "Failed to mark listing as complete. Please try again.");
+            } finally {
+                setSoldLoading(false);
+            }
+            return;
+        }
+
+        setPublishLoading(true);
+        try {
+            if (nextStatus === "active" && currentStatus === "draft") {
                 const readiness = await getListingPublishReadiness(listingData.id, user.id);
                 const clientMissing = getClientMissingPublishFields();
                 const mergedMissing = Array.from(new Set([...(readiness.missingFields as string[]), ...clientMissing]));
@@ -163,23 +202,23 @@ export default function Listing() {
                     invalidateByUser(user.id);
                     await refetchListing();
                 }
-            } catch (error) {
-                console.error("Error publishing listing:", error);
-                await showAlert("Error", "Failed to publish listing. Please try again.");
-            }
-        }
-        else if (listingData.status === "active") {
-            try {
+            } else if (nextStatus === "draft" && currentStatus === "active") {
                 await unpublishListing(listingData.id, user.id);
                 invalidateDetail(listingData.id);
                 invalidateByUser(user.id);
                 await refetchListing();
-            } catch (error) {
+            }
+        } catch (error) {
+            if (nextStatus === "active") {
+                console.error("Error publishing listing:", error);
+                await showAlert("Error", "Failed to publish listing. Please try again.");
+            } else {
                 console.error("Error unpublishing listing:", error);
                 await showAlert("Error", "Failed to unpublish listing. Please try again.");
             }
+        } finally {
+            setPublishLoading(false);
         }
-        setPublishLoading(false);
     };
 
     const handleDelete = async () => {
@@ -230,12 +269,17 @@ export default function Listing() {
         }
     }, [id, navigate]);
 
+    useEffect(() => {
+        if (!listingData) return;
+        setSelectedStatus(toOwnerStatus(listingData.status));
+    }, [listingData]);
+
     if (unavailableMessage) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
-                <section className="relative z-10 w-full max-w-[760px]">
+                <section className="relative z-10 w-full max-w-190">
                     <div className="overflow-hidden rounded-b-2xl rounded-t-none shadow-xl" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                         <div className="bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 text-center sm:px-6">
                             <p className="text-2xl font-semibold text-[var(--color-text-on-primary)]">{unavailableMessage}</p>
@@ -268,6 +312,8 @@ export default function Listing() {
                 editListing={listingData}
                 onClose={() => navigate(-1)}
                 onSubmitSuccess={() => {
+                    invalidateDetail(listingData.id);
+                    invalidateByUser(user!.id);
                     navigate(-1);
                 }}
             />
@@ -278,7 +324,7 @@ export default function Listing() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/50" onClick={() => navigate(-1)} />
 
-            <section className="relative z-10 w-full max-w-[760px]">
+            <section className="relative z-10 w-full max-w-190">
                 <div className="max-h-[92vh] overflow-y-auto rounded-b-2xl rounded-t-none p-5 shadow-xl sm:p-6" style={{ backgroundColor: "var(--color-surface)", color: "var(--color-text)" }}>
                     <div className="-mx-5 -mt-5 bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-primary)] px-5 py-6 sm:-mx-6 sm:-mt-6 sm:px-6">
                         <button
@@ -317,53 +363,17 @@ export default function Listing() {
                                 Owned by {sellerProfile?.display_name ?? ""}
                             </Link>
                             {user && listingData.user_id === user.id ? (
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    <button
-                                        className="inline-flex rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-90"
-                                        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}
-                                        type="button"
-                                        onClick={editListing}
-                                    >
-                                        Edit Listing
-                                    </button>
-                                    <button
-                                        className="inline-flex rounded-lg border px-3 py-2 text-xs font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                                        style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-background)", color: "var(--color-text)" }}
-                                        type="button"
-                                        disabled={publishLoading}
-                                        onClick={handlePublish}
-                                    >
-                                        {listingData.status === "draft" ? "Publish" : "Unpublish"}
-                                    </button>
-                                    <button
-                                        className="inline-flex rounded-lg bg-[var(--color-primary)] px-3 py-2 text-xs font-semibold text-[var(--color-text-on-primary)] transition hover:bg-[var(--color-primary-dark)] disabled:cursor-not-allowed disabled:opacity-50"
-                                        type="button"
-                                        disabled={deleteLoading}
-                                        onClick={handleDelete}
-                                    >
-                                        {deleteLoading ? "Deleting..." : "Delete Listing"}
-                                    </button>
-                                    <button
-                                        className="inline-flex rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
-                                        type="button"
-                                        disabled={soldLoading || listingData.status === "sold"}
-                                        onClick={async () => {
-                                            const confirmed = await confirm(
-                                                "Mark as Complete?",
-                                                "This will archive the listing and lock all messages on it. This cannot be undone.",
-                                                "Archive"
-                                            );
-                                            if (!confirmed) return;
-                                            setSoldLoading(true);
-                                            try {
-                                                await handleMarkAsSold(listingData.id, user.id);
-                                            } finally {
-                                                setSoldLoading(false);
-                                            }
-                                        }}
-                                    >
-                                        {soldLoading ? "Marking..." : listingData.status === "sold" ? "Completed" : "Mark as Complete"}
-                                    </button>
+                                <div className="mt-4">
+                                    <ListingManagementPanel
+                                        status={selectedStatus}
+                                        onStatusChange={applyStatusChange}
+                                        onEdit={editListing}
+                                        onDelete={handleDelete}
+                                        publishLoading={publishLoading}
+                                        deleteLoading={deleteLoading}
+                                        soldLoading={soldLoading}
+                                        statusLocked={statusLocked}
+                                    />
                                 </div>
                             ) : null}
                         </div>

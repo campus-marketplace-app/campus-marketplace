@@ -504,7 +504,10 @@ export async function markListingAsSold(listingId: string, userId: string): Prom
     ...new Set([...wishlistUserIds, ...conversationUserIds].filter((id) => id !== userId)),
   ];
 
-  // 7. Batch-insert notifications (skip if no one to notify)
+  // 7. Batch-insert notifications (skip if no one to notify).
+  // Notifications are best-effort: the listing is already sold, and we don't
+  // want a notification-table outage to roll the sale back. We log the affected
+  // recipient count so the failure is greppable in prod.
   if (notifyUserIds.length > 0) {
     const notifications = notifyUserIds.map((notifyUserId) => ({
       user_id: notifyUserId,
@@ -515,8 +518,7 @@ export async function markListingAsSold(listingId: string, userId: string): Prom
     const { error: notifyError } = await supabase.from("notifications").insert(notifications);
     if (notifyError) {
       console.warn(
-        `[markListingAsSold] Failed to insert sold notifications for listing ${listingId}:`,
-        notifyError.message,
+        `[markListingAsSold] Notification fanout failed for listing ${listingId}: ${notifyError.message} (${notifyUserIds.length} recipients missed: ${JSON.stringify(notifyUserIds)})`,
       );
     }
   }
@@ -634,13 +636,16 @@ export async function uploadListingImage(
     .select("id,path,alt_text,order_no")
     .single<ListingImage>();
 
-  if (error) {
-    await supabase.storage.from(LISTING_IMAGES_BUCKET).remove([storagePath]);
-    throw new Error(`Failed to save listing image metadata: ${error.message}`);
-  }
-
-  if (!data) {
-    await supabase.storage.from(LISTING_IMAGES_BUCKET).remove([storagePath]);
+  if (error || !data) {
+    const { error: removeErr } = await supabase.storage.from(LISTING_IMAGES_BUCKET).remove([storagePath]);
+    if (removeErr) {
+      console.error(
+        `[uploadListingImage] orphaned object at ${LISTING_IMAGES_BUCKET}/${storagePath} after metadata insert failed: ${removeErr.message}`,
+      );
+    }
+    if (error) {
+      throw new Error(`Failed to save listing image metadata: ${error.message}`);
+    }
     throw new Error("Listing image upload did not return metadata");
   }
 
@@ -717,7 +722,12 @@ export function getListingImageUrl(imagePath: string): string {
  * returns Array of Listing records (may be empty).
  * throws If userId is empty or the DB query fails.
  */
-export async function getListingsByUser(userId: string, status?: ListingStatus): Promise<Listing[]> {
+export async function getListingsByUser(
+  userId: string,
+  status?: ListingStatus,
+  limit = 50,
+  offset = 0,
+): Promise<Listing[]> {
   if (!userId.trim()) {
     throw new Error("User ID is required");
   }
@@ -727,7 +737,8 @@ export async function getListingsByUser(userId: string, status?: ListingStatus):
     .select(listingSelect)
     .eq("user_id", userId)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (status) {
     query = query.eq("status", status);

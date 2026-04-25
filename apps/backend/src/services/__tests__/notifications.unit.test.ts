@@ -44,6 +44,7 @@ const { state, supabaseMock } = vi.hoisted(() => {
     chain.select = () => chain;
     chain.eq = () => chain;
     chain.order = () => chain;
+    chain.range = () => chain;
 
     chain.update = () => {
       operation = "update";
@@ -56,6 +57,8 @@ const { state, supabaseMock } = vi.hoisted(() => {
     };
 
     chain.single = async () => nextResponse(table, operation);
+    chain.maybeSingle = async () => nextResponse(table, operation);
+    chain.filter = () => chain;
 
     chain.then = (
       resolve: (value: { data: unknown; error: { message: string } | null }) => unknown,

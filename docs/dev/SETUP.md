@@ -161,5 +161,5 @@ See `.env.example` files for more details.
 For more info, see:
 
 - [Copilot Instructions](.github/copilot-instructions.md)
-- [Git Workflow](docs/GIT_WORKFLOW.md)
+- [Git Workflow](docs/dev/GIT_WORKFLOW.md)
 - [Backend README](apps/backend/README.md)

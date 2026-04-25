@@ -8,6 +8,19 @@ type NotificationBellProps = {
   onNotificationClick: (n: Notification) => void;
 };
 
+// Helper function to extract display text from notification payload
+function getNotificationLabel(n: Notification): string {
+  const payload = n.payload as Record<string, unknown>;
+  switch (n.type) {
+    case 'new_message':
+      return String(payload.preview || 'New message');
+    case 'wishlist_item_sold':
+      return `${String(payload.listing_title || 'A wishlisted item')} has been sold`;
+    default:
+      return 'New notification';
+  }
+}
+
 export default function NotificationBell({
   notifications,
   onMarkAllRead,
@@ -74,15 +87,24 @@ export default function NotificationBell({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div
+          className="absolute right-0 mt-2 w-80 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto border"
+          style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+        >
           {/* Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 p-3 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-gray-800">Notifications</h3>
+          <div
+            className="sticky top-0 border-b p-3 flex items-center justify-between"
+            style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
+          >
+            <h3 className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+              Notifications
+            </h3>
             {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={onMarkAllRead}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+                className="text-xs font-semibold hover:opacity-80"
+                style={{ color: 'var(--color-primary)' }}
               >
                 Mark all read
               </button>
@@ -90,9 +112,9 @@ export default function NotificationBell({
           </div>
 
           {/* Notifications List */}
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-[var(--color-border)]">
             {visibleNotifications.length === 0 ? (
-              <div className="p-6 text-center text-gray-500 text-sm">
+              <div className="p-6 text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 No notifications yet
               </div>
             ) : (
@@ -101,20 +123,20 @@ export default function NotificationBell({
                   key={n.id}
                   type="button"
                   onClick={() => handleNotificationClick(n)}
-                  className="w-full text-left p-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
+                  className="w-full text-left p-3 hover:bg-[var(--color-surface-alt)] transition-colors flex items-start gap-3"
                 >
                   {/* Unread indicator */}
                   {!n.is_read && (
-                    <div className="mt-1.5 h-2 w-2 bg-blue-500 rounded-full shrink-0" />
+                    <div className="mt-1.5 h-2 w-2 rounded-full shrink-0 bg-[var(--color-primary)]" />
                   )}
                   {n.is_read && <div className="mt-1.5 h-2 w-2 shrink-0" />}
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-600 line-clamp-2">
-                      {String((n.payload as Record<string, unknown>)?.preview || 'New message')}
+                    <p className="text-xs line-clamp-2" style={{ color: 'var(--color-text-muted)' }}>
+                      {getNotificationLabel(n)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
                       {formatTimeAgo(n.created_at)}
                     </p>
                   </div>

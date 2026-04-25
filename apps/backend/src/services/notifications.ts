@@ -23,8 +23,13 @@ export interface Notification {
 
 const notificationSelect = "id,user_id,type,payload,is_read,read_at,created_at";
 
-// Get all notifications for a user, sorted newest-first.
-export async function getNotifications(userId: string): Promise<Notification[]> {
+// Get notifications for a user, sorted newest-first.
+// Pagination is offset-based; default page is the first 50 notifications.
+export async function getNotifications(
+  userId: string,
+  limit = 50,
+  offset = 0,
+): Promise<Notification[]> {
 
   if (!userId.trim()) {
     throw new Error("User ID is required");
@@ -34,7 +39,8 @@ export async function getNotifications(userId: string): Promise<Notification[]> 
     .from("notifications")
     .select(notificationSelect)
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     throw new Error(`Failed to fetch notifications: ${error.message}`);
@@ -60,7 +66,7 @@ export async function markNotificationRead(notificationId: string, userId: strin
     .eq("id", notificationId)
     .eq("user_id", userId)
     .select("id")
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to mark notification read: ${error.message}`);
@@ -107,7 +113,7 @@ export async function deleteNotification(notificationId: string,userId: string):
     .eq("id", notificationId)
     .eq("user_id", userId)
     .select("id")
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Failed to delete notification: ${error.message}`);
@@ -146,4 +152,26 @@ export function subscribeToNotifications(
   return {
     unsubscribe: () => supabase.removeChannel(channel),
   };
+}
+
+// Mark all unread new_message notifications for a conversation as read.
+// Called when the user opens that conversation so the bell clears automatically.
+export async function markConversationNotificationsRead(
+  conversationId: string,
+  userId: string,
+): Promise<void> {
+  if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!userId.trim()) throw new Error("User ID is required");
+
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true, read_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("type", "new_message")
+    .eq("is_read", false)
+    .filter("payload->>'conversation_id'", "eq", conversationId);
+
+  if (error) {
+    throw new Error(`Failed to mark conversation notifications read: ${error.message}`);
+  }
 }

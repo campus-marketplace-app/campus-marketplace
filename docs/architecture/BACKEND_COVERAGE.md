@@ -133,7 +133,7 @@ Validation status: **CM-US-047 complete** for schema + RLS smoke checks.
 	- messaging tables/constraints exist and enforce integrity
 	- participant-only message read/insert behavior
 	- spoofed `sender_id` insert rejection
-- See `docs/MESSAGING_USAGE.md` for policy behavior and smoke-check mapping.
+- See `docs/usage/MESSAGING_USAGE.md` for policy behavior and smoke-check mapping.
 
 ---
 

@@ -103,55 +103,9 @@ async function getListingInfo(
     .from("listings")
     .select("title,user_id,status")
     .eq("id", listingId)
-    .single();
+    .maybeSingle();
 
   return data ?? null;
-}
-
-// Find an existing conversation between two users for the same listing (or no listing).
-async function findExistingConversation(
-  userId: string,
-  participantId: string,
-  listingId?: string,
-): Promise<string | null> {
-  // Get all conversation IDs where userId is a participant.
-  const { data: myConvos } = await supabase
-    .from("conversation_participants")
-    .select("conversation_id")
-    .eq("user_id", userId)
-    .is("left_at", null);
-
-  if (!myConvos || myConvos.length === 0) return null;
-
-  const myConvoIds = myConvos.map((r: { conversation_id: string }) => r.conversation_id);
-
-  // Of those, find ones where the other user is also a participant.
-  const { data: sharedConvos } = await supabase
-    .from("conversation_participants")
-    .select("conversation_id")
-    .eq("user_id", participantId)
-    .is("left_at", null)
-    .in("conversation_id", myConvoIds);
-
-  if (!sharedConvos || sharedConvos.length === 0) return null;
-
-  const sharedIds = sharedConvos.map((r: { conversation_id: string }) => r.conversation_id);
-
-  // Now filter by listing_id match.
-  let query = supabase
-    .from("conversations")
-    .select("id")
-    .in("id", sharedIds)
-    .is("deleted_at", null);
-
-  if (listingId) {
-    query = query.eq("listing_id", listingId);
-  } else {
-    query = query.is("listing_id", null);
-  }
-
-  const { data: match } = await query.limit(1);
-  return match?.[0]?.id ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -160,12 +114,15 @@ async function findExistingConversation(
 
 // Start or resume a conversation with another user.
 // Returns the existing conversation if one already exists for the same listing.
+// Uses the find_or_create_conversation RPC, which holds an advisory lock for the
+// duration of the find-or-insert so two simultaneous calls for the same
+// (user, participant, listing) tuple can't create duplicate rows.
 export async function createConversation(userId: string, participantId: string, listingId?: string): Promise<Conversation> {
   if (!userId.trim()) throw new Error("User ID is required");
   if (!participantId.trim()) throw new Error("Participant ID is required");
   if (userId === participantId) throw new Error("You cannot start a conversation with yourself");
 
-  // Check if the other user has blocked us (or we blocked them).
+  // Block check stays in the JS layer — it's cheap and fails fast before we hit the RPC.
   const { data: blocked } = await supabase
     .from("blocks")
     .select("id")
@@ -176,45 +133,25 @@ export async function createConversation(userId: string, participantId: string, 
     throw new Error("Cannot start a conversation — one of you has blocked the other");
   }
 
-  // Check for an existing conversation between these two users for this listing.
-  const existingId = await findExistingConversation(userId, participantId, listingId);
-  if (existingId) {
-    return getConversation(existingId, userId);
+  const { data: rpcData, error: rpcError } = await supabase.rpc("find_or_create_conversation", {
+    p_user_id: userId,
+    p_participant_id: participantId,
+    p_listing_id: listingId ?? null,
+  });
+
+  if (rpcError || !rpcData) {
+    throw new Error(`Failed to create conversation: ${rpcError?.message ?? "no data returned"}`);
   }
 
-  // Generate the conversation ID up front so we don't need RETURNING.
-  // The SELECT RLS policy requires the user to be a participant, but
-  // participants are added after the insert — so .insert().select()
-  // would trigger a 403 on the read-back.
-  const convoId = crypto.randomUUID();
-
-  const { error: convoError } = await supabase
-    .from("conversations")
-    .insert({ id: convoId, listing_id: listingId ?? null });
-
-  if (convoError) {
-    throw new Error(`Failed to create conversation: ${convoError.message}`);
-  }
-
-  // Add both users as participants.
-  const { error: partError } = await supabase
-    .from("conversation_participants")
-    .insert([
-      { conversation_id: convoId, user_id: userId },
-      { conversation_id: convoId, user_id: participantId },
-    ]);
-
-  if (partError) {
-    throw new Error(`Failed to add participants: ${partError.message}`);
-  }
-
-  // Now that participants exist, the SELECT policy passes and we can
-  // read the full conversation object back.
+  // The RPC returns a single conversations row. Hydrate it with the same fields
+  // getConversation provides (other user info, last message, unread count, etc).
+  const convoId = (rpcData as { id: string }).id;
   return getConversation(convoId, userId);
 }
 
 // Get all conversations for a user, sorted newest-first.
 // Includes the other user's display name, last message preview, and unread count.
+// Uses two parallel query rounds instead of N×4 sequential queries.
 export async function getConversationsByUser(userId: string): Promise<Conversation[]> {
   if (!userId.trim()) throw new Error("User ID is required");
 
@@ -225,15 +162,12 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
     .eq("user_id", userId)
     .is("left_at", null);
 
-  if (partError) {
-    throw new Error(`Failed to fetch conversations: ${partError.message}`);
-  }
-
+  if (partError) throw new Error(`Failed to fetch conversations: ${partError.message}`);
   if (!participations || participations.length === 0) return [];
 
   const convoIds = participations.map((r: { conversation_id: string }) => r.conversation_id);
 
-  // Fetch the actual conversations.
+  // Fetch the conversation rows.
   const { data: convos, error: convoError } = await supabase
     .from("conversations")
     .select("id,listing_id,created_at,updated_at")
@@ -241,40 +175,122 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
 
-  if (convoError) {
-    throw new Error(`Failed to fetch conversations: ${convoError.message}`);
-  }
-
+  if (convoError) throw new Error(`Failed to fetch conversations: ${convoError.message}`);
   if (!convos || convos.length === 0) return [];
 
-  // Build the full Conversation objects with extra info.
-  const results: Conversation[] = [];
+  const listingIds = [
+    ...new Set(
+      convos
+        .map((c: { listing_id: string | null }) => c.listing_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
 
-  for (const convo of convos) {
-    const otherId = await getOtherParticipantId(convo.id, userId);
-    if (!otherId) continue; // skip if no other participant found
+  // Round 1 — four parallel queries, all need only convoIds or listingIds.
+  const [
+    { data: allParticipants, error: participantsError },
+    { data: allLastMsgs, error: lastMsgsError },
+    { data: allUnreadMsgs, error: unreadError },
+    { data: allListings, error: listingsError },
+  ] = await Promise.all([
+    // Other participant per conversation.
+    supabase
+      .from("conversation_participants")
+      .select("conversation_id,user_id")
+      .in("conversation_id", convoIds)
+      .is("left_at", null)
+      .neq("user_id", userId),
 
-    const { displayName, avatarPath } = await getOtherUserInfo(otherId);
-
-    // Get the latest message for preview.
-    const { data: lastMsg } = await supabase
+    // Latest message per conversation (deduplicated client-side).
+    supabase
       .from("messages")
-      .select("content")
-      .eq("conversation_id", convo.id)
+      .select("conversation_id,content")
+      .in("conversation_id", convoIds)
       .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(1);
+      .order("created_at", { ascending: false }),
 
-    // Count unread messages (sent by the other person, not yet read).
-    const { count } = await supabase
+    // Unread messages per conversation (counted client-side).
+    supabase
       .from("messages")
-      .select("id", { count: "exact", head: true })
-      .eq("conversation_id", convo.id)
+      .select("conversation_id")
+      .in("conversation_id", convoIds)
       .neq("sender_id", userId)
       .eq("is_read", false)
-      .is("deleted_at", null);
+      .is("deleted_at", null),
 
-    const listingInfo = convo.listing_id ? await getListingInfo(convo.listing_id) : null;
+    // Listing info for all referenced listings.
+    listingIds.length > 0
+      ? supabase
+          .from("listings")
+          .select("id,title,user_id,status")
+          .in("id", listingIds)
+      : Promise.resolve({ data: [] as { id: string; title: string; user_id: string; status: ListingStatus }[], error: null }),
+  ]);
+
+  if (participantsError) throw new Error(`Failed to fetch participants: ${participantsError.message}`);
+  if (lastMsgsError) throw new Error(`Failed to fetch messages: ${lastMsgsError.message}`);
+  if (unreadError) throw new Error(`Failed to fetch unread counts: ${unreadError.message}`);
+  if (listingsError) throw new Error(`Failed to fetch listings: ${listingsError.message}`);
+
+  // Round 2 — profiles for other participants (needs Round 1 result).
+  const otherUserIds = [
+    ...new Set((allParticipants ?? []).map((p: { user_id: string }) => p.user_id)),
+  ];
+
+  const { data: profilesData, error: profilesError } = otherUserIds.length > 0
+    ? await supabase
+        .from("profiles")
+        .select("user_id,display_name,avatar_path")
+        .in("user_id", otherUserIds)
+    : { data: [] as { user_id: string; display_name: string | null; avatar_path: string | null }[], error: null };
+
+  if (profilesError) throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
+
+  // Build lookup maps — O(n) assembly, no more awaits.
+  const otherUserIdByConvoId = new Map<string, string>(
+    (allParticipants ?? []).map(
+      (p: { conversation_id: string; user_id: string }) => [p.conversation_id, p.user_id],
+    ),
+  );
+
+  const lastMsgByConvoId = new Map<string, string>();
+  for (const msg of (allLastMsgs ?? []) as { conversation_id: string; content: string }[]) {
+    if (!lastMsgByConvoId.has(msg.conversation_id)) {
+      lastMsgByConvoId.set(msg.conversation_id, msg.content);
+    }
+  }
+
+  const unreadCountByConvoId = new Map<string, number>();
+  for (const msg of (allUnreadMsgs ?? []) as { conversation_id: string }[]) {
+    unreadCountByConvoId.set(
+      msg.conversation_id,
+      (unreadCountByConvoId.get(msg.conversation_id) ?? 0) + 1,
+    );
+  }
+
+  const profileByUserId = new Map(
+    (profilesData ?? []).map(
+      (p: { user_id: string; display_name: string | null; avatar_path: string | null }) => [
+        p.user_id,
+        { displayName: p.display_name ?? undefined, avatarPath: p.avatar_path },
+      ],
+    ),
+  );
+
+  const listingByListingId = new Map(
+    (allListings ?? []).map(
+      (l: { id: string; title: string; user_id: string; status: ListingStatus }) => [l.id, l],
+    ),
+  );
+
+  // Assemble — plain loop, zero awaits.
+  const results: Conversation[] = [];
+  for (const convo of convos) {
+    const otherId = otherUserIdByConvoId.get(convo.id);
+    if (!otherId) continue;
+
+    const profile = profileByUserId.get(otherId);
+    const listingInfo = convo.listing_id ? listingByListingId.get(convo.listing_id) : null;
 
     results.push({
       id: convo.id,
@@ -282,10 +298,10 @@ export async function getConversationsByUser(userId: string): Promise<Conversati
       created_at: convo.created_at,
       updated_at: convo.updated_at,
       other_user_id: otherId,
-      other_user_display_name: displayName,
-      other_user_avatar_path: avatarPath,
-      last_message: lastMsg?.[0]?.content,
-      unread_count: count ?? 0,
+      other_user_display_name: profile?.displayName,
+      other_user_avatar_path: profile?.avatarPath,
+      last_message: lastMsgByConvoId.get(convo.id),
+      unread_count: unreadCountByConvoId.get(convo.id) ?? 0,
       listing_title: listingInfo?.title,
       is_seller: listingInfo ? listingInfo.user_id === userId : undefined,
       listing_status: listingInfo?.status ?? null,
@@ -355,11 +371,25 @@ export async function getConversation(conversationId: string, userId: string): P
   };
 }
 
-// Get all messages in a conversation, sorted oldest-first.
-export async function getMessages(conversationId: string): Promise<Message[]> {
+// Get messages in a conversation, sorted oldest-first.
+// Requires the caller to be an active participant — backend uses the service
+// role key, so RLS would not stop a non-participant from reading otherwise.
+// Pagination is offset-based; default page is the first 100 messages.
+export async function getMessages(
+  conversationId: string,
+  userId: string,
+  limit = 100,
+  offset = 0,
+): Promise<Message[]> {
   if (!conversationId.trim()) throw new Error("Conversation ID is required");
+  if (!userId.trim()) throw new Error("User ID is required");
 
-  // Verify conversation exists.
+  const callerIsParticipant = await isParticipant(conversationId, userId);
+  if (!callerIsParticipant) {
+    throw new Error("You are not a participant in this conversation");
+  }
+
+  // Verify conversation exists and isn't deleted.
   const { data: convo, error: convoError } = await supabase
     .from("conversations")
     .select("id")
@@ -376,7 +406,8 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
     .select("id,conversation_id,sender_id,content,is_read,read_at,created_at")
     .eq("conversation_id", conversationId)
     .is("deleted_at", null)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     throw new Error(`Failed to fetch messages: ${error.message}`);
@@ -400,7 +431,10 @@ export async function sendMessage(conversationId: string, senderId: string, cont
     throw new Error("You are not a participant in this conversation");
   }
 
-  // Guard: block messages if the linked listing has been sold.
+  // Guard: block messages if the linked listing has been sold AND the sender is
+  // not the seller. Sellers retain messaging access so they can coordinate
+  // pickup/refunds. The DB trigger block_messages_on_sold_listing enforces the
+  // same rule atomically.
   const { data: convoCheck } = await supabase
     .from("conversations")
     .select("listing_id")
@@ -411,16 +445,17 @@ export async function sendMessage(conversationId: string, senderId: string, cont
   if (convoCheck?.listing_id) {
     const { data: listingCheck } = await supabase
       .from("listings")
-      .select("status")
+      .select("status,user_id")
       .eq("id", convoCheck.listing_id)
       .single();
 
-    if (listingCheck?.status === "sold") {
+    if (listingCheck?.status === "sold" && listingCheck.user_id !== senderId) {
       throw new ConversationLockedError();
     }
   }
 
-  // Insert the message.
+  // Insert the message. The DB trigger block_messages_on_sold_listing rejects
+  // inserts whose listing flipped to 'sold' between our pre-check and here.
   const { data: msg, error: msgError } = await supabase
     .from("messages")
     .insert({
@@ -432,6 +467,9 @@ export async function sendMessage(conversationId: string, senderId: string, cont
     .single<Message>();
 
   if (msgError || !msg) {
+    if (msgError?.message?.includes("Cannot send messages on a sold listing")) {
+      throw new ConversationLockedError();
+    }
     throw new Error(`Failed to send message: ${msgError?.message ?? "no data returned"}`);
   }
 
@@ -516,14 +554,18 @@ export async function archiveConversation(conversationId: string, userId: string
 // Calls onChange whenever a conversation row is updated (e.g. last message, unread count).
 // Used by the frontend to replace 15-second polling with event-driven cache invalidation.
 // Returns an object with an unsubscribe function — call it on cleanup/unmount.
+// userId is used to scope the channel name so each subscriber gets a distinct channel
+// (and the unsubscribe in one tab can't tear down another's). The Postgres-changes
+// stream itself isn't filterable per user — the callback receives every conversation
+// UPDATE — so the consumer should debounce or compare ids if it cares about specifics.
 export function subscribeToConversations(
-  conversationIds: string[],
-  onChange: () => void,
+  userId: string,
+  onChange: (conversationId: string) => void,
 ): { unsubscribe: () => void } {
-  if (conversationIds.length === 0) return { unsubscribe: () => {} };
+  if (!userId.trim()) return { unsubscribe: () => {} };
 
   const channel = supabase
-    .channel(`conversations:${conversationIds.join(",")}`)
+    .channel(`conversations:user:${userId}`)
     .on(
       "postgres_changes",
       {
@@ -532,11 +574,8 @@ export function subscribeToConversations(
         table: "conversations",
       },
       (payload) => {
-        // Only trigger if the update is for one of the conversations we care about.
         const updatedId = (payload.new as { id: string }).id;
-        if (conversationIds.includes(updatedId)) {
-          onChange();
-        }
+        onChange(updatedId);
       },
     )
     .subscribe();

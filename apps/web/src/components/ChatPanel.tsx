@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { MoreVertical, Send, ShoppingBag, ArrowRight } from "lucide-react";
+import { Send, ShoppingBag, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Message } from "@campus-marketplace/backend";
 
@@ -46,6 +46,9 @@ export default function ChatPanel({
     const bottomRef = useRef<HTMLDivElement>(null);
 
     const isSold = listingStatus === "sold";
+    // Sellers can keep messaging on their own sold listings (e.g. coordinate pickup).
+    // The DB trigger and backend sendMessage enforce this; the UI mirrors it here.
+    const inputDisabled = isSold && !isSeller;
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,24 +79,15 @@ export default function ChatPanel({
                         </button>
                     )}
 
-                    {/* Contact name + role label */}
-                    <div className="flex-1">
-                        <span className="text-base font-semibold text-[var(--color-text)]">{otherUserName}</span>
-                        <p className="text-xs text-[var(--color-text-muted)]">
-                            {listingId
-                                ? (isSeller ? "Selling to" : "Buying from") + " " + otherUserName
-                                : "Active now"}
+                    {/* Role label on top, contact name below in larger type */}
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+                            {listingId ? (isSeller ? "Selling to" : "Buying from") : "Conversation"}
                         </p>
+                        <span className="block truncate text-lg font-semibold text-[var(--color-text)]">
+                            {otherUserName}
+                        </span>
                     </div>
-
-                    {/* Options button */}
-                    <button
-                        type="button"
-                        className="p-2 hover:bg-[var(--color-surface)] rounded-lg transition-colors"
-                        aria-label="More options"
-                    >
-                        <MoreVertical size={18} className="text-[var(--color-text-muted)]" />
-                    </button>
                 </div>
 
                 {/* Listing card — shown when conversation is linked to a listing */}
@@ -151,10 +145,12 @@ export default function ChatPanel({
                 <div ref={bottomRef} />
             </div>
 
-            {/* Sold banner — shown when the linked listing has been sold */}
+            {/* Sold banner — different copy for buyer vs seller */}
             {isSold && (
                 <div className="mx-2 mb-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-center text-sm text-[var(--color-text-muted)]">
-                    This item has been sold. Messaging is no longer available.
+                    {isSeller
+                        ? "This item is marked sold. You can still message the buyer to coordinate."
+                        : "This item has been sold. Messaging is no longer available."}
                 </div>
             )}
 
@@ -162,17 +158,17 @@ export default function ChatPanel({
             <div className="m-2 mt-0 flex items-center gap-2 border-t border-[var(--color-border)] bg-[var(--color-background)] p-3">
                 <input
                     type="text"
-                    placeholder={isSold ? "This conversation is closed" : "Type a message..."}
+                    placeholder={inputDisabled ? "This conversation is closed" : "Type a message..."}
                     value={messageInput}
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    disabled={isSold}
+                    disabled={inputDisabled}
                     className="flex-1 rounded-lg border border-[var(--color-border)] bg-transparent px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30 transition-all placeholder:text-[var(--color-text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                     type="button"
                     onClick={onSend}
-                    disabled={!messageInput.trim() || isSold || isSending}
+                    disabled={!messageInput.trim() || inputDisabled || isSending}
                     className="flex items-center gap-2 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-on-primary)] disabled:opacity-40 hover:opacity-90 transition-opacity"
                 >
                     <Send size={16} />

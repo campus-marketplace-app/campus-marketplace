@@ -4,12 +4,13 @@ import type { ListingWithDetails } from "@campus-marketplace/backend";
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { Link, useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { Monitor, Shirt, Sofa, BookOpen, Gift, Dumbbell, Zap, Bookmark, BookText, Bike, Home, UtensilsCrossed, Gamepad2, Music, Package } from "lucide-react";
-import { NoImagePlaceholder } from "../components/NoImagePlaceholder";
+import { ListingThumb } from "../components/ListingThumb";
 import { useCategories } from "../hooks/useCategories.ts";
 import { useSearchListings } from "../hooks/useListings";
 import { useProfile } from "../hooks/useProfile";
 import { useHomeStats } from "../hooks/useHomeStats";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "../hooks/useWishlist";
+import { useCountUp } from "../hooks/useCountUp";
 import type { SessionUser } from "../features/types";
 
 type OutletContext = {
@@ -57,25 +58,6 @@ const shimmerStyle: React.CSSProperties = {
     animation: "shimmer 1.4s infinite linear",
 };
 
-/** Counts from 0 to `target` over `duration` ms using an ease-out curve. */
-function useCountUp(target: number | undefined, duration = 900): number {
-    const [current, setCurrent] = useState(0);
-    useEffect(() => {
-        if (target === undefined) return;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (target === 0) { setCurrent(0); return; }
-        const start = performance.now();
-        let rafId: number;
-        const tick = (now: number) => {
-            const progress = Math.min((now - start) / duration, 1);
-            setCurrent(Math.round(target * Math.sqrt(progress)));
-            if (progress < 1) rafId = requestAnimationFrame(tick);
-        };
-        rafId = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(rafId);
-    }, [target, duration]);
-    return current;
-}
 
 export default function Index() {
     const location = useLocation();
@@ -405,23 +387,11 @@ const displayName = profile?.display_name ?? user?.email ?? "there";
                                     }}
                                 >
                                     <div className="relative h-48 w-full" style={{ backgroundColor: "var(--color-background-alt)" }}>
-                                        {listing.images?.[0]?.path ? (
-                                            <>
-                                                <img
-                                                    src={getListingImageUrl(listing.images[0].path)}
-                                                    alt={listing.images[0].alt_text ?? listing.title}
-                                                    className="h-full w-full object-cover"
-                                                    onError={(e) => {
-                                                        e.currentTarget.style.display = "none";
-                                                        const fb = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                                        if (fb) fb.style.display = "flex";
-                                                    }}
-                                                />
-                                                <NoImagePlaceholder title={listing.title} hidden />
-                                            </>
-                                        ) : (
-                                            <NoImagePlaceholder title={listing.title} />
-                                        )}
+                                        <ListingThumb
+                                            src={listing.images?.[0]?.path ? getListingImageUrl(listing.images[0].path) : undefined}
+                                            alt={listing.images?.[0]?.alt_text ?? listing.title}
+                                            title={listing.title}
+                                        />
                                         {/* Wishlist button */}
                                         {(() => {
                                             const isOwner = !!user && listing.user_id === user.id;
