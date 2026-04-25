@@ -36,7 +36,6 @@ export default function Listing() {
     };
 
     const ownerStatus = toOwnerStatus(listingData?.status);
-    const statusBusy = publishLoading || soldLoading;
     const statusLocked = ownerStatus === "sold";
 
     // Show unavailable message when listing is inactive and viewer is not the owner.
