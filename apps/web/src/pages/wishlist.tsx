@@ -56,7 +56,9 @@ export default function Wishlist() {
                 )}
 
                 {!isLoading && wishlistItems.length === 0 ? (
-                    <p style={{ color: "var(--color-text-muted)" }}>Your wishlist is empty.</p>
+                    <div className="flex min-h-[50vh] items-center justify-center px-4">
+                        <p className="text-center" style={{ color: "var(--color-text-muted)" }}>Your wishlist is empty.</p>
+                    </div>
                 ) : wishlistItems.length > 0 ? (
                     <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-4">
                         {isLoading && wishlistItems.length > 0 && (

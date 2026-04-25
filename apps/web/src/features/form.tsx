@@ -15,12 +15,13 @@ import {
 import type { ItemCondition, ListingImageContentType, ListingWithDetails } from '@campus-marketplace/backend';
 import type { ListingType, SessionUser } from './types';
 import { useCategories } from '../hooks/useCategories';
+import { useInvalidateListings } from '../hooks/useListings';
 
 type FormProps = {
     showForm: boolean;
     user: SessionUser | null;
     onClose: () => void;
-    onSubmitSuccess?: () => void;
+    onSubmitSuccess?: (result: { intent: 'draft' | 'publish'; listingId: string }) => void;
     editListing?: ListingWithDetails | null;
 };
 
@@ -60,6 +61,7 @@ export default function Form({
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
     const objectUrlRef = useRef<string | null>(null);
     const { categories } = useCategories();
+    const { invalidateAll, invalidateByUser, invalidateDetail } = useInvalidateListings();
 
     const formatMissingPublishFields = (fields: string[]) => {
         const labels: Record<string, string> = {
@@ -334,7 +336,15 @@ export default function Form({
                 await publishListing(targetListingId, user.id);
             }
 
-            onSubmitSuccess?.();
+            await invalidateAll();
+            await invalidateByUser(user.id);
+            if (targetListingId) {
+                await invalidateDetail(targetListingId);
+            }
+
+            if (targetListingId) {
+                onSubmitSuccess?.({ intent, listingId: targetListingId });
+            }
             setIsSubmitting(false);
             onClose();
         } catch (error) {
